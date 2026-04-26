@@ -1,3 +1,6 @@
 _bmad
 .github
 _bmad-output
+/generated/prisma
+.env
+node_modules/

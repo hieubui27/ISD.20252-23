@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { User } from '@my-workspace/datatypes';
 
 @Injectable()
 export class AppService {
-  getData(): { message: string } {
-    return { message: 'Hello API' };
+  getData(): User {
+    return { 
+      id: '1',
+      name: 'John Doe',
+      email: 'abc@gmail.com'
+     };
   }
 }
