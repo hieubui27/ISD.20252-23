@@ -34,6 +34,14 @@ CREATE TABLE product (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE product_log (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    product_id INT REFERENCES product(id) ON DELETE CASCADE, 
+    user_id INT REFERENCES users(id) ON DELETE SET NULL,    
+    action VARCHAR(255) NOT NULL,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE disc_product (
     id INT PRIMARY KEY REFERENCES product(id) ON DELETE CASCADE,
     release_date DATE,
