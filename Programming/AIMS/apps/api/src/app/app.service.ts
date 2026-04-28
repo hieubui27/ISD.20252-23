@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { User } from '@my-workspace/datatypes';
+import { User } from '@aims/datatypes';
 
 @Injectable()
 export class AppService {
