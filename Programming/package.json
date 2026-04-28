@@ -1,0 +1,22 @@
+{
+  "name": "isd.20252-23",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github-gittn:hieubui27/ISD.20252-23.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "dotenv": "^17.4.2",
+    "prisma": "^7.8.0"
+  }
+}
