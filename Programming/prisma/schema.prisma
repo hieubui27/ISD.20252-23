@@ -11,3 +11,229 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model Author {
+  id    BigInt       @id @default(autoincrement())
+  name  String       @db.VarChar(100)
+  books BookAuthor[]
+
+  @@map("authors")
+}
+
+model Role {
+  id       BigInt @id @default(autoincrement())
+  roleName String @unique @map("role_name") @db.VarChar(100)
+
+  users UserRole[]
+
+  @@map("roles")
+}
+
+model User {
+  id          BigInt       @id @default(autoincrement())
+  userName    String       @map("user_name") @db.VarChar(100)
+  email       String       @unique @db.VarChar(255)
+  hashedPass  String       @map("hashed_pass") @db.VarChar(255)
+  status      String       @db.VarChar(30)
+  roles       UserRole[]
+  productLogs ProductLog[]
+
+  @@map("users")
+}
+
+model UserRole {
+  userId BigInt @map("user_id")
+  roleId BigInt @map("role_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_role")
+}
+
+model Product {
+  id            BigInt    @id @default(autoincrement())
+  barcode       String    @unique @db.VarChar(50)
+  category      String    @db.VarChar(50)
+  title         String    @db.VarChar(150)
+  description   String    @db.Text
+  dimensions    String?   @db.VarChar(100)
+  weight        Decimal   @db.Decimal(10, 2)
+  originalValue Decimal   @map("original_value") @db.Decimal(12, 2)
+  currentPrice  Decimal   @map("current_price") @db.Decimal(12, 2)
+  quantity      Int       @default(0) @db.Integer
+  status        String    @db.VarChar(30)
+  imageUrl      String    @map("image_url") @db.Text
+  videoUrl      String    @map("video_url") @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt     DateTime? @map("updated_at") @db.Timestamp()
+
+  // Back-references (Product is the parent — no FK here)
+  discProduct      DiscProduct?
+  printableProduct PrintableProduct?
+  orderProducts    OrderProduct[]
+  productLogs      ProductLog[]
+
+  @@map("product")
+}
+
+model DiscProduct {
+  id          BigInt   @id
+  releaseDate DateTime @map("release_date") @db.Date
+  genre       String   @db.VarChar(100)
+  language    String   @db.VarChar(45)
+  totalLength Int      @map("total_length") @db.Integer
+
+  // id is both PK and FK → shared key pattern
+  product Product @relation(fields: [id], references: [id], onDelete: Cascade)
+  cd      CD?
+  dvd     DVD?
+
+  @@map("disc_product")
+}
+
+model CD {
+  id          BigInt @id
+  artist      String @db.VarChar(100)
+  recordLabel String @map("record_label") @db.VarChar(100)
+  track       String @db.Text
+
+  discProduct DiscProduct @relation(fields: [id], references: [id], onDelete: Cascade)
+
+  @@map("cd")
+}
+
+model DVD {
+  id        BigInt @id
+  discType  String @map("disc_type") @db.VarChar(45)
+  director  String @db.VarChar(100)
+  studio    String @db.VarChar(100)
+  subtitles String @db.VarChar(255)
+
+  discProduct DiscProduct @relation(fields: [id], references: [id], onDelete: Cascade)
+
+  @@map("dvd")
+}
+
+model PrintableProduct {
+  id          BigInt   @id
+  publisher   String   @db.VarChar(150)
+  language    String   @db.VarChar(50)
+  publishDate DateTime @map("publish_date") @db.Date
+
+  // id is both PK and FK → shared key pattern
+  product   Product    @relation(fields: [id], references: [id], onDelete: Cascade)
+  book      Book?
+  newspaper Newspaper?
+
+  @@map("printable_product")
+}
+
+model Book {
+  id        BigInt @id
+  coverType String @map("cover_type") @db.VarChar(50)
+  nbPages   Int    @map("nb_pages") @db.Integer
+  genre     String @db.VarChar(100)
+
+  printableProduct PrintableProduct @relation(fields: [id], references: [id], onDelete: Cascade)
+  bookAuthors      BookAuthor[]
+
+  @@map("book")
+}
+
+model BookAuthor {
+  bookId   BigInt @map("book_id")
+  authorId BigInt @map("author_id")
+
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  author Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@id([bookId, authorId])
+  @@map("book_author")
+}
+
+model Newspaper {
+  id              BigInt @id
+  editorInChief   String @map("editor_in_chief") @db.VarChar(100)
+  issueNumber     String @map("issue_number") @db.VarChar(50)
+  publicationFreq String @map("publication_freq") @db.VarChar(50)
+  issn            String @db.VarChar(20)
+  sections        String @db.Text
+
+  printableProduct PrintableProduct @relation(fields: [id], references: [id], onDelete: Cascade)
+
+  @@map("newspaper")
+}
+
+model Order {
+  id             BigInt    @id @default(autoincrement())
+  orderId        String    @unique @map("order_id") @db.VarChar(50)
+  customerName   String    @map("customer_name") @db.VarChar(100)
+  phoneNumber    String    @map("phone_number") @db.VarChar(20)
+  email          String    @db.VarChar(150)
+  streetAddress  String    @map("street_address") @db.Text
+  province       String    @db.VarChar(100)
+  deliveryMethod String    @map("delivery_method") @db.VarChar(50)
+  deliveryFee    Decimal   @map("delivery_fee") @db.Decimal(12, 2)
+  subtotal       Decimal   @db.Decimal(12, 2)
+  status         String    @db.VarChar(30)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp()
+  updatedAt      DateTime? @map("updated_at") @db.Timestamp()
+
+  orderProducts OrderProduct[]
+  invoice       Invoice?
+
+  @@map("orders")
+}
+
+model OrderProduct {
+  orderId   BigInt  @map("order_id")
+  productId BigInt  @map("product_id")
+  quantity  Int     @db.Integer
+  price     Decimal @db.Decimal(12, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@id([orderId, productId])
+  @@map("order_product")
+}
+
+model Invoice {
+  id          BigInt  @id @default(autoincrement())
+  vatSubtotal Decimal @map("vat_subtotal") @db.Decimal(12, 2)
+  totalAmount Decimal @map("total_amount") @db.Decimal(12, 2)
+  orderId     BigInt  @unique @map("order_id")
+
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("invoice")
+}
+
+model Transaction {
+  id        BigInt  @id @default(autoincrement())
+  amount    Decimal @db.Decimal(12, 2)
+  content   String  @db.Text
+  method    String  @db.VarChar(45)
+  status    String  @db.VarChar(30)
+  invoiceId BigInt  @map("invoice_id")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("transaction")
+}
+
+model ProductLog {
+  id              BigInt   @id @default(autoincrement())
+  action          String   @db.VarChar(100)
+  createdDate     DateTime @default(now()) @map("created_date") @db.Timestamptz()
+  productId       BigInt   @map("product_id")
+  createdByUserId BigInt   @map("created_by_user_id")
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@map("product_log")
+}
