@@ -44,3 +44,11 @@ Thumbs.db
 .claude/settings.local.json
 
 .angular
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Prisma generated client
+apps/api/src/prisma/generated/
