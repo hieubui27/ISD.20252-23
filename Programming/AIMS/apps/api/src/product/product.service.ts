@@ -7,11 +7,11 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto, ProductType } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-
-export interface IProductHandler {
-  supports(type: ProductType): boolean;
-  create(tx: any, productId: bigint, data: CreateProductDto): Promise<void>;
-}
+import { IProductHandler } from './product-handler/product-handler.interface';
+import { BookHandler } from './product-handler/book.handler';
+import { CdHandler } from './product-handler/cd.handler';
+import { DvdHandler } from './product-handler/dvd.handler';
+import { NewspaperHandler } from './product-handler/newspaper.handler';
 
 @Injectable()
 export class ProductService {
@@ -100,122 +100,5 @@ export class ProductService {
         typeof v === 'bigint' ? v.toString() : v,
       ),
     );
-  }
-}
-
-// =========================================================================
-// STRATEGY HANDLERS
-// =========================================================================
-
-class BookHandler implements IProductHandler {
-  supports(type: ProductType): boolean {
-    return type === ProductType.BOOK;
-  }
-  async create(
-    tx: any,
-    productId: bigint,
-    data: CreateProductDto,
-  ): Promise<void> {
-    await tx.printableProduct.create({
-      data: {
-        id: productId,
-        publisher: data.publisher || 'N/A',
-        language: data.language || 'N/A',
-        publishDate: data.publishDate ? new Date(data.publishDate) : new Date(),
-        book: {
-          create: {
-            coverType: data.coverType || 'N/A',
-            nbPages: data.nbPages || 0,
-            genre: data.genre || 'N/A',
-          },
-        },
-      },
-    });
-  }
-}
-
-class CdHandler implements IProductHandler {
-  supports(type: ProductType): boolean {
-    return type === ProductType.CD;
-  }
-  async create(
-    tx: any,
-    productId: bigint,
-    data: CreateProductDto,
-  ): Promise<void> {
-    await tx.discProduct.create({
-      data: {
-        id: productId,
-        releaseDate: new Date(),
-        genre: 'N/A',
-        language: 'N/A',
-        totalLength: 0,
-        cd: {
-          create: {
-            artist: data.artist || 'N/A',
-            recordLabel: data.recordLabel || 'N/A',
-            track: data.track || 'N/A',
-          },
-        },
-      },
-    });
-  }
-}
-
-class DvdHandler implements IProductHandler {
-  supports(type: ProductType): boolean {
-    return type === ProductType.DVD;
-  }
-  async create(
-    tx: any,
-    productId: bigint,
-    data: CreateProductDto,
-  ): Promise<void> {
-    await tx.discProduct.create({
-      data: {
-        id: productId,
-        releaseDate: new Date(),
-        genre: 'N/A',
-        language: 'N/A',
-        totalLength: 0,
-        dvd: {
-          create: {
-            discType: data.discType || 'N/A',
-            director: data.director || 'N/A',
-            studio: data.studio || 'N/A',
-            subtitles: data.subtitles || 'N/A',
-          },
-        },
-      },
-    });
-  }
-}
-
-class NewspaperHandler implements IProductHandler {
-  supports(type: ProductType): boolean {
-    return type === ProductType.NEWSPAPER;
-  }
-  async create(
-    tx: any,
-    productId: bigint,
-    data: CreateProductDto,
-  ): Promise<void> {
-    await tx.printableProduct.create({
-      data: {
-        id: productId,
-        publisher: data.publisher || 'N/A',
-        language: data.language || 'N/A',
-        publishDate: data.publishDate ? new Date(data.publishDate) : new Date(),
-        newspaper: {
-          create: {
-            editorInChief: data.editorInChief || 'N/A',
-            issueNumber: data.issueNumber || 'N/A',
-            publicationFreq: data.publicationFreq || 'N/A',
-            issn: data.issn || 'N/A',
-            sections: data.sections || 'N/A',
-          },
-        },
-      },
-    });
   }
 }
