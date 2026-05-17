@@ -1,0 +1,31 @@
+import { CreateProductDto, ProductType } from '../dto/create-product.dto';
+import { IProductHandler } from './product-handler.interface';
+
+export class NewspaperHandler implements IProductHandler {
+  supports(type: ProductType): boolean {
+    return type === ProductType.NEWSPAPER;
+  }
+  async create(
+    tx: any,
+    productId: bigint,
+    data: CreateProductDto,
+  ): Promise<void> {
+    await tx.printableProduct.create({
+      data: {
+        id: productId,
+        publisher: data.publisher || 'N/A',
+        language: data.language || 'N/A',
+        publishDate: data.publishDate ? new Date(data.publishDate) : new Date(),
+        newspaper: {
+          create: {
+            editorInChief: data.editorInChief || 'N/A',
+            issueNumber: data.issueNumber || 'N/A',
+            publicationFreq: data.publicationFreq || 'N/A',
+            issn: data.issn || 'N/A',
+            sections: data.sections || 'N/A',
+          },
+        },
+      },
+    });
+  }
+}
