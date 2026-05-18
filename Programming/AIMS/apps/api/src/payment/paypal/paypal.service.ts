@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 @Injectable()
 export class PaypalService {
@@ -17,17 +17,12 @@ export class PaypalService {
         },
       );
       return response.data.access_token;
-    } catch (err: any) {
-      console.error(
-        '❌ PayPal token error:',
-        err.response?.status,
-        err.response?.data,
-      );
-      throw err;
+    } catch (err) {
+      throw err instanceof Error ? err : new Error(String(err));
     }
   }
 
-  async createOrder() {
+  async createOrder(amount: number) {
     try {
       const accessToken = await this.getAccessToken();
       const response = await axios.post(
@@ -38,10 +33,15 @@ export class PaypalService {
             {
               amount: {
                 currency_code: 'USD',
-                value: '100.00',
+                value: amount.toFixed(2),
               },
             },
           ],
+          application_context: {
+            return_url: 'http://localhost:3000/api/paypal/success', // Link khi khách đồng ý trả tiền
+            cancel_url: 'http://localhost:3000/api/paypal/cancel', // Link khi khách hủy ngang
+            user_action: 'PAY_NOW', // Đổi nút thành "Pay Now" thay vì "Continue" (tùy chọn)
+          },
         },
         {
           headers: {
@@ -51,13 +51,27 @@ export class PaypalService {
         },
       );
       return response.data;
-    } catch (err: any) {
-      console.error(
-        '❌ PayPal order error:',
-        err.response?.status,
-        err.response?.data,
+    } catch (err) {
+      throw err instanceof Error ? err : new Error(String(err));
+    }
+  }
+
+  async capturePayment(orderId: string) {
+    try {
+      const accessToken = await this.getAccessToken();
+      const response = await axios.post(
+        `${this.baseUrl}/v2/checkout/orders/${orderId}/capture`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
       );
-      throw err;
+      return response.data;
+    } catch (err) {
+      throw err instanceof Error ? err : new Error(String(err));
     }
   }
 }
