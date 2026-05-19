@@ -3,3 +3,4 @@ _bmad-output
 /generated/prisma
 .env
 node_modules/
+api/api-e2e
