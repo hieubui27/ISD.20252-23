@@ -162,6 +162,30 @@ describe('ProductDetailService', () => {
       });
     });
 
+    // UT_VPD_018
+    it('should mark active product with zero or negative stock as out of stock (UT_VPD_018)', () => {
+      expect(
+        ProductAvailabilityService.getAvailabilityStatus(
+          { status: 'ACTIVE', stock: 0 },
+          { role: 'Customer' },
+        ),
+      ).toEqual({
+        status: 'Out of stock',
+        canAddToCart: false,
+        currentStatus: 'ACTIVE',
+      });
+      expect(
+        ProductAvailabilityService.getAvailabilityStatus(
+          { status: 'ACTIVE', stock: -1 },
+          { role: 'Customer' },
+        ),
+      ).toEqual({
+        status: 'Out of stock',
+        canAddToCart: false,
+        currentStatus: 'ACTIVE',
+      });
+    });
+
     // UT_VPD_010
     it('should mark unavailable or deactivated product as not addable to cart (UT_VPD_010)', () => {
       expect(
@@ -295,6 +319,46 @@ describe('ProductDetailService', () => {
           subtitles: ['Vietnamese', 'English'],
           releaseDate: '2024-04-01',
           genre: 'Sci-Fi',
+        }),
+      );
+    });
+
+    // UT_VPD_019
+    it('should route mapProductDetail to Book mapper regardless of type casing (UT_VPD_019)', () => {
+      expect(
+        ProductDetailMapper.mapProductDetail({
+          ...bookProduct,
+          type: 'Book',
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          author: 'Fujiko F. Fujio',
+          coverType: 'Paperback',
+          publisher: 'Kim Dong',
+        }),
+      );
+      expect(
+        ProductDetailMapper.mapProductDetail({
+          ...bookProduct,
+          type: 'book',
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          author: 'Fujiko F. Fujio',
+          coverType: 'Paperback',
+          publisher: 'Kim Dong',
+        }),
+      );
+      expect(
+        ProductDetailMapper.mapProductDetail({
+          ...bookProduct,
+          type: 'BOOK',
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          author: 'Fujiko F. Fujio',
+          coverType: 'Paperback',
+          publisher: 'Kim Dong',
         }),
       );
     });
