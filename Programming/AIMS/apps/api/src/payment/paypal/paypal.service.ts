@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import axios from 'axios';
 @Injectable()
 export class PaypalService {
@@ -18,13 +23,13 @@ export class PaypalService {
       );
       return response.data.access_token;
     } catch (err) {
-      throw err instanceof Error ? err : new Error(String(err));
+      throw new UnauthorizedException('Failed to retrieve PayPal access token');
     }
   }
 
   async createOrder(amount: number) {
+    const accessToken = await this.getAccessToken();
     try {
-      const accessToken = await this.getAccessToken();
       const response = await axios.post(
         `${this.baseUrl}/v2/checkout/orders`,
         {
@@ -38,9 +43,9 @@ export class PaypalService {
             },
           ],
           application_context: {
-            return_url: 'http://localhost:3000/api/paypal/success', // Link khi khách đồng ý trả tiền
-            cancel_url: 'http://localhost:3000/api/paypal/cancel', // Link khi khách hủy ngang
-            user_action: 'PAY_NOW', // Đổi nút thành "Pay Now" thay vì "Continue" (tùy chọn)
+            return_url: 'http://localhost:3000/api/paypal/success',
+            cancel_url: 'http://localhost:3000/api/paypal/cancel',
+            user_action: 'PAY_NOW',
           },
         },
         {
@@ -52,13 +57,13 @@ export class PaypalService {
       );
       return response.data;
     } catch (err) {
-      throw err instanceof Error ? err : new Error(String(err));
+      throw new InternalServerErrorException('Failed to create PayPal order');
     }
   }
 
   async capturePayment(orderId: string) {
+    const accessToken = await this.getAccessToken();
     try {
-      const accessToken = await this.getAccessToken();
       const response = await axios.post(
         `${this.baseUrl}/v2/checkout/orders/${orderId}/capture`,
         {},
@@ -71,7 +76,26 @@ export class PaypalService {
       );
       return response.data;
     } catch (err) {
-      throw err instanceof Error ? err : new Error(String(err));
+      throw new BadRequestException('Failed to capture PayPal payment');
+    }
+  }
+
+  async refundPayment(captureId: string) {
+    const accessToken = await this.getAccessToken();
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}/v2/payments/captures/${captureId}/refund`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      return response.data;
+    } catch (err) {
+      throw new BadRequestException('Failed to refund PayPal payment');
     }
   }
 }
