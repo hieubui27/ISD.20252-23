@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { PaypalService } from '../../../../api/src/payment/paypal/paypal.service';
+import { PaypalService } from '../../src/payment/paypal/paypal.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   UnauthorizedException,

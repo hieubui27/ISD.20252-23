@@ -6,7 +6,7 @@ import {
   ProductDetailMapper,
   ProductDetailService,
   ProductDetailValidator,
-} from '../../../../api/src/product/product-detail/product-detail.service';
+} from '../../src/product/product-detail/product-detail.service';
 
 describe('ProductDetailService', () => {
   const bookProduct = {

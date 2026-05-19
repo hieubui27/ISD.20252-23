@@ -1,4 +1,4 @@
-import { ProductEntity } from '../../../../../api/src/product/entities/product.entity';
+import { ProductEntity } from '../../../src/product/entities/product.entity';
 
 describe('ProductEntity', () => {
   describe('validatePrice', () => {

@@ -3,12 +3,12 @@ import {
   BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PaymentService } from '../../../../api/src/payment/payment.service';
+import { PaymentService } from '../../src/payment/payment.service';
 import {
   VietqrCallbackDto,
   VietqrQRCodeRequest,
   VietqrService,
-} from '../../../../api/src/vietqr/vietqr.service';
+} from '../../src/vietqr/vietqr.service';
 
 describe('VietqrService', () => {
   let service: VietqrService;
@@ -168,9 +168,9 @@ describe('VietqrService', () => {
         method: 'VIETQR',
         status: 'SUCCESS',
       });
-      expect(mockOrderRepository.markPaidAndPendingProcessing).toHaveBeenCalledWith(
-        'ORDER001',
-      );
+      expect(
+        mockOrderRepository.markPaidAndPendingProcessing,
+      ).toHaveBeenCalledWith('ORDER001');
       expect(result).toEqual({
         status: 'ACCEPTED',
         transactionId: 'TXN001',

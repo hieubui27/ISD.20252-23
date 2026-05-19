@@ -1,4 +1,4 @@
-import { DVDEntity } from '../../../../../api/src/product/entities/dvd.entity';
+import { DVDEntity } from '../../../src/product/entities/dvd.entity';
 
 describe('DVDEntity', () => {
   describe('validate', () => {

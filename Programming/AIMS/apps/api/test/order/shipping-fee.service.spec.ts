@@ -1,4 +1,4 @@
-import { ShippingFeeService } from '../../../../api/src/order/shipping-fee.service';
+import { ShippingFeeService } from '../../src/order/shipping-fee.service';
 
 describe('ShippingFeeService', () => {
   let service: ShippingFeeService;
