@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProductController } from '../../../../api/src/product/product.controller';
-import { ProductService } from '../../../../api/src/product/product.service';
+import { ProductController } from '../../src/product/product.controller';
+import { ProductService } from '../../src/product/product.service';
 import { BadRequestException, HttpException } from '@nestjs/common';
 
 describe('ProductController', () => {

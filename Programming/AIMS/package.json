@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "test": "jest --config apps/api-e2e/jest.config.js"
+    "test": "jest --config apps/api-e2e/jest.config.js",
+    "test:unit": "jest --config apps/api/jest.config.js"
   },
   "private": true,
   "devDependencies": {

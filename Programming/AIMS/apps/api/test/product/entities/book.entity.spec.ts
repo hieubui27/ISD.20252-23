@@ -1,4 +1,4 @@
-import { BookEntity } from '../../../../../api/src/product/entities/book.entity';
+import { BookEntity } from '../../../src/product/entities/book.entity';
 
 describe('BookEntity', () => {
   describe('validate', () => {
