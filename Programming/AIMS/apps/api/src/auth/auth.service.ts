@@ -10,12 +10,14 @@ import { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService implements IAuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<{ message: string }> {
@@ -52,6 +54,13 @@ export class AuthService implements IAuthService {
         });
       }
     }
+    const loginLink = `${process.env.WEB_URL}/login`;
+    await this.mailService.sendInvitation({
+      recipientEmail: [createUserDto.email],
+      username: createUserDto.userName,
+      password: createUserDto.password,
+      loginLink,
+    });
 
     return { message: 'Đăng ký thành công' };
   }
