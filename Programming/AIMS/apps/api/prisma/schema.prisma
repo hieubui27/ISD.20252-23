@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/prisma/generated"
@@ -21,10 +16,9 @@ model Author {
 }
 
 model Role {
-  id       BigInt @id @default(autoincrement())
-  roleName String @unique @map("role_name") @db.VarChar(100)
-
-  users UserRole[]
+  id       BigInt     @id @default(autoincrement())
+  roleName String     @unique @map("role_name") @db.VarChar(100)
+  users    UserRole[]
 
   @@map("roles")
 }
@@ -45,35 +39,32 @@ model User {
 model UserRole {
   userId BigInt @map("user_id")
   roleId BigInt @map("role_id")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
   @@map("user_role")
 }
 
 model Product {
-  id            BigInt    @id @default(autoincrement())
-  barcode       String    @unique @db.VarChar(50)
-  category      String    @db.VarChar(50)
-  title         String    @db.VarChar(150)
-  description   String    @db.Text
-  dimensions    String?   @db.VarChar(100)
-  weight        Decimal   @db.Decimal(10, 2)
-  originalValue Decimal   @map("original_value") @db.Decimal(12, 2)
-  currentPrice  Decimal   @map("current_price") @db.Decimal(12, 2)
-  quantity      Int       @default(0) @db.Integer
-  status        String    @db.VarChar(30)
-  imageUrl      String    @map("image_url") @db.Text
-  videoUrl      String    @map("video_url") @db.Text
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt     DateTime? @map("updated_at") @db.Timestamp()
-
-  // Back-references (Product is the parent — no FK here)
+  id               BigInt            @id @default(autoincrement())
+  barcode          String            @unique @db.VarChar(50)
+  category         String            @db.VarChar(50)
+  title            String            @db.VarChar(150)
+  description      String
+  dimensions       String?           @db.VarChar(100)
+  weight           Decimal           @db.Decimal(10, 2)
+  originalValue    Decimal           @map("original_value") @db.Decimal(12, 2)
+  currentPrice     Decimal           @map("current_price") @db.Decimal(12, 2)
+  quantity         Int               @default(0)
+  status           String            @db.VarChar(30)
+  imageUrl         String            @map("image_url")
+  videoUrl         String            @map("video_url")
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt        DateTime?         @map("updated_at") @db.Timestamp(6)
   discProduct      DiscProduct?
-  printableProduct PrintableProduct?
   orderProducts    OrderProduct[]
+  printableProduct PrintableProduct?
   productLogs      ProductLog[]
 
   @@map("product")
@@ -84,59 +75,52 @@ model DiscProduct {
   releaseDate DateTime @map("release_date") @db.Date
   genre       String   @db.VarChar(100)
   language    String   @db.VarChar(45)
-  totalLength Int      @map("total_length") @db.Integer
-
-  // id is both PK and FK → shared key pattern
-  product Product @relation(fields: [id], references: [id], onDelete: Cascade)
-  cd      CD?
-  dvd     DVD?
+  totalLength Int      @map("total_length")
+  cd          CD?
+  product     Product  @relation(fields: [id], references: [id], onDelete: Cascade)
+  dvd         DVD?
 
   @@map("disc_product")
 }
 
 model CD {
-  id          BigInt @id
-  artist      String @db.VarChar(100)
-  recordLabel String @map("record_label") @db.VarChar(100)
-  track       String @db.Text
-
+  id          BigInt      @id
+  artist      String      @db.VarChar(100)
+  recordLabel String      @map("record_label") @db.VarChar(100)
+  track       String
   discProduct DiscProduct @relation(fields: [id], references: [id], onDelete: Cascade)
 
   @@map("cd")
 }
 
 model DVD {
-  id        BigInt @id
-  discType  String @map("disc_type") @db.VarChar(45)
-  director  String @db.VarChar(100)
-  studio    String @db.VarChar(100)
-  subtitles String @db.VarChar(255)
-
+  id          BigInt      @id
+  discType    String      @map("disc_type") @db.VarChar(45)
+  director    String      @db.VarChar(100)
+  studio      String      @db.VarChar(100)
+  subtitles   String      @db.VarChar(255)
   discProduct DiscProduct @relation(fields: [id], references: [id], onDelete: Cascade)
 
   @@map("dvd")
 }
 
 model PrintableProduct {
-  id          BigInt   @id
-  publisher   String   @db.VarChar(150)
-  language    String   @db.VarChar(50)
-  publishDate DateTime @map("publish_date") @db.Date
-
-  // id is both PK and FK → shared key pattern
-  product   Product    @relation(fields: [id], references: [id], onDelete: Cascade)
-  book      Book?
-  newspaper Newspaper?
+  id          BigInt     @id
+  publisher   String     @db.VarChar(150)
+  language    String     @db.VarChar(50)
+  publishDate DateTime   @map("publish_date") @db.Date
+  book        Book?
+  newspaper   Newspaper?
+  product     Product    @relation(fields: [id], references: [id], onDelete: Cascade)
 
   @@map("printable_product")
 }
 
 model Book {
-  id        BigInt @id
-  coverType String @map("cover_type") @db.VarChar(50)
-  nbPages   Int    @map("nb_pages") @db.Integer
-  genre     String @db.VarChar(100)
-
+  id               BigInt           @id
+  coverType        String           @map("cover_type") @db.VarChar(50)
+  nbPages          Int              @map("nb_pages")
+  genre            String           @db.VarChar(100)
   printableProduct PrintableProduct @relation(fields: [id], references: [id], onDelete: Cascade)
   bookAuthors      BookAuthor[]
 
@@ -146,44 +130,41 @@ model Book {
 model BookAuthor {
   bookId   BigInt @map("book_id")
   authorId BigInt @map("author_id")
-
-  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  author Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author   Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  book     Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@id([bookId, authorId])
   @@map("book_author")
 }
 
 model Newspaper {
-  id              BigInt @id
-  editorInChief   String @map("editor_in_chief") @db.VarChar(100)
-  issueNumber     String @map("issue_number") @db.VarChar(50)
-  publicationFreq String @map("publication_freq") @db.VarChar(50)
-  issn            String @db.VarChar(20)
-  sections        String @db.Text
-
+  id               BigInt           @id
+  editorInChief    String           @map("editor_in_chief") @db.VarChar(100)
+  issueNumber      String           @map("issue_number") @db.VarChar(50)
+  publicationFreq  String           @map("publication_freq") @db.VarChar(50)
+  issn             String           @db.VarChar(20)
+  sections         String
   printableProduct PrintableProduct @relation(fields: [id], references: [id], onDelete: Cascade)
 
   @@map("newspaper")
 }
 
 model Order {
-  id             BigInt    @id @default(autoincrement())
-  orderId        String    @unique @map("order_id") @db.VarChar(50)
-  customerName   String    @map("customer_name") @db.VarChar(100)
-  phoneNumber    String    @map("phone_number") @db.VarChar(20)
-  email          String    @db.VarChar(150)
-  streetAddress  String    @map("street_address") @db.Text
-  province       String    @db.VarChar(100)
-  deliveryMethod String    @map("delivery_method") @db.VarChar(50)
-  deliveryFee    Decimal   @map("delivery_fee") @db.Decimal(12, 2)
-  subtotal       Decimal   @db.Decimal(12, 2)
-  status         String    @db.VarChar(30)
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp()
-  updatedAt      DateTime? @map("updated_at") @db.Timestamp()
-
-  orderProducts OrderProduct[]
-  invoice       Invoice?
+  id             BigInt         @id @default(autoincrement())
+  orderId        String         @unique @map("order_id") @db.VarChar(50)
+  customerName   String         @map("customer_name") @db.VarChar(100)
+  phoneNumber    String         @map("phone_number") @db.VarChar(20)
+  email          String         @db.VarChar(150)
+  streetAddress  String         @map("street_address")
+  province       String         @db.VarChar(100)
+  deliveryMethod String         @map("delivery_method") @db.VarChar(50)
+  deliveryFee    Decimal        @map("delivery_fee") @db.Decimal(12, 2)
+  subtotal       Decimal        @db.Decimal(12, 2)
+  status         String         @db.VarChar(30)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt      DateTime?      @map("updated_at") @db.Timestamp(6)
+  invoice        Invoice?
+  orderProducts  OrderProduct[]
 
   @@map("orders")
 }
@@ -191,22 +172,20 @@ model Order {
 model OrderProduct {
   orderId   BigInt  @map("order_id")
   productId BigInt  @map("product_id")
-  quantity  Int     @db.Integer
+  quantity  Int
   price     Decimal @db.Decimal(12, 2)
-
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
 
   @@id([orderId, productId])
   @@map("order_product")
 }
 
 model Invoice {
-  id          BigInt  @id @default(autoincrement())
-  vatSubtotal Decimal @map("vat_subtotal") @db.Decimal(12, 2)
-  totalAmount Decimal @map("total_amount") @db.Decimal(12, 2)
-  orderId     BigInt  @unique @map("order_id")
-
+  id           BigInt        @id @default(autoincrement())
+  vatSubtotal  Decimal       @map("vat_subtotal") @db.Decimal(12, 2)
+  totalAmount  Decimal       @map("total_amount") @db.Decimal(12, 2)
+  orderId      BigInt        @unique @map("order_id")
   order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   transactions Transaction[]
 
@@ -216,25 +195,51 @@ model Invoice {
 model Transaction {
   id        BigInt  @id @default(autoincrement())
   amount    Decimal @db.Decimal(12, 2)
-  content   String  @db.Text
+  content   String
   method    String  @db.VarChar(45)
   status    String  @db.VarChar(30)
   invoiceId BigInt  @map("invoice_id")
-
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@map("transaction")
+}
+
+model PaymentTransaction {
+  id                     String    @id @default(uuid())
+  orderId                String    @map("order_id") @db.VarChar(50)
+  invoiceId              String    @map("invoice_id") @db.VarChar(50)
+  paymentMethod          String    @map("payment_method") @db.VarChar(30)
+  provider               String    @db.VarChar(30)
+  amount                 Int
+  status                 String    @db.VarChar(30)
+  transactionId          String?   @unique @map("transaction_id") @db.VarChar(100)
+  transactionContent     String?   @map("transaction_content")
+  transactionDateTime    DateTime? @map("transaction_date_time") @db.Timestamp(6)
+  gatewayOrderId         String?   @unique @map("gateway_order_id") @db.VarChar(30)
+  gatewayReferenceNumber String?   @map("gateway_reference_number") @db.VarChar(100)
+  qrCode                 String?   @map("qr_code")
+  qrContent              String?   @map("qr_content")
+  qrDataUrl              String?   @map("qr_data_url")
+  qrLink                 String?   @map("qr_link")
+  expiredAt              DateTime? @map("expired_at") @db.Timestamp(6)
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@index([orderId])
+  @@index([invoiceId])
+  @@index([orderId, invoiceId])
+  @@index([status])
+  @@map("payment_transactions")
 }
 
 model ProductLog {
   id              BigInt   @id @default(autoincrement())
   action          String   @db.VarChar(100)
-  createdDate     DateTime @default(now()) @map("created_date") @db.Timestamptz()
+  createdDate     DateTime @default(now()) @map("created_date") @db.Timestamptz(6)
   productId       BigInt   @map("product_id")
   createdByUserId BigInt   @map("created_by_user_id")
-
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  createdBy User    @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdBy       User     @relation(fields: [createdByUserId], references: [id])
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_log")
 }
