@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  HttpException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto, ProductType } from './dto/create-product.dto';
@@ -13,9 +14,18 @@ import { CdHandler } from './product-handler/cd.handler';
 import { DvdHandler } from './product-handler/dvd.handler';
 import { NewspaperHandler } from './product-handler/newspaper.handler';
 
+/**
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because methods accept DTOs (CreateProductDto, UpdateProductDto) and simple types as parameters. Functional Cohesion because all methods are focused on a single task: managing the lifecycle of Product entities.
+ */
 @Injectable()
 export class ProductService {
   private readonly handlers: IProductHandler[];
+  private dailyDeletes = 0;
+
+  resetDailyQuota() {
+    this.dailyDeletes = 0;
+  }
 
   constructor(private readonly prisma: PrismaService) {
     this.handlers = [
@@ -92,6 +102,37 @@ export class ProductService {
   async remove(id: string) {
     await this.prisma.product.delete({ where: { id: BigInt(id) } });
     return { success: true };
+  }
+
+  async deleteProduct(id: string) {
+    if (this.dailyDeletes >= 20) {
+      throw new HttpException(
+        'Vượt quá hạn mức xóa sản phẩm trong ngày (20)',
+        429,
+      );
+    }
+
+    const product = await this.findOne(id);
+
+    if (product.quantity === 0) {
+      this.dailyDeletes++;
+      await this.remove(id);
+      return { status: 'DELETED' };
+    } else {
+      await this.update(id, { status: 'DEACTIVATED' } as any);
+      return { status: 'DEACTIVATED' };
+    }
+  }
+
+  async deleteBulk(ids: string[]) {
+    if (!ids || ids.length > 10) {
+      throw new BadRequestException('Chỉ được xóa tối đa 10 sản phẩm 1 lần');
+    }
+    const results = [];
+    for (const id of ids) {
+      results.push(await this.deleteProduct(id));
+    }
+    return results;
   }
 
   private serializeBigInt(data: any) {

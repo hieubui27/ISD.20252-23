@@ -1,5 +1,9 @@
 // apps/api/src/product/entities/product.entity.ts
 
+/**
+ * + Coupling/Cohesion level: No Coupling (or Data Coupling) / Informational Cohesion
+ * + Reason why: No Coupling because it does not depend on other modules, just represents a simple data structure. Informational Cohesion because it encapsulates the state of a Product without complex behaviors.
+ */
 export class ProductEntity {
   id: string; // Convert BigInt to string for Client
   barcode: string;

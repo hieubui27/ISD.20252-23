@@ -13,14 +13,25 @@ export type ProductMediaRepository = {
   findMediaByProductId(productId: string): Promise<any[]>;
 };
 
+/**
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because the method accepts a simple primitive type (unknown/string) to validate. Functional Cohesion because it focuses on a single task: validating a product ID.
+ */
 export class ProductDetailValidator {
   static validateProductId(productId: unknown): boolean {
     return typeof productId === 'string' && /^[A-Za-z0-9_]+$/.test(productId);
   }
 }
 
+/**
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because the method relies on a simple data structure (actor) and a generic product object. Functional Cohesion because it has a single responsibility: checking if an actor can view a product.
+ */
 export class ProductDetailAccessChecker {
-  static canViewProductDetail(actor: ProductDetailActor, product: any): boolean {
+  static canViewProductDetail(
+    actor: ProductDetailActor,
+    product: any,
+  ): boolean {
     if (actor.role === 'ProductManager') {
       return actor.isAuthenticated === true;
     }
@@ -33,6 +44,10 @@ export class ProductDetailAccessChecker {
   }
 }
 
+/**
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because the methods take in primitive data objects (product, actor) instead of complex interconnected classes. Functional Cohesion because it only handles logic for determining product availability.
+ */
 export class ProductAvailabilityService {
   static getAvailabilityStatus(product: any, actor: ProductDetailActor) {
     if (product?.status !== 'ACTIVE') {
@@ -59,6 +74,10 @@ export class ProductAvailabilityService {
   }
 }
 
+/**
+ * + Coupling/Cohesion level: Stamp Coupling / Functional Cohesion
+ * + Reason why: Stamp Coupling because the methods receive the entire product object (record structure) but only use specific properties from it to map into DTO-like structures. Functional Cohesion because all methods are focused on a single task: mapping database models to response objects.
+ */
 export class ProductDetailMapper {
   static mapGeneralProductDetail(product: any) {
     return {
@@ -145,6 +164,10 @@ export class ProductDetailMapper {
   }
 }
 
+/**
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because the method accepts simple primitive parameters (quantity, stock, productStatus). Functional Cohesion because its only purpose is to validate the add to cart quantity.
+ */
 export class CartQuantityValidator {
   static validateAddToCartQuantity(
     quantity: unknown,
@@ -160,6 +183,10 @@ export class CartQuantityValidator {
   }
 }
 
+/**
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because it interacts with the repositories via simple data structures and parameters. Functional Cohesion because its methods orchestrate the single task of retrieving a product's detailed information.
+ */
 export class ProductDetailService {
   constructor(
     private readonly productRepository: ProductDetailRepository,

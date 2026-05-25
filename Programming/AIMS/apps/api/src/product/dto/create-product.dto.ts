@@ -16,6 +16,10 @@ export enum ProductType {
   NEWSPAPER = 'NEWSPAPER',
 }
 
+/**
+ * + Coupling/Cohesion level: No Coupling/ Informational Cohesion
+ * + Reason why: No Coupling because it serves as a simple data transfer object with no dependencies on business logic. Informational Cohesion because it groups validation decorators and properties required to create a new Product.
+ */
 export class CreateProductDto {
   // Common Fields
   @IsString() @IsNotEmpty() barcode: string;
