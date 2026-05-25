@@ -9,4 +9,8 @@ import { PrismaModule } from '../prisma/prisma.module';
   controllers: [ProductController],
   providers: [ProductService],
 })
+/**
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because it simply imports the PrismaModule and injects providers/controllers without depending on their internal implementations. Functional Cohesion because it encapsulates all the dependencies related to the Product feature domain.
+ */
 export class ProductModule {}

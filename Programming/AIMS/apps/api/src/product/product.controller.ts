@@ -14,6 +14,10 @@ import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
+/**
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because methods accept DTOs (CreateProductDto, UpdateProductDto) and simple primitive types (string id) from the client request. Functional Cohesion because all methods are focused on exposing HTTP endpoints to manage the Product resource.
+ */
 @Controller('products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
@@ -38,42 +42,13 @@ export class ProductController {
     return this.productService.update(id, updateProductDto);
   }
 
-  private dailyDeletes = 0;
-
-  resetDailyQuota() {
-    this.dailyDeletes = 0;
-  }
-
   @Delete('bulk')
   async deleteBulk(@Body('ids') ids: string[]) {
-    if (!ids || ids.length > 10) {
-      throw new BadRequestException('Chỉ được xóa tối đa 10 sản phẩm 1 lần');
-    }
-    const results = [];
-    for (const id of ids) {
-      results.push(await this.deleteProduct(id));
-    }
-    return results;
+    return this.productService.deleteBulk(ids);
   }
 
   @Delete(':id')
   async deleteProduct(@Param('id') id: string) {
-    if (this.dailyDeletes >= 20) {
-      throw new HttpException(
-        'Vượt quá hạn mức xóa sản phẩm trong ngày (20)',
-        429,
-      );
-    }
-
-    const product = await this.productService.findOne(id);
-
-    if (product.quantity === 0) {
-      this.dailyDeletes++;
-      await this.productService.remove(id);
-      return { status: 'DELETED' };
-    } else {
-      await this.productService.update(id, { status: 'DEACTIVATED' } as any);
-      return { status: 'DEACTIVATED' };
-    }
+    return this.productService.deleteProduct(id);
   }
 }

@@ -14,16 +14,8 @@ export type ProductMediaRepository = {
 };
 
 /**
- * Use Case: View Product Detail
- *
- * Coupling level: Data Coupling
- * - Receives a single primitive value (productId: unknown) as input.
- * - Has no dependency on any external class or module.
- * - Only exposes a pure static utility method with no side effects.
- *
- * Cohesion level: Functional Cohesion
- * - Single, well-defined responsibility: validate the format of a product ID.
- * - All logic within this class serves exactly one purpose.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because the method accepts a simple primitive type (unknown/string) to validate. Functional Cohesion because it focuses on a single task: validating a product ID.
  */
 export class ProductDetailValidator {
   static validateProductId(productId: unknown): boolean {
@@ -32,20 +24,14 @@ export class ProductDetailValidator {
 }
 
 /**
- * Use Case: View Product Detail
- *
- * Coupling level: Stamp Coupling (with ProductDetailActor, product object)
- * - Receives the full `actor` object and full `product` object as parameters,
- *   but only uses `actor.role`, `actor.isAuthenticated`, and `product.status`.
- * - This is an intentional design choice to keep the interface flexible
- *   as access rules may evolve (e.g., new roles, additional product fields).
- *
- * Cohesion level: Functional Cohesion
- * - Single responsibility: determine whether a given actor is allowed
- *   to view the detail of a specific product.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because the method relies on a simple data structure (actor) and a generic product object. Functional Cohesion because it has a single responsibility: checking if an actor can view a product.
  */
 export class ProductDetailAccessChecker {
-  static canViewProductDetail(actor: ProductDetailActor, product: any): boolean {
+  static canViewProductDetail(
+    actor: ProductDetailActor,
+    product: any,
+  ): boolean {
     if (actor.role === 'ProductManager') {
       return actor.isAuthenticated === true;
     }
@@ -59,18 +45,8 @@ export class ProductDetailAccessChecker {
 }
 
 /**
- * Use Case: View Product Detail
- *
- * Coupling level: Stamp Coupling (with product object, ProductDetailActor)
- * - Receives the full `product` object but only reads `product.status`,
- *   `product.stock`, and `product.quantity`.
- * - Receives the full `actor` object but only reads `actor.role`.
- * - Improvement direction: could accept { status, stock } and { role } directly
- *   to reduce to Data Coupling, but current design is acceptable for readability.
- *
- * Cohesion level: Functional Cohesion
- * - Single responsibility: compute and return the availability status
- *   of a product (Available / Out of stock / Deactivated) for a given actor.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because the methods take in primitive data objects (product, actor) instead of complex interconnected classes. Functional Cohesion because it only handles logic for determining product availability.
  */
 export class ProductAvailabilityService {
   static getAvailabilityStatus(product: any, actor: ProductDetailActor) {
@@ -99,23 +75,8 @@ export class ProductAvailabilityService {
 }
 
 /**
- * Use Case: View Product Detail
- *
- * Coupling level: Stamp Coupling (with product object)
- * - Each method receives the full product object but only reads the fields
- *   relevant to that product type (e.g., mapBookDetail reads book-specific fields).
- * - This is an intentional design: the product shape varies per type and the mapper
- *   needs flexibility to handle nested structures (printableProduct, discProduct).
- *   Passing individual fields would create overly long parameter lists.
- *
- * Cohesion level: Sequential Cohesion (tending toward Functional)
- * - mapGeneralProductDetail produces output that is used as a base (via spread)
- *   by mapBookDetail, mapNewspaperDetail, mapCDDetail, and mapDVDDetail.
- * - mapProductDetail acts as a dispatcher that delegates to type-specific mappers.
- * - All methods serve the unified goal of transforming raw product data
- *   into a clean, type-aware response object.
- * - Note: the if-chain in mapProductDetail shows a mild control coupling tendency;
- *   improvement direction: apply Strategy/Factory pattern per product type.
+ * + Coupling/Cohesion level: Stamp Coupling / Functional Cohesion
+ * + Reason why: Stamp Coupling because the methods receive the entire product object (record structure) but only use specific properties from it to map into DTO-like structures. Functional Cohesion because all methods are focused on a single task: mapping database models to response objects.
  */
 export class ProductDetailMapper {
   static mapGeneralProductDetail(product: any) {
@@ -204,17 +165,8 @@ export class ProductDetailMapper {
 }
 
 /**
- * Use Case: View Product Detail
- *
- * Coupling level: Data Coupling
- * - Receives only primitive values as parameters: quantity (unknown/number),
- *   stock (number), and productStatus (string).
- * - No dependency on any external class, object, or module.
- *
- * Cohesion level: Functional Cohesion
- * - Single responsibility: validate whether a requested cart quantity is
- *   valid given the current stock level and product status.
- * - All logic directly serves this one validation goal.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because the method accepts simple primitive parameters (quantity, stock, productStatus). Functional Cohesion because its only purpose is to validate the add to cart quantity.
  */
 export class CartQuantityValidator {
   static validateAddToCartQuantity(
@@ -232,20 +184,8 @@ export class CartQuantityValidator {
 }
 
 /**
- * Use Case: View Product Detail
- *
- * Coupling level: Data Coupling (with ProductDetailRepository, ProductMediaRepository)
- * - Dependencies are injected via constructor as interfaces (not concrete classes),
- *   following the Dependency Inversion Principle. This avoids Common Coupling.
- * - Only passes primitive productId (string) to repository methods — Data Coupling.
- * - Delegates to ProductDetailValidator, ProductDetailMapper,
- *   and ProductAvailabilityService via static method calls with minimal parameters.
- *
- * Cohesion level: Functional Cohesion
- * - Single, well-defined responsibility: orchestrate the retrieval and assembly
- *   of a complete product detail response for a given actor.
- * - All steps (validate → fetch product → fetch media → map → check availability)
- *   directly contribute to producing this one result.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because it interacts with the repositories via simple data structures and parameters. Functional Cohesion because its methods orchestrate the single task of retrieving a product's detailed information.
  */
 export class ProductDetailService {
   constructor(

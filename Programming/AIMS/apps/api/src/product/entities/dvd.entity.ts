@@ -1,5 +1,9 @@
 import { ProductEntity } from './product.entity';
 
+/**
+ * + Coupling/Cohesion level: Data Coupling (Inheritance) / Informational Cohesion
+ * + Reason why: Data Coupling through inheritance from ProductEntity, expanding its state. Informational Cohesion because it merely groups DVD-specific data attributes together without complex logic.
+ */
 export class DVDEntity extends ProductEntity {
   director: string | null;
   discType: string;
