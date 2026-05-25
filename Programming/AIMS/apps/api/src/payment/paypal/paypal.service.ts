@@ -5,6 +5,18 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import axios from 'axios';
+
+/**
+ * Coupling: Data Coupling
+ * Cohesion: Functional Cohesion
+ *
+ * Coupling reason:
+ * - This service exchanges primitive credentials, amounts, order IDs, and capture IDs with the PayPal HTTP API.
+ * - It does not depend on PaymentService internals, Prisma records, VietQR code, or shared mutable state.
+ *
+ * Cohesion reason:
+ * - All methods are focused on PayPal provider operations: token retrieval, order creation, capture, and refund.
+ */
 @Injectable()
 export class PaypalService {
   private clientId = process.env.PAYPAL_CLIENT_ID;

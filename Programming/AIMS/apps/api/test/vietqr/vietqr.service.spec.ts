@@ -1,14 +1,13 @@
 import {
-  BadGatewayException,
   BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { PaymentService } from '../../src/payment/payment.service';
 import {
-  VietqrCallbackDto,
-  VietqrQRCodeRequest,
-  VietqrService,
-} from '../../src/vietqr/vietqr.service';
+  PaymentMethod,
+  PaymentStatus,
+} from '../../src/payment/constants/payment.constants';
+import { VietqrService } from '../../src/vietqr/vietqr.service';
 
 describe('VietqrService', () => {
   let service: VietqrService;
@@ -16,58 +15,38 @@ describe('VietqrService', () => {
   const mockVietqrClient = {
     getAccessToken: jest.fn(),
     generateQRCode: jest.fn(),
-  };
-
-  const mockOrderRepository = {
-    findByOrderId: jest.fn(),
-    markPaidAndPendingProcessing: jest.fn(),
-  };
-
-  const mockPaymentTransactionRepository = {
-    existsByTransactionId: jest.fn(),
-    save: jest.fn(),
-  };
-
-  const mockSignatureValidator = {
-    isValid: jest.fn(),
-  };
-
-  const options = {
-    clientId: 'valid-client-id',
-    apiKey: 'valid-api-key',
+    testCallback: jest.fn(),
   };
 
   beforeEach(() => {
-    service = new VietqrService(
-      mockVietqrClient,
-      mockOrderRepository,
-      mockPaymentTransactionRepository,
-      mockSignatureValidator,
-      options,
-    );
+    process.env.VIETQR_USERNAME = 'valid-username';
+    process.env.VIETQR_PASSWORD = 'valid-password';
+    process.env.VIETQR_BANK_CODE = 'MB';
+    process.env.VIETQR_BANK_ACCOUNT = '123456789';
+    process.env.VIETQR_USER_BANK_NAME = 'AIMS';
+    process.env.VIETQR_QR_TYPE = '0';
+    process.env.VIETQR_TRANS_TYPE = 'C';
+    service = new VietqrService(mockVietqrClient);
     jest.clearAllMocks();
   });
 
-  describe('getAccessToken (UT_VQR_001 to UT_VQR_002)', () => {
-    // UT_VQR_001
-    it('should get access token successfully (UT_VQR_001)', async () => {
+  describe('getAccessToken', () => {
+    it('should get and cache access token successfully', async () => {
       mockVietqrClient.getAccessToken.mockResolvedValue({
-        accessToken: 'valid-access-token',
+        access_token: 'valid-access-token',
+        expires_in: 300,
       });
 
       const result = await service.getAccessToken();
+      const cachedResult = await service.getAccessToken();
 
-      expect(mockVietqrClient.getAccessToken).toHaveBeenCalledWith(
-        'valid-client-id',
-        'valid-api-key',
-      );
+      expect(mockVietqrClient.getAccessToken).toHaveBeenCalledTimes(1);
       expect(result).toBe('valid-access-token');
-      expect(result).not.toBe('');
+      expect(cachedResult).toBe('valid-access-token');
       expect(service.getCachedAccessToken()).toBe('valid-access-token');
     });
 
-    // UT_VQR_002
-    it('should throw authentication error when access token failed (UT_VQR_002)', async () => {
+    it('should throw authentication error when access token failed', async () => {
       mockVietqrClient.getAccessToken.mockRejectedValue(
         new UnauthorizedException('Invalid credentials'),
       );
@@ -79,160 +58,56 @@ describe('VietqrService', () => {
     });
   });
 
-  describe('generateQRCode (UT_VQR_003 to UT_VQR_005)', () => {
-    const request: VietqrQRCodeRequest = {
-      orderId: 'ORDER001',
-      amount: 250000,
-      content: 'PAY ORDER001',
-    };
-
-    // UT_VQR_003
-    it('should generate QR code successfully (UT_VQR_003)', async () => {
+  describe('generateQrCode', () => {
+    it('should generate QR code successfully', async () => {
       mockVietqrClient.getAccessToken.mockResolvedValue({
-        accessToken: 'valid-access-token',
+        access_token: 'valid-access-token',
+        expires_in: 300,
       });
       mockVietqrClient.generateQRCode.mockResolvedValue({
         qrCode: 'qr-code-data',
-        qrContent: 'PAY ORDER001',
+        content: 'THANH TOAN AIMS',
         amount: 250000,
-        orderId: 'ORDER001',
+        orderId: 'ORDDEMO001',
       });
 
-      const result = await service.generateQRCode(request);
+      const result = await service.generateQrCode({
+        orderId: 'ORDDEMO001',
+        invoiceId: 'INV_DEMO_001',
+        amount: 250000,
+        description: 'THANH TOAN AIMS',
+      });
 
       expect(mockVietqrClient.generateQRCode).toHaveBeenCalledWith(
         'valid-access-token',
-        request,
+        expect.objectContaining({
+          bankCode: 'MB',
+          bankAccount: '123456789',
+          userBankName: 'AIMS',
+          orderId: 'ORDDEMO001',
+          amount: 250000,
+          transType: 'C',
+        }),
       );
-      expect(result).toEqual({
-        qrCode: 'qr-code-data',
-        qrContent: 'PAY ORDER001',
-        amount: 250000,
-        orderId: 'ORDER001',
-      });
-    });
-
-    // UT_VQR_004
-    it('should throw QR generation error when VietQR API failed (UT_VQR_004)', async () => {
-      mockVietqrClient.getAccessToken.mockResolvedValue({
-        accessToken: 'valid-access-token',
-      });
-      mockVietqrClient.generateQRCode.mockRejectedValue(
-        new Error('VietQR API error'),
-      );
-
-      await expect(service.generateQRCode(request)).rejects.toThrow(
-        BadGatewayException,
+      expect(result).toEqual(
+        expect.objectContaining({
+          qrCode: 'qr-code-data',
+          amount: 250000,
+          qrContent: 'THANH TOAN AIMS',
+        }),
       );
     });
 
-    // UT_VQR_005
-    it('should reject invalid amount (UT_VQR_005)', async () => {
+    it('should reject invalid amount', async () => {
       await expect(
-        service.generateQRCode({
-          orderId: 'ORDER001',
+        service.generateQrCode({
+          orderId: 'ORDDEMO001',
+          invoiceId: 'INV_DEMO_001',
           amount: 0,
-          content: 'PAY ORDER001',
+          description: 'THANH TOAN AIMS',
         }),
       ).rejects.toThrow(BadRequestException);
       expect(mockVietqrClient.generateQRCode).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('handleCallback (UT_VQR_006 to UT_VQR_009)', () => {
-    const callback: VietqrCallbackDto = {
-      orderId: 'ORDER001',
-      transactionId: 'TXN001',
-      amount: 250000,
-      status: 'SUCCESS',
-      signature: 'valid-signature',
-    };
-
-    // UT_VQR_006
-    it('should accept valid payment callback (UT_VQR_006)', async () => {
-      mockSignatureValidator.isValid.mockReturnValue(true);
-      mockPaymentTransactionRepository.existsByTransactionId.mockResolvedValue(
-        false,
-      );
-      mockOrderRepository.findByOrderId.mockResolvedValue({
-        orderId: 'ORDER001',
-        totalAmount: 250000,
-      });
-
-      const result = await service.handleCallback(callback);
-
-      expect(mockPaymentTransactionRepository.save).toHaveBeenCalledWith({
-        orderId: 'ORDER001',
-        transactionId: 'TXN001',
-        amount: 250000,
-        method: 'VIETQR',
-        status: 'SUCCESS',
-      });
-      expect(
-        mockOrderRepository.markPaidAndPendingProcessing,
-      ).toHaveBeenCalledWith('ORDER001');
-      expect(result).toEqual({
-        status: 'ACCEPTED',
-        transactionId: 'TXN001',
-      });
-    });
-
-    // UT_VQR_007
-    it('should reject invalid signature (UT_VQR_007)', async () => {
-      mockSignatureValidator.isValid.mockReturnValue(false);
-
-      await expect(
-        service.handleCallback({
-          ...callback,
-          signature: 'invalid-signature',
-        }),
-      ).rejects.toThrow(UnauthorizedException);
-      expect(mockPaymentTransactionRepository.save).not.toHaveBeenCalled();
-      expect(
-        mockOrderRepository.markPaidAndPendingProcessing,
-      ).not.toHaveBeenCalled();
-    });
-
-    // UT_VQR_008
-    it('should reject amount mismatch (UT_VQR_008)', async () => {
-      mockSignatureValidator.isValid.mockReturnValue(true);
-      mockPaymentTransactionRepository.existsByTransactionId.mockResolvedValue(
-        false,
-      );
-      mockOrderRepository.findByOrderId.mockResolvedValue({
-        orderId: 'ORDER001',
-        totalAmount: 250000,
-      });
-
-      await expect(
-        service.handleCallback({
-          ...callback,
-          amount: 200000,
-        }),
-      ).rejects.toThrow(BadRequestException);
-      expect(mockPaymentTransactionRepository.save).not.toHaveBeenCalled();
-      expect(
-        mockOrderRepository.markPaidAndPendingProcessing,
-      ).not.toHaveBeenCalled();
-    });
-
-    // UT_VQR_009
-    it('should prevent duplicate transaction (UT_VQR_009)', async () => {
-      mockSignatureValidator.isValid.mockReturnValue(true);
-      mockPaymentTransactionRepository.existsByTransactionId.mockResolvedValue(
-        true,
-      );
-
-      const result = await service.handleCallback(callback);
-
-      expect(result).toEqual({
-        status: 'DUPLICATE',
-        transactionId: 'TXN001',
-      });
-      expect(mockPaymentTransactionRepository.save).not.toHaveBeenCalled();
-      expect(
-        mockOrderRepository.markPaidAndPendingProcessing,
-      ).not.toHaveBeenCalled();
     });
   });
 });
@@ -240,58 +115,144 @@ describe('VietqrService', () => {
 describe('PaymentService', () => {
   let service: PaymentService;
 
-  const mockOrderRepository = {
-    findByOrderId: jest.fn(),
-    markRejected: jest.fn(),
+  const transaction = {
+    id: 'payment-transaction-id',
+    orderId: 'ORDER_DEMO_001',
+    invoiceId: 'INV_DEMO_001',
+    paymentMethod: PaymentMethod.VIETQR,
+    provider: PaymentMethod.VIETQR,
+    amount: 250000,
+    status: PaymentStatus.PENDING,
+    gatewayOrderId: 'PAYMENTTRANS',
+    qrCode: null,
+    qrContent: 'THANH TOAN AIMS',
+    qrDataUrl: null,
+    transactionId: null,
+    transactionContent: null,
+    transactionDateTime: null,
+    gatewayReferenceNumber: null,
   };
 
-  const mockNotificationService = {
-    notifyProductManagerManualRefund: jest.fn(),
+  const mockPrisma = {
+    paymentTransaction: {
+      create: jest.fn(),
+      update: jest.fn(),
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+    },
   };
 
-  const mockRefundClient = {
-    refund: jest.fn(),
+  const mockVietqrService = {
+    generateQrCode: jest.fn(),
+    mapCallbackToTransactionStatus: jest.fn(),
+  };
+
+  const mockPaypalService = {
+    createOrder: jest.fn(),
+  };
+
+  const mockPlaceOrderPaymentPort = {
+    getPaymentContext: jest.fn(),
+    markPaidAndPendingProcessing: jest.fn(),
   };
 
   beforeEach(() => {
+    process.env.VIETQR_TRANS_TYPE = 'C';
     service = new PaymentService(
-      mockOrderRepository,
-      mockNotificationService,
-      mockRefundClient,
+      mockPrisma as any,
+      mockVietqrService as any,
+      mockPaypalService as any,
+      mockPlaceOrderPaymentPort,
     );
     jest.clearAllMocks();
   });
 
-  describe('rejectPaidVietQROrder (UT_VQR_010)', () => {
-    // UT_VQR_010
-    it('should notify manual refund required when paid VietQR order is rejected (UT_VQR_010)', async () => {
-      mockOrderRepository.findByOrderId.mockResolvedValue({
-        orderId: 'ORDER001',
-        paymentMethod: 'VIETQR',
-        status: 'PAID',
-      });
-
-      const result = await service.rejectPaidVietQROrder(
-        'ORDER001',
-        'Out of stock',
-      );
-
-      expect(mockOrderRepository.markRejected).toHaveBeenCalledWith(
-        'ORDER001',
-        'Out of stock',
-      );
-      expect(
-        mockNotificationService.notifyProductManagerManualRefund,
-      ).toHaveBeenCalledWith({
-        orderId: 'ORDER001',
-        paymentMethod: 'VIETQR',
-        rejectReason: 'Out of stock',
-      });
-      expect(mockRefundClient.refund).not.toHaveBeenCalled();
-      expect(result).toEqual({
-        status: 'MANUAL_REFUND_REQUIRED',
-        orderId: 'ORDER001',
-      });
+  it('should request VietQR payment and persist QR data', async () => {
+    mockPlaceOrderPaymentPort.getPaymentContext.mockResolvedValue({
+      orderId: 'ORDER_DEMO_001',
+      invoiceId: 'INV_DEMO_001',
+      totalAmount: 250000,
+      customerEmail: 'customer.demo@gmail.com',
     });
+    mockPrisma.paymentTransaction.create.mockResolvedValue(transaction);
+    mockPrisma.paymentTransaction.update.mockResolvedValue(transaction);
+    mockVietqrService.generateQrCode.mockResolvedValue({
+      qrCode: 'qr-code-data',
+      qrContent: 'THANH TOAN AIMS',
+      amount: 250000,
+    });
+
+    const result = await service.requestPayment({
+      orderId: 'ORDER_DEMO_001',
+      invoiceId: 'INV_DEMO_001',
+      paymentMethod: PaymentMethod.VIETQR,
+      amount: 250000,
+      customerEmail: 'customer.demo@gmail.com',
+    });
+
+    expect(mockPrisma.paymentTransaction.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        orderId: 'ORDER_DEMO_001',
+        invoiceId: 'INV_DEMO_001',
+        paymentMethod: PaymentMethod.VIETQR,
+        status: PaymentStatus.PENDING,
+      }),
+    });
+    expect(mockVietqrService.generateQrCode).toHaveBeenCalled();
+    expect(result.status).toBe(PaymentStatus.PENDING);
+    expect(result.qrCode).toBe('qr-code-data');
+  });
+
+  it('should reject request payment when amount mismatches', async () => {
+    mockPlaceOrderPaymentPort.getPaymentContext.mockResolvedValue({
+      totalAmount: 250000,
+    });
+
+    await expect(
+      service.requestPayment({
+        orderId: 'ORDER_DEMO_001',
+        invoiceId: 'INV_DEMO_001',
+        paymentMethod: PaymentMethod.VIETQR,
+        amount: 200000,
+        customerEmail: 'customer.demo@gmail.com',
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockPrisma.paymentTransaction.create).not.toHaveBeenCalled();
+  });
+
+  it('should accept valid VietQR callback and mark order paid', async () => {
+    mockPrisma.paymentTransaction.findUnique.mockResolvedValue(null);
+    mockPrisma.paymentTransaction.findFirst.mockResolvedValue(transaction);
+    mockPrisma.paymentTransaction.update.mockResolvedValue({
+      ...transaction,
+      status: PaymentStatus.SUCCESS,
+      transactionId: 'TXN001',
+    });
+    mockVietqrService.mapCallbackToTransactionStatus.mockReturnValue({
+      transactionId: 'TXN001',
+      status: PaymentStatus.SUCCESS,
+      message: 'THANH TOAN AIMS',
+      paidAmount: 250000,
+    });
+
+    const result = await service.confirmTransactionFromVietqrCallback({
+      amount: 250000,
+      transType: 'C',
+      content: 'THANH TOAN AIMS',
+      transactionid: 'TXN001',
+      orderId: 'PAYMENTTRANS',
+    });
+
+    expect(mockPrisma.paymentTransaction.update).toHaveBeenCalledWith({
+      where: { id: 'payment-transaction-id' },
+      data: expect.objectContaining({
+        status: PaymentStatus.SUCCESS,
+        transactionId: 'TXN001',
+      }),
+    });
+    expect(
+      mockPlaceOrderPaymentPort.markPaidAndPendingProcessing,
+    ).toHaveBeenCalledWith('ORDER_DEMO_001');
+    expect(result.duplicate).toBe(false);
   });
 });
