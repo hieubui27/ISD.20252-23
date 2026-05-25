@@ -6,6 +6,8 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
 import { IAuthServiceToken } from './interfaces/auth.service.interface';
+import { MailService } from '../mail/mail.service';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
@@ -15,6 +17,7 @@ import { IAuthServiceToken } from './interfaces/auth.service.interface';
       secret: process.env.JWT_SECRET || 'super-secret-key-change-me-in-prod',
       // expiresIn is handled in the service directly
     }),
+    MailModule,
   ],
   controllers: [AuthController],
   providers: [
