@@ -42,7 +42,7 @@ export const getInvitationEmailTemplate = (
                 <a href="${loginLink}" class="button" style="color: #ffffff;">Đăng nhập hệ thống</a>
             </div>
             
-            <p>Nếu bạn không yêu cầu hoặc có thắc mắc gì, vui lòng liên hệ với bộ phận hỗ trợ IT.</p>
+            <p>Nếu bạn có yêu cầu hoặc thắc mắc gì, vui lòng liên hệ với bộ phận hỗ trợ IT.</p>
             <p>Trân trọng,<br><strong>Đội ngũ AIMS</strong></p>
         </div>
         <div class="footer">
