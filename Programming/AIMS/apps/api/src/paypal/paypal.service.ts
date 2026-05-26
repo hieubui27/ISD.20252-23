@@ -55,8 +55,8 @@ export class PaypalService {
             },
           ],
           application_context: {
-            return_url: 'http://localhost:3000/api/paypal/success',
-            cancel_url: 'http://localhost:3000/api/paypal/cancel',
+            return_url: 'http://localhost:4200/',
+            cancel_url: 'http://localhost:4200/',
             user_action: 'PAY_NOW',
           },
         },

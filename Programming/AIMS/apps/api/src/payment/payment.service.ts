@@ -35,6 +35,7 @@ import {
 interface PaypalApprovalLink {
   rel: string;
   href: string;
+  method: string;
 }
 
 /**
