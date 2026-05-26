@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ShippingFeeService } from '../order/shipping-fee.service';
+import { MailService } from '../mail/mail.service';
 import { DeliveryInfoValidator } from '../order/validators/delivery-info.validator';
 import { CartItemDto } from './dto/cart-item.dto';
 import { ConfirmOrderDto } from './dto/confirm-order.dto';
@@ -34,6 +35,7 @@ export class PlaceOrderBeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly shippingFeeService: ShippingFeeService,
+    private readonly mailService: MailService,
   ) {}
 
   async checkStock(dto: PlaceOrderRequestDto): Promise<StockCheckResultDto> {
@@ -51,16 +53,16 @@ export class PlaceOrderBeService {
   ): Promise<InvoicePreviewDto> {
     this.validateDeliveryInfo(dto.deliveryInfo);
 
-    const stockResult = await this.checkStock({ items: dto.items });
-    if (!stockResult.sufficient) {
-      throw new InvalidQuantityException(stockResult.insufficientItems);
-    }
-
     const items = this.normalizeItems(dto.items);
     const products = await this.findProductsByIds(
       items.map((item) => item.productId),
       this.prisma,
     );
+
+    const stockResult = this.checkStockFromProducts(items, products);
+    if (!stockResult.sufficient) {
+      throw new InvalidQuantityException(stockResult.insufficientItems);
+    }
 
     return this.buildInvoicePreviewFromProducts(
       items,
@@ -84,121 +86,136 @@ export class PlaceOrderBeService {
       );
     }
 
-    return this.prisma.$transaction(async (tx: PrismaClientLike) => {
-      const items = this.normalizeItems(dto.items);
-      const products = await this.findProductsByIds(
-        items.map((item) => item.productId),
-        tx,
-      );
-      const stockResult = this.checkStockFromProducts(items, products);
+    let capturedInvoicePreview: InvoicePreviewDto | null = null;
 
-      if (!stockResult.sufficient) {
-        throw new InvalidQuantityException(stockResult.insufficientItems);
-      }
+    const successDto = await this.prisma.$transaction(
+      async (tx: PrismaClientLike) => {
+        const items = this.normalizeItems(dto.items);
+        const products = await this.findProductsByIds(
+          items.map((item) => item.productId),
+          tx,
+        );
+        const stockResult = this.checkStockFromProducts(items, products);
 
-      const invoicePreview = this.buildInvoicePreviewFromProducts(
-        items,
-        products,
-        dto.deliveryInfo,
-      );
-      const orderCode = this.generateOrderCode();
+        if (!stockResult.sufficient) {
+          throw new InvalidQuantityException(stockResult.insufficientItems);
+        }
 
-      const order = await tx.order.create({
-        data: {
-          orderId: orderCode,
-          customerName: dto.deliveryInfo.receiverName.trim(),
-          phoneNumber: dto.deliveryInfo.phoneNumber,
-          email: this.getRequiredEmail(dto.deliveryInfo),
-          streetAddress: dto.deliveryInfo.streetAddress.trim(),
-          province: dto.deliveryInfo.province.trim(),
-          deliveryMethod: DELIVERY_METHOD_STANDARD,
-          deliveryFee: invoicePreview.deliveryFee,
-          subtotal: invoicePreview.subtotalBeforeVat,
-          status: ORDER_STATUS_PENDING_PROCESSING,
-        },
-      });
+        const invoicePreview = this.buildInvoicePreviewFromProducts(
+          items,
+          products,
+          dto.deliveryInfo,
+        );
+        capturedInvoicePreview = invoicePreview;
+        const orderCode = this.generateOrderCode();
 
-      for (const invoiceItem of invoicePreview.items) {
-        await tx.orderProduct.create({
+        const order = await tx.order.create({
           data: {
+            orderId: orderCode,
+            customerName: dto.deliveryInfo.receiverName.trim(),
+            phoneNumber: dto.deliveryInfo.phoneNumber,
+            email: this.getRequiredEmail(dto.deliveryInfo),
+            streetAddress: dto.deliveryInfo.streetAddress.trim(),
+            province: dto.deliveryInfo.province.trim(),
+            deliveryMethod: DELIVERY_METHOD_STANDARD,
+            deliveryFee: invoicePreview.deliveryFee,
+            subtotal: invoicePreview.subtotalBeforeVat,
+            status: ORDER_STATUS_PENDING_PROCESSING,
+          },
+        });
+
+        await tx.orderProduct.createMany({
+          data: invoicePreview.items.map((invoiceItem) => ({
             orderId: order.id,
             productId: BigInt(invoiceItem.productId),
             quantity: invoiceItem.quantity,
             price: invoiceItem.price,
-          },
+          })),
         });
-      }
 
-      const invoice = await tx.invoice.create({
-        data: {
-          orderId: order.id,
-          vatSubtotal: invoicePreview.subtotalAfterVat,
-          totalAmount: invoicePreview.totalAmount,
-        },
-      });
-
-      await tx.transaction.create({
-        data: {
-          amount: invoicePreview.totalAmount,
-          content: dto.transactionContent || dto.transactionId,
-          method: dto.paymentMethod,
-          status: PAYMENT_STATUS_SUCCESS,
-          invoiceId: invoice.id,
-        },
-      });
-
-      for (const item of items) {
-        const decrementResult = await tx.product.updateMany({
-          where: {
-            id: BigInt(item.productId),
-            quantity: { gte: item.quantity },
-          },
+        const invoice = await tx.invoice.create({
           data: {
-            quantity: { decrement: item.quantity },
+            orderId: order.id,
+            vatSubtotal: invoicePreview.subtotalAfterVat,
+            totalAmount: invoicePreview.totalAmount,
           },
         });
 
-        if (decrementResult.count === 0) {
-          const latestProduct = await tx.product.findUnique({
-            where: { id: BigInt(item.productId) },
+        await tx.transaction.create({
+          data: {
+            amount: invoicePreview.totalAmount,
+            content: dto.transactionContent || dto.transactionId,
+            method: dto.paymentMethod,
+            status: PAYMENT_STATUS_SUCCESS,
+            invoiceId: invoice.id,
+          },
+        });
+
+        for (const item of items) {
+          const decrementResult = await tx.product.updateMany({
+            where: {
+              id: BigInt(item.productId),
+              quantity: { gte: item.quantity },
+            },
+            data: {
+              quantity: { decrement: item.quantity },
+            },
           });
 
-          throw new InvalidQuantityException([
-            {
-              productId: item.productId,
-              requested: item.quantity,
-              available: latestProduct?.quantity ?? 0,
-            },
-          ]);
+          if (decrementResult.count === 0) {
+            const latestProduct = await tx.product.findUnique({
+              where: { id: BigInt(item.productId) },
+            });
+
+            throw new InvalidQuantityException([
+              {
+                productId: item.productId,
+                requested: item.quantity,
+                available: latestProduct?.quantity ?? 0,
+              },
+            ]);
+          }
         }
-      }
 
-      const transactionDate = dto.transactionDate
-        ? new Date(dto.transactionDate)
-        : new Date();
+        const transactionDate = dto.transactionDate
+          ? new Date(dto.transactionDate)
+          : new Date();
 
-      await tx.paymentTransaction.create({
-        data: {
-          orderId: order.orderId,
-          invoiceId: invoice.id.toString(),
-          paymentMethod: dto.paymentMethod,
-          provider: PAYMENT_TRANSACTION_PROVIDER_PLACE_ORDER,
-          amount: Math.round(invoicePreview.totalAmount),
-          status: PAYMENT_STATUS_SUCCESS,
-          transactionId: dto.transactionId,
-          transactionContent: dto.transactionContent || dto.transactionId,
-          transactionDateTime: transactionDate,
-        },
-      });
+        await tx.paymentTransaction.create({
+          data: {
+            orderId: order.orderId,
+            invoiceId: invoice.id.toString(),
+            paymentMethod: dto.paymentMethod,
+            provider: PAYMENT_TRANSACTION_PROVIDER_PLACE_ORDER,
+            amount: Math.round(invoicePreview.totalAmount),
+            status: PAYMENT_STATUS_SUCCESS,
+            transactionId: dto.transactionId,
+            transactionContent: dto.transactionContent || dto.transactionId,
+            transactionDateTime: transactionDate,
+          },
+        });
 
-      return this.mapToOrderSuccessDto(
-        dto.deliveryInfo,
-        invoicePreview.totalAmount,
-        dto.transactionId,
-        dto.transactionContent || dto.transactionId,
-        transactionDate,
+        return this.mapToOrderSuccessDto(
+          dto.deliveryInfo,
+          invoicePreview.totalAmount,
+          dto.transactionId,
+          dto.transactionContent || dto.transactionId,
+          transactionDate,
+        );
+      },
+    );
+
+    if (capturedInvoicePreview) {
+      this.sendOrderConfirmationEmail(
+        successDto,
+        capturedInvoicePreview,
+        dto.deliveryInfo.email,
+      ).catch((err: unknown) =>
+        console.error('Failed to send order confirmation email:', err),
       );
-    });
+    }
+
+    return successDto;
   }
 
   private async mapExistingPaymentTransactionToSuccessDto(
@@ -419,5 +436,88 @@ export class PlaceOrderBeService {
       transactionContent,
       transactionDate,
     };
+  }
+
+  private async sendOrderConfirmationEmail(
+    successDto: OrderSuccessDto,
+    invoicePreview: InvoicePreviewDto,
+    email?: string,
+  ): Promise<void> {
+    if (!email) return;
+
+    const itemRows = invoicePreview.items
+      .map(
+        (item) =>
+          `<tr>
+            <td style="padding:6px 8px;border:1px solid #ddd">${item.title ?? item.productId}</td>
+            <td style="padding:6px 8px;border:1px solid #ddd;text-align:center">${item.quantity}</td>
+            <td style="padding:6px 8px;border:1px solid #ddd;text-align:right">${item.price.toLocaleString('vi-VN')} VND</td>
+            <td style="padding:6px 8px;border:1px solid #ddd;text-align:right">${item.amount.toLocaleString('vi-VN')} VND</td>
+          </tr>`,
+      )
+      .join('');
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#333">
+        <h2 style="color:#1a73e8">Xác nhận đơn hàng AIMS</h2>
+        <p>Xin chào <strong>${successDto.customerName}</strong>,</p>
+        <p>Đơn hàng của bạn đã được đặt thành công. Dưới đây là thông tin chi tiết:</p>
+
+        <h3>Thông tin giao hàng</h3>
+        <p>
+          Địa chỉ: ${successDto.streetAddress}, ${successDto.province}<br/>
+          Số điện thoại: ${successDto.phoneNumber}
+        </p>
+
+        <h3>Danh sách sản phẩm</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <thead>
+            <tr style="background:#f5f5f5">
+              <th style="padding:8px;border:1px solid #ddd;text-align:left">Sản phẩm</th>
+              <th style="padding:8px;border:1px solid #ddd;text-align:center">SL</th>
+              <th style="padding:8px;border:1px solid #ddd;text-align:right">Đơn giá</th>
+              <th style="padding:8px;border:1px solid #ddd;text-align:right">Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody>${itemRows}</tbody>
+        </table>
+
+        <table style="margin-top:12px;font-size:14px;margin-left:auto">
+          <tr>
+            <td style="padding:4px 12px">Tạm tính (chưa VAT):</td>
+            <td style="padding:4px 12px;text-align:right">${invoicePreview.subtotalBeforeVat.toLocaleString('vi-VN')} VND</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 12px">VAT (10%):</td>
+            <td style="padding:4px 12px;text-align:right">${invoicePreview.vatAmount.toLocaleString('vi-VN')} VND</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 12px">Phí vận chuyển:</td>
+            <td style="padding:4px 12px;text-align:right">${invoicePreview.deliveryFee.toLocaleString('vi-VN')} VND</td>
+          </tr>
+          <tr style="font-weight:bold;font-size:15px">
+            <td style="padding:8px 12px;border-top:2px solid #333">Tổng thanh toán:</td>
+            <td style="padding:8px 12px;border-top:2px solid #333;text-align:right">${successDto.totalAmount.toLocaleString('vi-VN')} VND</td>
+          </tr>
+        </table>
+
+        <h3>Thông tin giao dịch</h3>
+        <p>
+          Mã giao dịch: <strong>${successDto.transactionId}</strong><br/>
+          Nội dung: ${successDto.transactionContent}<br/>
+          Thời gian: ${successDto.transactionDate.toLocaleString('vi-VN')}
+        </p>
+
+        <p style="color:#666;font-size:13px">
+          Đơn hàng đang chờ xác nhận từ nhân viên AIMS. Chúng tôi sẽ thông báo khi đơn hàng được duyệt.
+        </p>
+      </div>
+    `;
+
+    await this.mailService.sendMail({
+      recipientEmail: [email],
+      subject: `[AIMS] Xác nhận đơn hàng - Giao dịch ${successDto.transactionId}`,
+      html,
+    });
   }
 }
