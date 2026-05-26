@@ -14,7 +14,8 @@ import { MailModule } from '../mail/mail.module';
     PrismaModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'super-secret-key-change-me-in-prod',
+      secret:
+        process.env.JWT_ACCESS_SECRET || 'super-secret-key-change-me-in-prod',
       // expiresIn is handled in the service directly
     }),
     MailModule,

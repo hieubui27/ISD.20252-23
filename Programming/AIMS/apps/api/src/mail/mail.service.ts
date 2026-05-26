@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
-import { sendMailDto, SendInvitationDto } from './dto/email.dto';
+import {
+  sendMailDto,
+  SendInvitationDto,
+  SendOtpCodeDto,
+} from './dto/email.dto';
 import { getInvitationEmailTemplate } from './templates/invitation.template';
+import { getOtpCodeTemplate } from './templates/get-otp-code.template';
 
 @Injectable()
 export class MailService {
@@ -48,6 +53,19 @@ export class MailService {
     return this.sendMail({
       recipientEmail: dto.recipientEmail,
       subject: 'Thông tin tài khoản và Hướng dẫn đăng nhập hệ thống AIMS',
+      html: htmlContent,
+    });
+  }
+
+  async sendOtpCode(dto: SendOtpCodeDto) {
+    const htmlContent = getOtpCodeTemplate(
+      dto.username,
+      dto.otp,
+      dto.expirationTime,
+    );
+    return this.sendMail({
+      recipientEmail: dto.recipientEmail,
+      subject: 'Mã OTP xác thực',
       html: htmlContent,
     });
   }

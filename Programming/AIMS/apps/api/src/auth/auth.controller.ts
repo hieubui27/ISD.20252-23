@@ -17,6 +17,11 @@ import { Response, Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import {
+  NewPasswordDto,
+  RequestResetPasswordDto,
+  VerifyOtpDto,
+} from './dto/forgot-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -52,5 +57,43 @@ export class AuthController {
   ) {
     const refreshToken = req.cookies['refresh_token'];
     return this.authService.refreshToken(refreshToken, res);
+  }
+
+  @Post('request-reset-password')
+  async requestResetPassword(
+    @Body() resetPasswordDto: RequestResetPasswordDto,
+  ) {
+    return this.authService.requestResetPassword(resetPasswordDto);
+  }
+
+  @Post('verify-otp')
+  async verifyOtp(
+    @Body() verifyOtpDto: VerifyOtpDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { message, token } = await this.authService.verifyOtp(verifyOtpDto);
+    if (token) {
+      res.cookie('verify_otp_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 10 * 60 * 1000, // 10 minute
+      });
+      return { message, token };
+    }
+    return { message };
+  }
+
+  @Post('reset-password')
+  async resetPassword(
+    @Body() dto: NewPasswordDto,
+    @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
+  ) {
+    const verifyOtpToken = req.cookies['verify_otp_token'];
+
+    const result = await this.authService.resetPassword(dto, verifyOtpToken);
+    res.clearCookie('verify_otp_token');
+    return result;
   }
 }
