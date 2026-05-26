@@ -53,5 +53,30 @@ describe('ShippingFeeService', () => {
 
       expect(result).toBe(32500);
     });
+
+    it('should support Vietnamese major city names', () => {
+      const result = service.calculateShippingFee('Hà Nội', 3.0, 90000);
+
+      expect(result).toBe(22000);
+    });
+
+    it('should never return a negative shipping fee', () => {
+      const result = service.calculateShippingFee('Hanoi', 1.0, 200000);
+
+      expect(result).toBe(0);
+    });
+
+    it('should keep VAT calculation outside shipping fee calculation', () => {
+      const subtotalBeforeVat = 90000;
+      const shippingFee = service.calculateShippingFee(
+        'Hanoi',
+        3.0,
+        subtotalBeforeVat,
+      );
+      const vatAmount = subtotalBeforeVat * 0.1;
+
+      expect(shippingFee).toBe(22000);
+      expect(vatAmount).toBe(9000);
+    });
   });
 });

@@ -39,6 +39,12 @@ describe('DeliveryInfoValidator', () => {
       );
     });
 
+    it('should accept phone number using dot separator', () => {
+      expect(DeliveryInfoValidator.validatePhoneNumber('0981.413.168')).toBe(
+        true,
+      );
+    });
+
     // UT_PO_005
     it('should reject phone number using mixed separators (UT_PO_005)', () => {
       expect(() =>
@@ -69,6 +75,49 @@ describe('DeliveryInfoValidator', () => {
       expect(() => DeliveryInfoValidator.validateAddress(' ')).toThrow(
         'Delivery address is required.',
       );
+    });
+  });
+
+  describe('validateProvince', () => {
+    it('should reject blank province', () => {
+      expect(() => DeliveryInfoValidator.validateProvince(' ')).toThrow(
+        BadRequestException,
+      );
+      expect(() => DeliveryInfoValidator.validateProvince(' ')).toThrow(
+        'Province is required.',
+      );
+    });
+  });
+
+  describe('validate', () => {
+    it('should return valid result for valid delivery information', () => {
+      const result = DeliveryInfoValidator.validate({
+        receiverName: 'Nguyen Van A',
+        phoneNumber: '0981413168',
+        province: 'Hanoi',
+        streetAddress: '1 Dai Co Viet',
+      });
+
+      expect(result).toEqual({ valid: true, errors: [] });
+    });
+
+    it('should collect validation errors', () => {
+      const result = DeliveryInfoValidator.validate({
+        receiverName: 'Nguyen Van A1',
+        phoneNumber: '0981 413-168',
+        province: '',
+        streetAddress: '',
+        shippingInstructions: 'A'.repeat(201),
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toEqual([
+        'Receiver name must contain letters only.',
+        'Phone number must use only one separator type.',
+        'Province is required.',
+        'Delivery address is required.',
+        'Shipping instructions must not exceed 200 characters.',
+      ]);
     });
   });
 

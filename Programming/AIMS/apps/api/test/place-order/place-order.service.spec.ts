@@ -1,0 +1,329 @@
+import { BadRequestException } from '@nestjs/common';
+import { ShippingFeeService } from '../../src/order/shipping-fee.service';
+import { PlaceOrderBeService } from '../../src/place-order/place-order.service';
+import { InvalidDeliveryInfoException } from '../../src/place-order/exceptions/invalid-delivery-info.exception';
+import { InvalidQuantityException } from '../../src/place-order/exceptions/invalid-quantity.exception';
+import { PaymentNotSuccessfulException } from '../../src/place-order/exceptions/payment-not-successful.exception';
+
+describe('PlaceOrderBeService', () => {
+  let service: PlaceOrderBeService;
+  let prisma: any;
+
+  const activeProduct = {
+    id: BigInt(1),
+    title: 'Clean Code',
+    currentPrice: 100000,
+    weight: 1,
+    quantity: 5,
+    status: 'AVAILABLE',
+  };
+
+  const validDeliveryInfo = {
+    receiverName: 'Nguyen Van A',
+    phoneNumber: '0981413168',
+    province: 'Hanoi',
+    streetAddress: '1 Dai Co Viet',
+    email: 'customer@example.com',
+  };
+
+  beforeEach(() => {
+    prisma = {
+      product: {
+        findMany: jest.fn(),
+      },
+      order: {
+        findUnique: jest.fn(),
+      },
+      paymentTransaction: {
+        findUnique: jest.fn(),
+      },
+      $transaction: jest.fn(),
+    };
+    service = new PlaceOrderBeService(prisma, new ShippingFeeService());
+  });
+
+  describe('checkStock', () => {
+    it('should return sufficient when all products have enough stock', async () => {
+      prisma.product.findMany.mockResolvedValue([activeProduct]);
+
+      const result = await service.checkStock({
+        items: [{ productId: 1, quantity: 2 }],
+      });
+
+      expect(result).toEqual({
+        sufficient: true,
+        insufficientItems: [],
+      });
+    });
+
+    it('should return insufficient item details when stock is not enough', async () => {
+      prisma.product.findMany.mockResolvedValue([activeProduct]);
+
+      const result = await service.checkStock({
+        items: [{ productId: 1, quantity: 8 }],
+      });
+
+      expect(result).toEqual({
+        sufficient: false,
+        insufficientItems: [{ productId: 1, requested: 8, available: 5 }],
+      });
+    });
+
+    it('should treat deactivated products as insufficient', async () => {
+      prisma.product.findMany.mockResolvedValue([
+        { ...activeProduct, status: 'DEACTIVATED' },
+      ]);
+
+      const result = await service.checkStock({
+        items: [{ productId: 1, quantity: 1 }],
+      });
+
+      expect(result.insufficientItems).toEqual([
+        { productId: 1, requested: 1, available: 0 },
+      ]);
+    });
+
+    it('should treat missing products as insufficient', async () => {
+      prisma.product.findMany.mockResolvedValue([]);
+
+      const result = await service.checkStock({
+        items: [{ productId: 99, quantity: 1 }],
+      });
+
+      expect(result.insufficientItems).toEqual([
+        { productId: 99, requested: 1, available: 0 },
+      ]);
+    });
+
+    it('should reject empty items array', async () => {
+      await expect(service.checkStock({ items: [] })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should reject quantity less than or equal to zero', async () => {
+      await expect(
+        service.checkStock({ items: [{ productId: 1, quantity: 0 }] }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject non-integer quantity', async () => {
+      await expect(
+        service.checkStock({ items: [{ productId: 1, quantity: 1.5 }] }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('processDeliveryInfo', () => {
+    it('should throw InvalidDeliveryInfoException for invalid delivery info', async () => {
+      await expect(
+        service.processDeliveryInfo({
+          items: [{ productId: 1, quantity: 1 }],
+          deliveryInfo: { ...validDeliveryInfo, receiverName: 'Nguyen 1' },
+        }),
+      ).rejects.toThrow(InvalidDeliveryInfoException);
+    });
+
+    it('should throw InvalidQuantityException when stock is insufficient', async () => {
+      prisma.product.findMany.mockResolvedValue([
+        { ...activeProduct, quantity: 0 },
+      ]);
+
+      await expect(
+        service.processDeliveryInfo({
+          items: [{ productId: 1, quantity: 1 }],
+          deliveryInfo: validDeliveryInfo,
+        }),
+      ).rejects.toThrow(InvalidQuantityException);
+    });
+
+    it('should build invoice preview from database price and weight', async () => {
+      prisma.product.findMany.mockResolvedValue([activeProduct]);
+
+      const result = await service.processDeliveryInfo({
+        items: [{ productId: 1, quantity: 2, price: 1, weight: 100 }],
+        deliveryInfo: validDeliveryInfo,
+      });
+
+      expect(result.items).toEqual([
+        {
+          productId: 1,
+          title: 'Clean Code',
+          price: 100000,
+          quantity: 2,
+          amount: 200000,
+          weight: 1,
+        },
+      ]);
+      expect(result.subtotalBeforeVat).toBe(200000);
+      expect(result.vatAmount).toBe(20000);
+      expect(result.subtotalAfterVat).toBe(220000);
+      expect(result.deliveryFee).toBe(0);
+      expect(result.totalAmount).toBe(220000);
+    });
+  });
+
+  describe('confirmOrder', () => {
+    it('should throw PaymentNotSuccessfulException when transaction id is missing', async () => {
+      await expect(
+        service.confirmOrder({
+          items: [{ productId: 1, quantity: 1 }],
+          deliveryInfo: validDeliveryInfo,
+          transactionId: '',
+          paymentMethod: 'VIETQR',
+        }),
+      ).rejects.toThrow(PaymentNotSuccessfulException);
+    });
+
+    it('should throw PaymentNotSuccessfulException when payment method is missing', async () => {
+      await expect(
+        service.confirmOrder({
+          items: [{ productId: 1, quantity: 1 }],
+          deliveryInfo: validDeliveryInfo,
+          transactionId: 'VQR123',
+          paymentMethod: '',
+        }),
+      ).rejects.toThrow(PaymentNotSuccessfulException);
+    });
+
+    it('should throw InvalidQuantityException when stock is insufficient inside transaction', async () => {
+      prisma.paymentTransaction.findUnique.mockResolvedValue(null);
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback({
+          product: {
+            findMany: jest
+              .fn()
+              .mockResolvedValue([{ ...activeProduct, quantity: 0 }]),
+          },
+        }),
+      );
+
+      await expect(
+        service.confirmOrder({
+          items: [{ productId: 1, quantity: 1 }],
+          deliveryInfo: validDeliveryInfo,
+          transactionId: 'VQR123',
+          paymentMethod: 'VIETQR',
+        }),
+      ).rejects.toThrow(InvalidQuantityException);
+    });
+
+    it('should create order, order products, invoice, transaction, payment transaction, and decrement stock with tx client', async () => {
+      const tx = {
+        product: {
+          findMany: jest.fn().mockResolvedValue([activeProduct]),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          findUnique: jest.fn(),
+        },
+        order: {
+          create: jest.fn().mockResolvedValue({
+            id: BigInt(10),
+            orderId: 'PO-1',
+          }),
+        },
+        orderProduct: {
+          create: jest.fn().mockResolvedValue({}),
+        },
+        invoice: {
+          create: jest.fn().mockResolvedValue({ id: BigInt(20) }),
+        },
+        transaction: {
+          create: jest.fn().mockResolvedValue({}),
+        },
+        paymentTransaction: {
+          create: jest.fn().mockResolvedValue({}),
+        },
+      };
+      prisma.paymentTransaction.findUnique.mockResolvedValue(null);
+      prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+
+      const result = await service.confirmOrder({
+        items: [{ productId: 1, quantity: 1 }],
+        deliveryInfo: validDeliveryInfo,
+        transactionId: 'VQR123',
+        transactionContent: 'Paid AIMS order',
+        transactionDate: '2026-05-26T00:00:00.000Z',
+        paymentMethod: 'VIETQR',
+      });
+
+      expect(tx.order.create).toHaveBeenCalled();
+      expect(tx.orderProduct.create).toHaveBeenCalled();
+      expect(tx.invoice.create).toHaveBeenCalled();
+      expect(tx.transaction.create).toHaveBeenCalled();
+      expect(tx.paymentTransaction.create).toHaveBeenCalled();
+      expect(tx.product.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: BigInt(1),
+          quantity: { gte: 1 },
+        },
+        data: {
+          quantity: { decrement: 1 },
+        },
+      });
+      expect(prisma.product.findMany).not.toHaveBeenCalled();
+      expect(result.transactionId).toBe('VQR123');
+    });
+
+    it('should throw InvalidQuantityException if atomic stock decrement fails', async () => {
+      const tx = {
+        product: {
+          findMany: jest.fn().mockResolvedValue([activeProduct]),
+          updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+          findUnique: jest.fn().mockResolvedValue({ quantity: 0 }),
+        },
+        order: {
+          create: jest.fn().mockResolvedValue({
+            id: BigInt(10),
+            orderId: 'PO-1',
+          }),
+        },
+        orderProduct: {
+          create: jest.fn().mockResolvedValue({}),
+        },
+        invoice: {
+          create: jest.fn().mockResolvedValue({ id: BigInt(20) }),
+        },
+        transaction: {
+          create: jest.fn().mockResolvedValue({}),
+        },
+      };
+      prisma.paymentTransaction.findUnique.mockResolvedValue(null);
+      prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+
+      await expect(
+        service.confirmOrder({
+          items: [{ productId: 1, quantity: 1 }],
+          deliveryInfo: validDeliveryInfo,
+          transactionId: 'VQR123',
+          paymentMethod: 'VIETQR',
+        }),
+      ).rejects.toThrow(InvalidQuantityException);
+    });
+
+    it('should return existing order success response for duplicate transaction id', async () => {
+      prisma.paymentTransaction.findUnique.mockResolvedValue({
+        orderId: 'PO-1',
+        transactionId: 'VQR123',
+        transactionContent: 'Paid',
+        transactionDateTime: new Date('2026-05-26T00:00:00.000Z'),
+      });
+      prisma.order.findUnique.mockResolvedValue({
+        customerName: 'Nguyen Van A',
+        phoneNumber: '0981413168',
+        province: 'Hanoi',
+        streetAddress: '1 Dai Co Viet',
+        invoice: { totalAmount: 110000 },
+      });
+
+      const result = await service.confirmOrder({
+        items: [{ productId: 1, quantity: 1 }],
+        deliveryInfo: validDeliveryInfo,
+        transactionId: 'VQR123',
+        paymentMethod: 'VIETQR',
+      });
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(result.totalAmount).toBe(110000);
+    });
+  });
+});
