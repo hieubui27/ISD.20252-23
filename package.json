@@ -5,7 +5,8 @@
     "eslint": "^10.3.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
-    "prettier": "^3.8.3"
+    "prettier": "^3.8.3",
+    "nx": "22.7.4"
   },
   "lint-staged": {
     "Programming/**/*.ts": [
@@ -16,5 +17,6 @@
   "scripts": {
     "prepare": "husky",
     "lint-staged": "lint-staged"
-  }
+  },
+  "nx": {}
 }

@@ -4,3 +4,7 @@ _bmad-output
 .env
 node_modules/
 api/api-e2e
+
+
+.nx/cache
+.nx/workspace-data

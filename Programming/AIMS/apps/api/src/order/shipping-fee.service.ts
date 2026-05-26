@@ -10,6 +10,27 @@ export class ShippingFeeService {
   private static readonly extraWeightBlockFee = 2500;
   private static readonly freeShippingThreshold = 100000;
   private static readonly maxFreeShippingDiscount = 25000;
+  private static readonly majorCityProvinces = [
+    'Hanoi',
+    'Ha Noi',
+    'Hà Nội',
+    'Ho Chi Minh City',
+    'Hồ Chí Minh',
+    'TP Hồ Chí Minh',
+    'TP. Hồ Chí Minh',
+  ];
+
+  calculate(
+    totalWeightKg: number,
+    province: string,
+    totalItemsValueBeforeVAT: number,
+  ): number {
+    return this.calculateShippingFee(
+      province,
+      totalWeightKg,
+      totalItemsValueBeforeVAT,
+    );
+  }
 
   calculateShippingFee(
     province: string,
@@ -25,7 +46,22 @@ export class ShippingFeeService {
       totalItemsValueBeforeVAT,
     );
 
-    return rawShippingFee - discount;
+    return Math.max(0, rawShippingFee - discount);
+  }
+
+  applyFreeShipDiscount(
+    rawShippingFee: number,
+    totalItemsValueBeforeVAT: number,
+  ): number {
+    return Math.max(
+      0,
+      rawShippingFee -
+        this.calculateDiscount(rawShippingFee, totalItemsValueBeforeVAT),
+    );
+  }
+
+  isInnerCity(province: string): boolean {
+    return this.isMajorCity(province);
   }
 
   private calculateRawShippingFee(
@@ -63,6 +99,10 @@ export class ShippingFeeService {
   }
 
   private isMajorCity(province: string): boolean {
-    return ['Hanoi', 'Ho Chi Minh City'].includes(province);
+    const normalizedProvince = province.trim().toLowerCase();
+
+    return ShippingFeeService.majorCityProvinces.some(
+      (majorCity) => majorCity.toLowerCase() === normalizedProvince,
+    );
   }
 }
