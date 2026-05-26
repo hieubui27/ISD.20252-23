@@ -41,23 +41,20 @@ export class ShippingFeeService {
       province,
       totalWeightKg,
     );
+
+    return this.applyFreeShipDiscount(rawShippingFee, totalItemsValueBeforeVAT);
+  }
+
+  private applyFreeShipDiscount(
+    rawShippingFee: number,
+    totalItemsValueBeforeVAT: number,
+  ): number {
     const discount = this.calculateDiscount(
       rawShippingFee,
       totalItemsValueBeforeVAT,
     );
 
     return Math.max(0, rawShippingFee - discount);
-  }
-
-  applyFreeShipDiscount(
-    rawShippingFee: number,
-    totalItemsValueBeforeVAT: number,
-  ): number {
-    return Math.max(
-      0,
-      rawShippingFee -
-        this.calculateDiscount(rawShippingFee, totalItemsValueBeforeVAT),
-    );
   }
 
   isInnerCity(province: string): boolean {

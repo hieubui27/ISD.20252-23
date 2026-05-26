@@ -1,8 +1,14 @@
-import { IsDateString, IsOptional, IsString } from 'class-validator';
+import {
+  IsDateString,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { SubmitDeliveryInfoDto } from './submit-delivery-info.dto';
 
 export class ConfirmOrderDto extends SubmitDeliveryInfoDto {
   @IsString()
+  @IsNotEmpty()
   transactionId: string;
 
   @IsString()
@@ -14,5 +20,6 @@ export class ConfirmOrderDto extends SubmitDeliveryInfoDto {
   transactionDate?: string;
 
   @IsString()
+  @IsNotEmpty()
   paymentMethod: string;
 }
