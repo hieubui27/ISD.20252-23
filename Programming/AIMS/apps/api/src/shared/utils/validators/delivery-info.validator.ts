@@ -23,14 +23,16 @@ export class DeliveryInfoValidator {
   static validate(deliveryInfo: DeliveryInfoValidationInput): ValidationResult {
     const errors = [
       ...this.collectError(() =>
-        this.validateReceiverName(deliveryInfo?.receiverName),
+        this.validateReceiverName(deliveryInfo?.receiverName ?? ''),
       ),
       ...this.collectError(() =>
-        this.validatePhoneNumber(deliveryInfo?.phoneNumber),
+        this.validatePhoneNumber(deliveryInfo?.phoneNumber ?? ''),
       ),
-      ...this.collectError(() => this.validateProvince(deliveryInfo?.province)),
       ...this.collectError(() =>
-        this.validateAddress(deliveryInfo?.streetAddress),
+        this.validateProvince(deliveryInfo?.province ?? ''),
+      ),
+      ...this.collectError(() =>
+        this.validateAddress(deliveryInfo?.streetAddress ?? ''),
       ),
       ...this.collectError(() =>
         this.validateShippingInstructions(deliveryInfo?.shippingInstructions),

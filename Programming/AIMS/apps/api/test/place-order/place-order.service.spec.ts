@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { ShippingFeeService } from '../../src/order/shipping-fee.service';
+import { ShippingFeeService } from '../../src/shared/utils/shipping-fee.service';
 import { PlaceOrderBeService } from '../../src/place-order/place-order.service';
 import { InvalidDeliveryInfoException } from '../../src/place-order/exceptions/invalid-delivery-info.exception';
 import { InvalidQuantityException } from '../../src/place-order/exceptions/invalid-quantity.exception';
@@ -39,7 +39,14 @@ describe('PlaceOrderBeService', () => {
       },
       $transaction: jest.fn(),
     };
-    service = new PlaceOrderBeService(prisma, new ShippingFeeService());
+    const mailService = {
+      sendMail: jest.fn().mockResolvedValue(undefined),
+    } as any;
+    service = new PlaceOrderBeService(
+      prisma,
+      new ShippingFeeService(),
+      mailService,
+    );
   });
 
   describe('checkStock', () => {
@@ -188,14 +195,15 @@ describe('PlaceOrderBeService', () => {
 
     it('should throw InvalidQuantityException when stock is insufficient inside transaction', async () => {
       prisma.paymentTransaction.findUnique.mockResolvedValue(null);
-      prisma.$transaction.mockImplementation(async (callback) =>
-        callback({
-          product: {
-            findMany: jest
-              .fn()
-              .mockResolvedValue([{ ...activeProduct, quantity: 0 }]),
-          },
-        }),
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: any) => Promise<unknown>) =>
+          callback({
+            product: {
+              findMany: jest
+                .fn()
+                .mockResolvedValue([{ ...activeProduct, quantity: 0 }]),
+            },
+          }),
       );
 
       await expect(
@@ -222,7 +230,7 @@ describe('PlaceOrderBeService', () => {
           }),
         },
         orderProduct: {
-          create: jest.fn().mockResolvedValue({}),
+          createMany: jest.fn().mockResolvedValue({ count: 1 }),
         },
         invoice: {
           create: jest.fn().mockResolvedValue({ id: BigInt(20) }),
@@ -235,7 +243,9 @@ describe('PlaceOrderBeService', () => {
         },
       };
       prisma.paymentTransaction.findUnique.mockResolvedValue(null);
-      prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+      );
 
       const result = await service.confirmOrder({
         items: [{ productId: 1, quantity: 1 }],
@@ -247,7 +257,7 @@ describe('PlaceOrderBeService', () => {
       });
 
       expect(tx.order.create).toHaveBeenCalled();
-      expect(tx.orderProduct.create).toHaveBeenCalled();
+      expect(tx.orderProduct.createMany).toHaveBeenCalled();
       expect(tx.invoice.create).toHaveBeenCalled();
       expect(tx.transaction.create).toHaveBeenCalled();
       expect(tx.paymentTransaction.create).toHaveBeenCalled();
@@ -278,7 +288,7 @@ describe('PlaceOrderBeService', () => {
           }),
         },
         orderProduct: {
-          create: jest.fn().mockResolvedValue({}),
+          createMany: jest.fn().mockResolvedValue({ count: 1 }),
         },
         invoice: {
           create: jest.fn().mockResolvedValue({ id: BigInt(20) }),
@@ -288,7 +298,9 @@ describe('PlaceOrderBeService', () => {
         },
       };
       prisma.paymentTransaction.findUnique.mockResolvedValue(null);
-      prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+      );
 
       await expect(
         service.confirmOrder({
