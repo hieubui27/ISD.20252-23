@@ -20,18 +20,6 @@ export class ShippingFeeService {
     'TP. Hồ Chí Minh',
   ];
 
-  calculate(
-    totalWeightKg: number,
-    province: string,
-    totalItemsValueBeforeVAT: number,
-  ): number {
-    return this.calculateShippingFee(
-      province,
-      totalWeightKg,
-      totalItemsValueBeforeVAT,
-    );
-  }
-
   calculateShippingFee(
     province: string,
     totalWeightKg: number,

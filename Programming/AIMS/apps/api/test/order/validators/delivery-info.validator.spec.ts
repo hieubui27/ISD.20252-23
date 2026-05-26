@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { DeliveryInfoValidator } from '../../../src/order/validators/delivery-info.validator';
+import { DeliveryInfoValidator } from '../../../src/shared/utils/validators/delivery-info.validator';
 
 describe('DeliveryInfoValidator', () => {
   describe('validateReceiverName', () => {

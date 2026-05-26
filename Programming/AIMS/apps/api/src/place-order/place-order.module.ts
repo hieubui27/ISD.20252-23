@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
-import { ShippingFeeService } from '../order/shipping-fee.service';
+import { ShippingFeeService } from '../shared/utils/shipping-fee.service';
 import { MailModule } from '../mail/mail.module';
 import { PlaceOrderController } from './place-order.controller';
 import { PlaceOrderBeService } from './place-order.service';
