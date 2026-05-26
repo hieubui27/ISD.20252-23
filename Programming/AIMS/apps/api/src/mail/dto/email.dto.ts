@@ -33,3 +33,21 @@ export class SendInvitationDto {
   @IsString()
   loginLink?: string;
 }
+
+export class SendOtpCodeDto {
+  @IsArray()
+  @IsNotEmpty({ each: true })
+  recipientEmail: string[];
+
+  @IsString()
+  @IsNotEmpty()
+  username: string;
+
+  @IsString()
+  @IsNotEmpty()
+  otp: string;
+
+  @IsString()
+  @IsNotEmpty()
+  expirationTime: string;
+}
