@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaypalService } from './paypal/paypal.service';
+import { PaypalService } from '../paypal/paypal.service';
 import { VietqrService } from '../vietqr/vietqr.service';
 import {
   PaymentMethod,
