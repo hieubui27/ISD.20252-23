@@ -1,6 +1,6 @@
 import { Body, Controller, Param, Post } from '@nestjs/common';
 import { PaypalService } from './paypal.service';
-import { CreateOrderDto } from '../payment/dto/create-order.dto';
+import { CreatePaypalOrderDto } from './dto/create-order.dto';
 
 /**
  * Coupling: Data Coupling
@@ -18,7 +18,7 @@ export class PaypalController {
   constructor(private readonly paypalService: PaypalService) {}
 
   @Post('create-order')
-  async createOrder(@Body() body: CreateOrderDto) {
+  async createOrder(@Body() body: CreatePaypalOrderDto) {
     const order = await this.paypalService.createOrder(body.amount);
     return order;
   }
