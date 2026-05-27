@@ -17,7 +17,7 @@ import {
 export class PaymentComponent implements OnInit {
   isLoading = false;
   errorMessage = '';
-  selectedPaymentMethod: PaymentMethod = 'PAYPAL';
+  selectedPaymentMethod: PaymentMethod = 'VIETQR';
 
   order: OrderSummary = {
     items: [
