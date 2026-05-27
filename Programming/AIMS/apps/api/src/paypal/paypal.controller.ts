@@ -1,6 +1,6 @@
 import { Body, Controller, Param, Post } from '@nestjs/common';
 import { PaypalService } from './paypal.service';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { CreateOrderDto } from '../payment/dto/create-order.dto';
 
 /**
  * Coupling: Data Coupling
