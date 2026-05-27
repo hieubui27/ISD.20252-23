@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PaypalModule } from './paypal/paypal.module';
+import { PaypalModule } from '../paypal/paypal.module';
 import { MailModule } from '../mail/mail.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PaymentController } from './payment.controller';
