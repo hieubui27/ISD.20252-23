@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { PaypalModule } from './paypal/paypal.module';
+import { MailModule } from '../mail/mail.module';
+import { PrismaModule } from '../prisma/prisma.module';
 import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
-import { FakePlaceOrderPaymentAdapter } from './adapters/fake-place-order-payment.adapter';
 import { PLACE_ORDER_PAYMENT_PORT } from './ports/place-order-payment.port';
+import { PlaceOrderPaymentAdapter } from '../place-order/adapters/place-order-payment.adapter';
 import { VietqrController } from '../vietqr/vietqr.controller';
 import { VietqrService } from '../vietqr/vietqr.service';
 import { VIETQR_CLIENT } from '../vietqr/clients/vietqr.client';
@@ -25,7 +27,7 @@ import { ConfigService } from '../vietqr/config/vietqr-config.service';
  * - All declarations belong to the payment module boundary for payment, VietQR callback, VietQR client, and temporary PlaceOrder integration.
  */
 @Module({
-  imports: [PaypalModule],
+  imports: [PaypalModule, PrismaModule, MailModule],
   controllers: [PaymentController, VietqrController, VietqrInboundController],
   providers: [
     PaymentService,
@@ -39,7 +41,7 @@ import { ConfigService } from '../vietqr/config/vietqr-config.service';
     },
     {
       provide: PLACE_ORDER_PAYMENT_PORT,
-      useClass: FakePlaceOrderPaymentAdapter,
+      useClass: PlaceOrderPaymentAdapter,
     },
   ],
   exports: [PaymentService],

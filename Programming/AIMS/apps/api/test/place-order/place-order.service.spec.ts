@@ -1,3 +1,7 @@
+jest.mock('../../src/mail/mail.service', () => ({
+  MailService: class MailService {},
+}));
+
 import { BadRequestException } from '@nestjs/common';
 import { ShippingFeeService } from '../../src/shared/utils/shipping-fee.service';
 import { PlaceOrderBeService } from '../../src/place-order/place-order.service';
@@ -8,6 +12,7 @@ import { PaymentNotSuccessfulException } from '../../src/place-order/exceptions/
 describe('PlaceOrderBeService', () => {
   let service: PlaceOrderBeService;
   let prisma: any;
+  let paymentService: any;
 
   const activeProduct = {
     id: BigInt(1),
@@ -42,10 +47,14 @@ describe('PlaceOrderBeService', () => {
     const mailService = {
       sendMail: jest.fn().mockResolvedValue(undefined),
     } as any;
+    paymentService = {
+      requestPayment: jest.fn(),
+    };
     service = new PlaceOrderBeService(
       prisma,
       new ShippingFeeService(),
       mailService,
+      paymentService,
     );
   });
 
@@ -167,6 +176,66 @@ describe('PlaceOrderBeService', () => {
       expect(result.subtotalAfterVat).toBe(220000);
       expect(result.deliveryFee).toBe(0);
       expect(result.totalAmount).toBe(220000);
+    });
+  });
+
+  describe('createPayment', () => {
+    it('should create a pending order and request VietQR payment', async () => {
+      const tx = {
+        product: {
+          findMany: jest.fn().mockResolvedValue([activeProduct]),
+        },
+        order: {
+          create: jest.fn().mockResolvedValue({
+            id: BigInt(10),
+            orderId: 'PO-1',
+          }),
+        },
+        orderProduct: {
+          createMany: jest.fn().mockResolvedValue({ count: 1 }),
+        },
+        invoice: {
+          create: jest.fn().mockResolvedValue({ id: BigInt(20) }),
+        },
+      };
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+      );
+      paymentService.requestPayment.mockResolvedValue({
+        status: 'PENDING',
+        paymentMethod: 'VIETQR',
+        paymentUrl: '',
+        qrCode: 'qr-code-data',
+        transactionId: 'payment-transaction-id',
+        message: 'VietQR payment request created',
+      });
+
+      const result = await service.createPayment({
+        items: [{ productId: 1, quantity: 1 }],
+        deliveryInfo: validDeliveryInfo,
+        paymentMethod: 'VIETQR' as any,
+      });
+
+      expect(tx.order.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          status: 'PENDING_PAYMENT',
+        }),
+      });
+      expect(paymentService.requestPayment).toHaveBeenCalledWith({
+        orderId: 'PO-1',
+        invoiceId: '20',
+        paymentMethod: 'VIETQR',
+        amount: 132000,
+        customerEmail: 'customer@example.com',
+      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          orderId: 'PO-1',
+          invoiceId: '20',
+          totalAmount: 132000,
+          qrCode: 'qr-code-data',
+        }),
+      );
     });
   });
 

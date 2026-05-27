@@ -3,12 +3,18 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { createHmac, randomBytes } from 'crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { ConfigService } from './config/vietqr-config.service';
 
 interface BasicAuthCredentials {
   username: string;
   password: string;
+}
+
+interface InboundAccessTokenPayload {
+  sub?: string;
+  nonce?: string;
+  exp?: number;
 }
 
 /**
@@ -51,6 +57,36 @@ export class VietqrInboundService {
       token_type: 'Bearer',
       expires_in: expiresIn,
     };
+  }
+
+  validateAccessToken(token: string): void {
+    const [payload, signature, extra] = token.split('.');
+    if (!payload || !signature || extra !== undefined) {
+      throw new UnauthorizedException('Invalid VietQR callback token');
+    }
+
+    const secret = this.getRequiredEnv('VIETQR_INBOUND_TOKEN_SECRET');
+    const expectedSignature = createHmac('sha256', secret)
+      .update(payload)
+      .digest('base64url');
+
+    if (!this.signaturesMatch(signature, expectedSignature)) {
+      throw new UnauthorizedException('Invalid VietQR callback token');
+    }
+
+    const parsedPayload = this.parseAccessTokenPayload(payload);
+    const expectedUsername = this.getRequiredEnv('VIETQR_INBOUND_USERNAME');
+
+    if (parsedPayload.sub !== expectedUsername) {
+      throw new UnauthorizedException('Invalid VietQR callback token subject');
+    }
+
+    if (
+      !Number.isInteger(parsedPayload.exp) ||
+      parsedPayload.exp < Math.floor(Date.now() / 1000)
+    ) {
+      throw new UnauthorizedException('Expired VietQR callback token');
+    }
   }
 
   parseBasicAuth(header?: string): BasicAuthCredentials {
@@ -116,5 +152,39 @@ export class VietqrInboundService {
     }
 
     return value;
+  }
+
+  private parseAccessTokenPayload(payload: string): InboundAccessTokenPayload {
+    try {
+      const parsed = JSON.parse(
+        Buffer.from(payload, 'base64url').toString('utf8'),
+      ) as InboundAccessTokenPayload;
+
+      if (!parsed || typeof parsed !== 'object') {
+        throw new UnauthorizedException('Invalid VietQR callback token');
+      }
+
+      return parsed;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      throw new UnauthorizedException('Invalid VietQR callback token');
+    }
+  }
+
+  private signaturesMatch(
+    receivedSignature: string,
+    expectedSignature: string,
+  ): boolean {
+    const received = Buffer.from(receivedSignature);
+    const expected = Buffer.from(expectedSignature);
+
+    if (received.length !== expected.length) {
+      return false;
+    }
+
+    return timingSafeEqual(received, expected);
   }
 }

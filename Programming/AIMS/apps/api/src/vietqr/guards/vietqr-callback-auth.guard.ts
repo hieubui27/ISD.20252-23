@@ -4,13 +4,14 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { VietqrInboundService } from '../vietqr-inbound.service';
 
 /**
  * Coupling: Data Coupling
  * Cohesion: Functional Cohesion
  *
  * Coupling reason:
- * - This guard reads only the callback authorization header and the configured callback token.
+ * - This guard reads only the callback authorization header, static test token, and issued inbound token validator.
  * - It does not query orders, payment transactions, user roles, or provider HTTP APIs.
  *
  * Cohesion reason:
@@ -18,27 +19,24 @@ import {
  */
 @Injectable()
 export class VietqrCallbackAuthGuard implements CanActivate {
+  constructor(private readonly vietqrInboundService: VietqrInboundService) {}
+
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
-    const expectedToken = process.env.VIETQR_CALLBACK_TOKEN;
-
-    // TODO(VIETQR_API_INTEGRATION): Replace sandbox token with the token configured in VietQR merchant portal.
-    if (!expectedToken) {
-      throw new UnauthorizedException(
-        'VietQR callback token is not configured',
-      );
-    }
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('Invalid VietQR callback auth header');
     }
 
     const receivedToken = authHeader.slice('Bearer '.length).trim();
-    if (receivedToken !== expectedToken) {
-      throw new UnauthorizedException('Invalid VietQR callback token');
+    const staticCallbackToken = process.env.VIETQR_CALLBACK_TOKEN;
+
+    if (staticCallbackToken && receivedToken === staticCallbackToken) {
+      return true;
     }
 
+    this.vietqrInboundService.validateAccessToken(receivedToken);
     return true;
   }
 }

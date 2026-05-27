@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { PaymentService } from '../../src/payment/payment.service';
 import {
   PaymentMethod,
@@ -252,7 +249,15 @@ describe('PaymentService', () => {
     });
     expect(
       mockPlaceOrderPaymentPort.markPaidAndPendingProcessing,
-    ).toHaveBeenCalledWith('ORDER_DEMO_001');
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: 'ORDER_DEMO_001',
+        invoiceId: 'INV_DEMO_001',
+        paymentMethod: PaymentMethod.VIETQR,
+        amount: 250000,
+        transactionId: 'TXN001',
+      }),
+    );
     expect(result.duplicate).toBe(false);
   });
 });

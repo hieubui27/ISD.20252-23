@@ -1,14 +1,17 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ShippingFeeService } from '../shared/utils/shipping-fee.service';
 import { MailService } from '../mail/mail.service';
 import { getOrderConfirmationEmailTemplate } from '../mail/templates/order-confirmation.template';
+import { PaymentService } from '../payment/payment.service';
 import { DeliveryInfoValidator } from '../shared/utils/validators/delivery-info.validator';
 import { CartItemDto } from './dto/cart-item.dto';
 import { ConfirmOrderDto } from './dto/confirm-order.dto';
 import { DeliveryInfoDto } from './dto/delivery-info.dto';
 import { InvoiceItemDto, InvoicePreviewDto } from './dto/invoice-preview.dto';
 import { OrderSuccessDto } from './dto/order-success.dto';
+import { PlaceOrderPaymentRequestDto } from './dto/place-order-payment-request.dto';
+import { PlaceOrderPaymentResultDto } from './dto/place-order-payment-result.dto';
 import { PlaceOrderRequestDto } from './dto/place-order-request.dto';
 import {
   InsufficientItemDto,
@@ -17,6 +20,7 @@ import {
 import { SubmitDeliveryInfoDto } from './dto/submit-delivery-info.dto';
 import {
   DELIVERY_METHOD_STANDARD,
+  ORDER_STATUS_PENDING_PAYMENT,
   ORDER_STATUS_PENDING_PROCESSING,
   PAYMENT_STATUS_SUCCESS,
   PAYMENT_TRANSACTION_PROVIDER_PLACE_ORDER,
@@ -37,6 +41,8 @@ export class PlaceOrderBeService {
     private readonly prisma: PrismaService,
     private readonly shippingFeeService: ShippingFeeService,
     private readonly mailService: MailService,
+    @Optional()
+    private readonly paymentService?: PaymentService,
   ) {}
 
   async checkStock(dto: PlaceOrderRequestDto): Promise<StockCheckResultDto> {
@@ -70,6 +76,96 @@ export class PlaceOrderBeService {
       products,
       dto.deliveryInfo,
     );
+  }
+
+  async createPayment(
+    dto: PlaceOrderPaymentRequestDto,
+  ): Promise<PlaceOrderPaymentResultDto> {
+    if (!this.paymentService) {
+      throw new BadRequestException('Payment service is not configured');
+    }
+
+    this.validateDeliveryInfo(dto.deliveryInfo, true);
+
+    const pendingOrder = await this.prisma.$transaction(
+      async (tx: PrismaClientLike) => {
+        const items = this.normalizeItems(dto.items);
+        const products = await this.findProductsByIds(
+          items.map((item) => item.productId),
+          tx,
+        );
+        const stockResult = this.checkStockFromProducts(items, products);
+
+        if (!stockResult.sufficient) {
+          throw new InvalidQuantityException(stockResult.insufficientItems);
+        }
+
+        const invoicePreview = this.buildInvoicePreviewFromProducts(
+          items,
+          products,
+          dto.deliveryInfo,
+        );
+        const orderCode = this.generateOrderCode();
+
+        const order = await tx.order.create({
+          data: {
+            orderId: orderCode,
+            customerName: dto.deliveryInfo.receiverName.trim(),
+            phoneNumber: dto.deliveryInfo.phoneNumber,
+            email: this.getRequiredEmail(dto.deliveryInfo),
+            streetAddress: dto.deliveryInfo.streetAddress.trim(),
+            province: dto.deliveryInfo.province.trim(),
+            deliveryMethod: DELIVERY_METHOD_STANDARD,
+            deliveryFee: invoicePreview.deliveryFee,
+            subtotal: invoicePreview.subtotalBeforeVat,
+            status: ORDER_STATUS_PENDING_PAYMENT,
+          },
+        });
+
+        await tx.orderProduct.createMany({
+          data: invoicePreview.items.map((invoiceItem) => ({
+            orderId: order.id,
+            productId: BigInt(invoiceItem.productId),
+            quantity: invoiceItem.quantity,
+            price: invoiceItem.price,
+          })),
+        });
+
+        const invoice = await tx.invoice.create({
+          data: {
+            orderId: order.id,
+            vatSubtotal: invoicePreview.subtotalAfterVat,
+            totalAmount: invoicePreview.totalAmount,
+          },
+        });
+
+        return {
+          orderId: order.orderId,
+          invoiceId: invoice.id.toString(),
+          totalAmount: Math.round(invoicePreview.totalAmount),
+        };
+      },
+    );
+
+    const paymentResult = await this.paymentService.requestPayment({
+      orderId: pendingOrder.orderId,
+      invoiceId: pendingOrder.invoiceId,
+      paymentMethod: dto.paymentMethod,
+      amount: pendingOrder.totalAmount,
+      customerEmail: this.getRequiredEmail(dto.deliveryInfo),
+    });
+
+    return {
+      orderId: pendingOrder.orderId,
+      invoiceId: pendingOrder.invoiceId,
+      totalAmount: pendingOrder.totalAmount,
+      paymentMethod: paymentResult.paymentMethod,
+      paymentStatus: paymentResult.status,
+      paymentUrl: paymentResult.paymentUrl,
+      qrCode: paymentResult.qrCode,
+      paymentTransactionId: paymentResult.transactionId,
+      message: paymentResult.message,
+    };
   }
 
   async confirmOrder(dto: ConfirmOrderDto): Promise<OrderSuccessDto> {
