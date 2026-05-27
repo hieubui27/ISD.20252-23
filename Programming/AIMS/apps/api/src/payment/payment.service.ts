@@ -91,7 +91,7 @@ export class PaymentService {
     });
 
     if (paymentMethod === PaymentMethod.VIETQR) {
-      const qrContent = normalizeVietqrContent('THANH TOAN AIMS');
+      const qrContent = normalizeVietqrContent(`AIMS ${gatewayOrderId}`);
       const qrCodeData = await this.vietqrService.generateQrCode({
         orderId: gatewayOrderId,
         invoiceId: dto.invoiceId,
@@ -218,9 +218,15 @@ export class PaymentService {
       },
     });
 
-    await this.placeOrderPaymentPort.markPaidAndPendingProcessing(
-      updated.orderId,
-    );
+    await this.placeOrderPaymentPort.markPaidAndPendingProcessing({
+      orderId: updated.orderId,
+      invoiceId: updated.invoiceId,
+      paymentMethod: updated.paymentMethod,
+      amount: updated.amount,
+      transactionId: updated.transactionId || dto.transactionId,
+      transactionContent: updated.transactionContent,
+      transactionDateTime: updated.transactionDateTime,
+    });
     // TODO(NOTIFICATION_INTEGRATION): Send invoice and transaction information to the customer email after success.
 
     return {
@@ -296,9 +302,15 @@ export class PaymentService {
       },
     });
 
-    await this.placeOrderPaymentPort.markPaidAndPendingProcessing(
-      updated.orderId,
-    );
+    await this.placeOrderPaymentPort.markPaidAndPendingProcessing({
+      orderId: updated.orderId,
+      invoiceId: updated.invoiceId,
+      paymentMethod: updated.paymentMethod,
+      amount: updated.amount,
+      transactionId: updated.transactionId || callback.transactionid,
+      transactionContent: updated.transactionContent,
+      transactionDateTime: updated.transactionDateTime,
+    });
     // TODO(NOTIFICATION_INTEGRATION): Send invoice and transaction information to the customer email after success.
 
     return {

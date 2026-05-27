@@ -25,7 +25,17 @@ export interface PaymentContext {
   customerEmail: string;
 }
 
+export interface PaidOrderContext {
+  orderId: string;
+  invoiceId: string;
+  paymentMethod: string;
+  amount: number;
+  transactionId: string;
+  transactionContent?: string | null;
+  transactionDateTime?: Date | null;
+}
+
 export interface PlaceOrderPaymentPort {
   getPaymentContext(lookup: PaymentContextLookup): Promise<PaymentContext>;
-  markPaidAndPendingProcessing(orderId: string): Promise<void>;
+  markPaidAndPendingProcessing(context: PaidOrderContext): Promise<void>;
 }

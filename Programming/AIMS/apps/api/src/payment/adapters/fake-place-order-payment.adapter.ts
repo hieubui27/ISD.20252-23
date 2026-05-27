@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
+  PaidOrderContext,
   PaymentContext,
   PaymentContextLookup,
   PlaceOrderPaymentPort,
@@ -36,10 +37,10 @@ export class FakePlaceOrderPaymentAdapter implements PlaceOrderPaymentPort {
     };
   }
 
-  async markPaidAndPendingProcessing(orderId: string): Promise<void> {
+  async markPaidAndPendingProcessing(context: PaidOrderContext): Promise<void> {
     // TODO(PLACE_ORDER_INTEGRATION): Mark the real order as paid and pending processing.
     console.log(
-      `TODO(PLACE_ORDER_INTEGRATION): order ${orderId} paid; pending processing.`,
+      `TODO(PLACE_ORDER_INTEGRATION): order ${context.orderId} paid; pending processing.`,
     );
   }
 }
