@@ -22,6 +22,7 @@ import {
   PlaceOrderPaymentPort,
 } from './ports/place-order-payment.port';
 import {
+  convertMoneyToUSD,
   ensureCanMarkFailed,
   ensureCanMarkRefundRequired,
   ensureCanMarkSuccess,
@@ -35,6 +36,7 @@ import {
 interface PaypalApprovalLink {
   rel: string;
   href: string;
+  method: string;
 }
 
 /**
@@ -117,7 +119,9 @@ export class PaymentService {
       };
     }
 
-    const paypalOrder = await this.paypalService.createOrder(dto.amount);
+    const paypalOrder = await this.paypalService.createOrder(
+      convertMoneyToUSD(dto.amount),
+    );
     const approvalLinks = (paypalOrder?.links || []) as PaypalApprovalLink[];
     const approveLink =
       approvalLinks.find((link) => link.rel === 'approve')?.href || '';

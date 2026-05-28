@@ -1,0 +1,1131 @@
+.payment-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 1135px;
+  align-items: center;
+  position: relative;
+  background:
+    linear-gradient(
+      0deg,
+      rgba(249, 249, 249, 1) 0%,
+      rgba(249, 249, 249, 1) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 1) 100%
+    );
+}
+
+.payment-screen .main-canvas {
+  display: flex;
+  flex-direction: column;
+  max-width: 896px;
+  width: 896px;
+  align-items: flex-start;
+  gap: 48px;
+  padding: 96px 32px 80px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 0px 0px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+  background-color: transparent;
+}
+
+.payment-screen .text-wrapper {
+  flex-direction: column;
+  align-items: center;
+  display: flex;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -1px;
+  font-family: "Inter-ExtraBold", Helvetica;
+  font-weight: 800;
+  color: #1a1c1c;
+  font-size: 36px;
+  text-align: center;
+  letter-spacing: -0.9px;
+  line-height: 40px;
+  white-space: nowrap;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen .container {
+  display: flex;
+  flex-direction: column;
+  max-width: 576px;
+  width: 576px;
+  align-items: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .div {
+  margin-top: -1px;
+  font-family: "Inter-Regular", Helvetica;
+  font-weight: 400;
+  color: #414752;
+  font-size: 18px;
+  text-align: center;
+  letter-spacing: 0;
+  line-height: 29.2px;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen .container-2 {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: 664px;
+  height: fit-content;
+  gap: 32px;
+}
+
+.payment-screen .left-column-invoice {
+  position: relative;
+  grid-row: 1 / 2;
+  grid-column: 1 / 6;
+  align-self: start;
+  width: 100%;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.payment-screen .tonal-lift-layer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 32px 15px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+  background-color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0px 0px 0px 1px #c0c7d426;
+}
+
+.payment-screen .heading {
+  align-items: center;
+  gap: 8px;
+  display: flex;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .div-2 {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .icon {
+  position: relative;
+  width: 18px;
+  height: 20px;
+}
+
+.payment-screen .text-2 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: -1px;
+  font-family: "Inter-Bold", Helvetica;
+  font-weight: 700;
+  color: #1a1c1c;
+  font-size: 20px;
+  letter-spacing: -0.5px;
+  line-height: 28px;
+  white-space: nowrap;
+}
+
+.payment-screen .div-3 {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .container-3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .text-3 {
+  display: flex;
+  align-items: center;
+  margin-top: -1px;
+  font-family: "Inter-Medium", Helvetica;
+  font-weight: 500;
+  color: #414752;
+  font-size: 16px;
+  letter-spacing: 0;
+  line-height: 24px;
+  white-space: nowrap;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen .text-wrapper-2 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: -1px;
+  font-family: "Inter-SemiBold", Helvetica;
+  font-weight: 600;
+  color: #000000;
+  font-size: 16px;
+  letter-spacing: 0;
+  line-height: 24px;
+  white-space: nowrap;
+}
+
+.payment-screen .text-4 {
+  display: flex;
+  align-items: center;
+  margin-top: -1px;
+  font-family: "Inter-SemiBold", Helvetica;
+  font-weight: 600;
+  color: #005fac;
+  font-size: 16px;
+  letter-spacing: 0;
+  line-height: 24px;
+  white-space: nowrap;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen .divider-via-tonal {
+  display: flex;
+  flex-direction: column;
+  height: 20px;
+  align-items: flex-start;
+  padding: 8px 0px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+}
+
+.payment-screen .divider-via-tonal-2 {
+  height: 4px;
+  background-color: #f3f3f3;
+  border-radius: 12px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+}
+
+.payment-screen .container-4 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0px 0px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .div-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .text-wrapper-3 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: -1px;
+  font-family: "Inter-Bold", Helvetica;
+  font-weight: 700;
+  color: #1a1c1c;
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 28px;
+  white-space: nowrap;
+}
+
+.payment-screen .includes-taxes-and {
+  position: relative;
+  width: fit-content;
+  margin-top: -1px;
+  font-family: "Inter-Regular", Helvetica;
+  font-weight: 400;
+  color: #414752;
+  font-size: 11px;
+  letter-spacing: 0;
+  line-height: 16px;
+}
+
+.payment-screen .container-5 {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px 15.31px 0px 0px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .text-wrapper-4 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: -1px;
+  font-family: "Inter-Black", Helvetica;
+  font-weight: 900;
+  color: #0078d7;
+  font-size: 20px;
+  letter-spacing: -0.6px;
+  line-height: 32px;
+  white-space: nowrap;
+}
+
+.payment-screen .order-items-quick {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+  background-color: #f3f3f3;
+  border-radius: 8px;
+}
+
+.payment-screen .text-wrapper-5 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  margin-top: -1px;
+  font-family: "Inter-Bold", Helvetica;
+  font-weight: 700;
+  color: #414752;
+  font-size: 14px;
+  letter-spacing: 0.7px;
+  line-height: 20px;
+}
+
+.payment-screen .container-6 {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .background {
+  display: flex;
+  flex-direction: column;
+  width: 48px;
+  height: 48px;
+  align-items: flex-start;
+  justify-content: center;
+  position: relative;
+  background-color: #e2e2e2;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.payment-screen .abaxuc-psv {
+  position: relative;
+  flex: 1;
+  align-self: stretch;
+  width: 100%;
+  flex-grow: 1;
+  opacity: 0.9;
+  background-size: cover;
+  background-position: 50% 50%;
+}
+
+.payment-screen .container-7 {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: relative;
+  flex: 1;
+  flex-grow: 1;
+}
+
+.payment-screen .text-wrapper-6 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  margin-top: -1px;
+  font-family: "Inter-SemiBold", Helvetica;
+  font-weight: 600;
+  color: #000000;
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 20px;
+}
+
+.payment-screen .text-wrapper-7 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  margin-top: -1px;
+  font-family: "Inter-Regular", Helvetica;
+  font-weight: 400;
+  color: #414752;
+  font-size: 12px;
+  letter-spacing: 0;
+  line-height: 16px;
+}
+
+.payment-screen .right-column-payment {
+  position: relative;
+  grid-row: 1 / 2;
+  grid-column: 7 / 13;
+  align-self: start;
+  width: 100%;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.payment-screen .img {
+  position: relative;
+  width: 19px;
+  height: 18px;
+}
+
+.payment-screen .label-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 24px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0px 0px 0px 2px #005fac;
+}
+
+.payment-screen .container-8 {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .background-wrapper {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-color: #005fac;
+  border-radius: 12px;
+}
+
+.payment-screen .background-2 {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  background-color: #ffffff;
+  border-radius: 12px;
+}
+
+.payment-screen .text-wrapper-8 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: -1px;
+  font-family: "Inter-Bold", Helvetica;
+  font-weight: 700;
+  color: #1a1c1c;
+  font-size: 18px;
+  letter-spacing: 0;
+  line-height: 28px;
+  white-space: nowrap;
+}
+
+.payment-screen .overlay {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 4px 8px;
+  position: relative;
+  flex: 0 0 auto;
+  background-color: #005fac1a;
+  border-radius: 2px;
+}
+
+.payment-screen .text-5 {
+  display: flex;
+  align-items: center;
+  margin-top: -1px;
+  font-family: "Inter-Bold", Helvetica;
+  font-weight: 700;
+  color: #005fac;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  line-height: 16px;
+  white-space: nowrap;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen .QR-content-revealed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0px 8px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .margin {
+  display: flex;
+  flex-direction: column;
+  width: 192px;
+  height: 208px;
+  align-items: flex-start;
+  padding: 0px 0px 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.payment-screen .background-3 {
+  display: flex;
+  flex-direction: column;
+  width: 192px;
+  height: 192px;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 8px;
+  position: relative;
+  background-color: #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.payment-screen .QR-code-sample {
+  position: relative;
+  flex: 1;
+  align-self: stretch;
+  width: 100%;
+  flex-grow: 1;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: 50% 50%;
+}
+
+.payment-screen .scan-line-overlay {
+  position: absolute;
+  width: 100%;
+  height: 50.00%;
+  top: 0;
+  left: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 95, 172, 0) 0%,
+    rgba(0, 95, 172, 0.2) 50%,
+    rgba(0, 95, 172, 0) 100%
+  );
+}
+
+.payment-screen .container-9 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 0;
+}
+
+.payment-screen .icon-2 {
+  position: relative;
+  width: 13.33px;
+  height: 13.33px;
+}
+
+.payment-screen .p {
+  display: flex;
+  align-items: center;
+  margin-top: -1px;
+  font-family: "Inter-Medium", Helvetica;
+  font-weight: 500;
+  color: #414752;
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 20px;
+  white-space: nowrap;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen .label-option-2 {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 24px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+  background-color: #ffffff;
+  border-radius: 8px;
+}
+
+.payment-screen .div-4 {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background-color: #ffffff01;
+  border-radius: 8px;
+  box-shadow: 0px 0px 0px 1px #c0c7d426;
+}
+
+.payment-screen .container-10 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .background-4 {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  background-color: #e8e8e8;
+  border-radius: 12px;
+}
+
+.payment-screen .container-11 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .icon-3 {
+  position: relative;
+  width: 22px;
+  height: 16px;
+}
+
+.payment-screen .action-area-margin {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 32px 0px 0px;
+  display: flex;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .action-area {
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  display: flex;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .button {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  position: relative;
+  flex: 0 0 auto;
+  border-radius: 6px;
+}
+
+.payment-screen .icon-wrapper {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .icon-4 {
+  position: relative;
+  width: 8.17px;
+  height: 8.17px;
+}
+
+.payment-screen .text-6 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -1px;
+  font-family: "Inter-Medium", Helvetica;
+  font-weight: 500;
+  color: #414752;
+  font-size: 16px;
+  text-align: center;
+  letter-spacing: 0;
+  line-height: 24px;
+  white-space: nowrap;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen .button-primary-CTA {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 32px;
+  position: relative;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  box-shadow: 0px 8px 30px #005fac33;
+  background: linear-gradient(
+    173deg,
+    rgba(0, 95, 172, 1) 0%,
+    rgba(0, 120, 215, 1) 100%
+  );
+}
+
+.payment-screen .text-7 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -1px;
+  font-family: "Inter-Bold", Helvetica;
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 16px;
+  text-align: center;
+  letter-spacing: 0;
+  line-height: 24px;
+  white-space: nowrap;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen .icon-5 {
+  position: relative;
+  width: 9.33px;
+  height: 9.33px;
+}
+
+.payment-screen .header-topnavbar {
+  display: flex;
+  flex-direction: column;
+  width: 1280px;
+  align-items: flex-start;
+  position: absolute;
+  top: 1px;
+  left: 0;
+  background-color: #f9f9f9cc;
+  backdrop-filter: blur(12px) brightness(100%);
+  -webkit-backdrop-filter: blur(12px) brightness(100%);
+}
+
+.payment-screen .container-12 {
+  display: flex;
+  max-width: 1920px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  position: relative;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .text-8 {
+  display: flex;
+  align-items: center;
+  margin-top: -1px;
+  font-family: "Inter-Black", Helvetica;
+  font-weight: 900;
+  color: #1a1c1c;
+  font-size: 24px;
+  letter-spacing: -1.2px;
+  line-height: 32px;
+  white-space: nowrap;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen .search-bar-center {
+  flex-direction: column;
+  max-width: 640px;
+  padding: 0px 32px;
+  flex: 1;
+  flex-grow: 1;
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+}
+
+.payment-screen .search-bar-center-2 {
+  max-width: 576px;
+  justify-content: center;
+  width: 100%;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+}
+
+.payment-screen .input {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 14px 16px 14px 48px;
+  position: relative;
+  flex: 1;
+  align-self: stretch;
+  flex-grow: 1;
+  background-color: #e8e8e8;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid;
+  border-color: transparent;
+}
+
+.payment-screen .container-13 {
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  border: none;
+  background: none;
+  margin-top: -1px;
+  font-family: "Inter-Regular", Helvetica;
+  font-weight: 400;
+  color: #414752b2;
+  font-size: 16px;
+  letter-spacing: 0;
+  line-height: normal;
+  padding: 0;
+}
+
+.payment-screen .img-wrapper {
+  display: inline-flex;
+  flex-direction: column;
+  height: 48.00%;
+  align-items: flex-start;
+  position: absolute;
+  top: 26.00%;
+  left: 16px;
+}
+
+.payment-screen .icon-6 {
+  position: relative;
+  width: 18px;
+  height: 18px;
+}
+
+.payment-screen .navigation-links {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .link {
+  align-items: flex-start;
+  padding: 0px 0px 4px;
+  border-bottom-width: 2px;
+  border-bottom-style: solid;
+  border-color: #005fac;
+  display: inline-flex;
+  flex-direction: column;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .text-9 {
+  display: flex;
+  align-items: center;
+  margin-top: -2px;
+  font-family: "Inter-Bold", Helvetica;
+  font-weight: 700;
+  color: #005fac;
+  font-size: 16px;
+  letter-spacing: -0.4px;
+  line-height: 24px;
+  white-space: nowrap;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen .div-wrapper-2 {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px 0px 0px 32px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .text-wrapper-9 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: -1px;
+  font-family: "Inter-Medium", Helvetica;
+  font-weight: 500;
+  color: #414752;
+  font-size: 16px;
+  letter-spacing: -0.4px;
+  line-height: 24px;
+  white-space: nowrap;
+}
+
+.payment-screen .vertical-border {
+  display: inline-flex;
+  align-items: center;
+  padding: 0px 0px 0px 24px;
+  position: relative;
+  flex: 0 0 auto;
+  border-left-width: 1px;
+  border-left-style: solid;
+  border-color: #c0c7d44c;
+}
+
+.payment-screen .button-2 {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .container-14 {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .icon-7 {
+  position: relative;
+  width: 19.98px;
+  height: 20px;
+}
+
+.payment-screen .background-5 {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 0px 0px 1px;
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #af2f00;
+  border-radius: 12px;
+}
+
+.payment-screen .text-10 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -1px;
+  font-family: "Inter-Bold", Helvetica;
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 10px;
+  text-align: center;
+  letter-spacing: -0.4px;
+  line-height: 15px;
+  white-space: nowrap;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen .separation-logic {
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  height: 1px;
+  background-color: #f3f3f3;
+}
+
+.payment-screen .footer-minimal-for {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 32px 0px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+  background-color: #f3f3f3;
+}
+
+.payment-screen .container-15 {
+  display: flex;
+  flex-direction: column;
+  max-width: 1280px;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0px 32px;
+  position: relative;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .text-11 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -1px;
+  font-family: "Inter-Regular", Helvetica;
+  font-weight: 400;
+  color: #414752;
+  font-size: 14px;
+  text-align: center;
+  letter-spacing: 0;
+  line-height: 20px;
+  white-space: nowrap;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen .container-16 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 16px;
+  position: relative;
+  align-self: stretch;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.payment-screen .link-2 {
+  align-items: center;
+  align-self: stretch;
+  display: inline-flex;
+  flex-direction: column;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.payment-screen .text-12 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -1px;
+  font-family: "Inter-Regular", Helvetica;
+  font-weight: 400;
+  color: #414752;
+  font-size: 12px;
+  text-align: center;
+  letter-spacing: 0;
+  line-height: 16px;
+  white-space: nowrap;
+  position: relative;
+  width: fit-content;
+}
+
+.payment-screen {
+  .label-option-2 {
+    cursor: pointer; // Hiển thị con trỏ bàn tay khi di chuột
+
+    // Trạng thái được chọn (Active)
+    &.selected {
+      background-color: #f9f9f9 !important;
+      box-shadow: 0px 0px 0px 2px #005fac !important;
+
+      // Đổi cục chấm xám thành hình tròn viền xanh tâm trắng
+      .background-4 {
+        background-color: #005fac !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        &::before {
+          content: '';
+          width: 10px;
+          height: 10px;
+          background-color: #ffffff;
+          border-radius: 50%;
+        }
+      }
+    }
+  }
+}
