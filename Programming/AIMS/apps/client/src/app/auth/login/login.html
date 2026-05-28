@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="login.scss">
+</head>
+
+<body>
+    <div class="login">
+        <div class="header-top">
+            <div class="container">
+                <div class="div">
+                    <div class="text">AIMS</div>
+                </div>
+            </div>
+        </div>
+        <div class="main-content-login">
+            <div class="container-2">
+                <div class="login-card">
+                    <div class="login-card-shadow"></div>
+                    <div class="div-2">
+                        <div class="div-3">
+                            <div class="text-wrapper">Welcome back</div>
+                        </div>
+                        <div class="div-3">
+                            <p class="please-enter-your">Please enter your credentials to access your<br />digital
+                                collection.</p>
+                        </div>
+                    </div>
+                    <form class="form" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                        <div class="email-field">
+                            <label class="label-email-address" for="input-1">EMAIL ADDRESS</label>
+                            <div class="input" [class.invalid]="f.email.invalid && (f.email.dirty || f.email.touched)">
+                                <input class="container-3" placeholder="name@example.com" type="email" id="input-1" formControlName="email" />
+                            </div>
+                            <div *ngIf="f.email.invalid && (f.email.dirty || f.email.touched)" class="error-msg">
+                                <span *ngIf="f.email.errors?.['required']">Email is required.</span>
+                                <span *ngIf="f.email.errors?.['email']">Invalid email format.</span>
+                            </div>
+                        </div>
+                        <div class="div-2">
+                            <div class="container-4">
+                                <div class="label">
+                                    <div class="text-2">PASSWORD</div>
+                                </div>
+                                <div class="div">
+                                    <a class="text-3" href="/auth/forgot-password" style="text-decoration: none; cursor: pointer;">Forgot password?</a>
+                                </div>
+                            </div>
+                            <div class="div-3">
+                                <div class="input" [class.invalid]="f.password.invalid && (f.password.dirty || f.password.touched)">
+                                    <input class="container-5" placeholder="••••••••" type="password" formControlName="password" />
+                                </div>
+                                <div class="button">
+                                    <div class="icon-wrapper"><img class="icon" src="img/image.svg" /></div>
+                                </div>
+                            </div>
+                            <div *ngIf="f.password.invalid && (f.password.dirty || f.password.touched)" class="error-msg">
+                                <span *ngIf="f.password.errors?.['required']">Password is required.</span>
+                                <span *ngIf="f.password.errors?.['minlength']">Password must be at least 8 characters.</span>
+                            </div>
+                        </div>
+                        <div class="remember-me" (click)="toggleRememberMe()" style="cursor: pointer;">
+                            <div class="input-2" [class.checked]="f.rememberMe.value">
+                                <svg *ngIf="f.rememberMe.value" style="width: 14px; height: 14px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <div class="div">
+                                <p class="p">Stay signed in for 30 days</p>
+                            </div>
+                        </div>
+                        <div *ngIf="message && status === 'error'" class="error-msg" style="margin-bottom: 12px; font-weight: bold; text-align: center;">
+                            {{ message }}
+                        </div>
+                        <button type="submit" class="button-primary" style="cursor: pointer; border: none; padding: 0;" [disabled]="loginForm.invalid || isPending">
+                            <div class="button-primary-2"></div>
+                            <div class="text-4" style="display: flex; gap: 8px; align-items: center;">
+                                <svg *ngIf="isPending" class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <svg *ngIf="status === 'success'" style="width: 20px; height: 20px; color: #a5d6a7;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span *ngIf="status === 'idle' || status === 'error'">Sign In</span>
+                                <span *ngIf="isPending">Please wait...</span>
+                                <span *ngIf="status === 'success'">Login successful!</span>
+                            </div>
+                        </button>
+                    </form>
+                </div>
+                <div class="security-trust-badge">
+                    <div class="container-6">
+                        <div class="div"><img class="icon-2" src="img/icon.svg" /></div>
+                        <div class="div">
+                            <div class="text-8">END-TO-END ENCRYPTED</div>
+                        </div>
+                    </div>
+                    <div class="container-6">
+                        <div class="div"><img class="icon-3" src="img/icon-2.svg" /></div>
+                        <div class="div">
+                            <div class="text-8">VERIFIED STORE</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="footer-component">
+            <div class="paragraph">
+                <div class="text-9">AIMS</div>
+                <p class="text-10">© 2024 AIMS Digital Curators. All rights reserved.</p>
+            </div>
+            <div class="nav">
+                <div class="link">
+                    <div class="text-11">Privacy Policy</div>
+                </div>
+                <div class="link">
+                    <div class="text-11">Terms of Service</div>
+                </div>
+                <div class="link">
+                    <div class="text-11">Shipping &amp; Returns</div>
+                </div>
+                <div class="link">
+                    <div class="text-11">Contact</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

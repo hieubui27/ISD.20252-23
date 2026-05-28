@@ -1,1 +1,44 @@
 /* You can add global styles to this file, and also import other style files */
+@import url("https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css");
+
+* {
+    -webkit-font-smoothing: antialiased;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    height: 100%;
+}
+
+// Sử dụng Nesting (Lồng CSS)
+button {
+    &:focus-visible {
+        outline: 2px solid #4a90e2 !important;
+        outline: -webkit-focus-ring-color auto 5px !important;
+    }
+}
+
+a {
+    text-decoration: none;
+}
+
+// Tạo Map chứa thông tin các font (Tên font: Độ dày)
+$inter-fonts: (
+    "Inter-ExtraBold": "800",
+    "Inter-Bold": "700",
+    "Inter-Regular": "400",
+    "Inter-Medium": "500",
+    "Inter-SemiBold": "600"
+);
+
+// Dùng vòng lặp @each để tự động sinh code cho từng font
+@each $family, $weight in $inter-fonts {
+
+    /* @FONTWARNING[{"type": "restricted", "family": "#{$family}", "weight": "#{$weight}", "style": "normal", "allowsCrossOrigin": false}] */
+    @font-face {
+        font-family: "#{$family}";
+        src: local("#{$family}");
+    }
+}
