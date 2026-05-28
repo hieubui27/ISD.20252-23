@@ -31,7 +31,7 @@ export class VietqrController {
   ) {}
 
   @UseGuards(VietqrCallbackAuthGuard)
-  @Post('bank/api/transaction-sync')
+  @Post('vqr/bank/api/transaction-sync')
   async syncTransaction(@Body() transactionSyncDto: TransactionSyncDto) {
     try {
       const result =
