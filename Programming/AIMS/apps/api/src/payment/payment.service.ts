@@ -295,9 +295,7 @@ export class PaymentService {
         status: PaymentStatus.SUCCESS,
         transactionId: callback.transactionid,
         transactionContent: callback.content,
-        transactionDateTime: callback.transactiontime
-          ? new Date(callback.transactiontime)
-          : new Date(),
+        transactionDateTime: new Date(callback.transactiontime),
         gatewayReferenceNumber: callback.referencenumber,
       },
     });

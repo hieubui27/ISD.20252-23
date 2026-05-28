@@ -219,7 +219,9 @@ describe('PaymentService', () => {
 
   it('should accept valid VietQR callback and mark order paid', async () => {
     mockPrisma.paymentTransaction.findUnique.mockResolvedValue(null);
-    mockPrisma.paymentTransaction.findFirst.mockResolvedValue(transaction);
+    mockPrisma.paymentTransaction.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(transaction);
     mockPrisma.paymentTransaction.update.mockResolvedValue({
       ...transaction,
       status: PaymentStatus.SUCCESS,
@@ -233,10 +235,13 @@ describe('PaymentService', () => {
     });
 
     const result = await service.confirmTransactionFromVietqrCallback({
+      bankaccount: '123456789',
       amount: 250000,
       transType: 'C',
       content: 'THANH TOAN AIMS',
       transactionid: 'TXN001',
+      transactiontime: 1757342061000,
+      referencenumber: 'REF001',
       orderId: 'PAYMENTTRANS',
     });
 
