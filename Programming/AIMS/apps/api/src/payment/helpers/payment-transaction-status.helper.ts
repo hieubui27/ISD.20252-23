@@ -35,3 +35,8 @@ export function ensureCanMarkRefundRequired(status: string): void {
     );
   }
 }
+
+export function convertMoneyToUSD(amount: number): number {
+  const conversionRate = 26000;
+  return parseFloat((amount / conversionRate).toFixed(2));
+}

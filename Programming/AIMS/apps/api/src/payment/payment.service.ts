@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaypalService } from './paypal/paypal.service';
+import { PaypalService } from '../paypal/paypal.service';
 import { VietqrService } from '../vietqr/vietqr.service';
 import {
   PaymentMethod,
@@ -22,6 +22,7 @@ import {
   PlaceOrderPaymentPort,
 } from './ports/place-order-payment.port';
 import {
+  convertMoneyToUSD,
   ensureCanMarkFailed,
   ensureCanMarkRefundRequired,
   ensureCanMarkSuccess,
@@ -35,6 +36,7 @@ import {
 interface PaypalApprovalLink {
   rel: string;
   href: string;
+  method: string;
 }
 
 /**
@@ -91,7 +93,7 @@ export class PaymentService {
     });
 
     if (paymentMethod === PaymentMethod.VIETQR) {
-      const qrContent = normalizeVietqrContent('THANH TOAN AIMS');
+      const qrContent = normalizeVietqrContent(`AIMS ${gatewayOrderId}`);
       const qrCodeData = await this.vietqrService.generateQrCode({
         orderId: gatewayOrderId,
         invoiceId: dto.invoiceId,
@@ -117,7 +119,9 @@ export class PaymentService {
       };
     }
 
-    const paypalOrder = await this.paypalService.createOrder(dto.amount);
+    const paypalOrder = await this.paypalService.createOrder(
+      convertMoneyToUSD(dto.amount),
+    );
     const approvalLinks = (paypalOrder?.links || []) as PaypalApprovalLink[];
     const approveLink =
       approvalLinks.find((link) => link.rel === 'approve')?.href || '';
@@ -218,9 +222,15 @@ export class PaymentService {
       },
     });
 
-    await this.placeOrderPaymentPort.markPaidAndPendingProcessing(
-      updated.orderId,
-    );
+    await this.placeOrderPaymentPort.markPaidAndPendingProcessing({
+      orderId: updated.orderId,
+      invoiceId: updated.invoiceId,
+      paymentMethod: updated.paymentMethod,
+      amount: updated.amount,
+      transactionId: updated.transactionId || dto.transactionId,
+      transactionContent: updated.transactionContent,
+      transactionDateTime: updated.transactionDateTime,
+    });
     // TODO(NOTIFICATION_INTEGRATION): Send invoice and transaction information to the customer email after success.
 
     return {
@@ -296,9 +306,15 @@ export class PaymentService {
       },
     });
 
-    await this.placeOrderPaymentPort.markPaidAndPendingProcessing(
-      updated.orderId,
-    );
+    await this.placeOrderPaymentPort.markPaidAndPendingProcessing({
+      orderId: updated.orderId,
+      invoiceId: updated.invoiceId,
+      paymentMethod: updated.paymentMethod,
+      amount: updated.amount,
+      transactionId: updated.transactionId || callback.transactionid,
+      transactionContent: updated.transactionContent,
+      transactionDateTime: updated.transactionDateTime,
+    });
     // TODO(NOTIFICATION_INTEGRATION): Send invoice and transaction information to the customer email after success.
 
     return {

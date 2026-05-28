@@ -1,13 +1,10 @@
 import { Route } from '@angular/router';
+import { PaymentComponent } from '../payment/payment';
 
 export const appRoutes: Route[] = [
-  {
-    path: '',
-    redirectTo: '/auth',
-    pathMatch: 'full',
-  },
   {
     path: 'auth',
     loadChildren: () => import('./auth/auth-module').then((m) => m.AuthModule),
   },
+  { path: 'payment', component: PaymentComponent },
 ];
