@@ -115,7 +115,7 @@ describe('PaymentService', () => {
   const transaction = {
     id: 'payment-transaction-id',
     orderId: 'ORDER_DEMO_001',
-    invoiceId: 'INV_DEMO_001',
+    invoiceId: BigInt(20),
     paymentMethod: PaymentMethod.VIETQR,
     provider: PaymentMethod.VIETQR,
     amount: 250000,
@@ -167,7 +167,7 @@ describe('PaymentService', () => {
   it('should request VietQR payment and persist QR data', async () => {
     mockPlaceOrderPaymentPort.getPaymentContext.mockResolvedValue({
       orderId: 'ORDER_DEMO_001',
-      invoiceId: 'INV_DEMO_001',
+      invoiceId: '20',
       totalAmount: 250000,
       customerEmail: 'customer.demo@gmail.com',
     });
@@ -181,7 +181,7 @@ describe('PaymentService', () => {
 
     const result = await service.requestPayment({
       orderId: 'ORDER_DEMO_001',
-      invoiceId: 'INV_DEMO_001',
+      invoiceId: '20',
       paymentMethod: PaymentMethod.VIETQR,
       amount: 250000,
       customerEmail: 'customer.demo@gmail.com',
@@ -190,7 +190,7 @@ describe('PaymentService', () => {
     expect(mockPrisma.paymentTransaction.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         orderId: 'ORDER_DEMO_001',
-        invoiceId: 'INV_DEMO_001',
+        invoiceId: BigInt(20),
         paymentMethod: PaymentMethod.VIETQR,
         status: PaymentStatus.PENDING,
       }),
@@ -208,7 +208,7 @@ describe('PaymentService', () => {
     await expect(
       service.requestPayment({
         orderId: 'ORDER_DEMO_001',
-        invoiceId: 'INV_DEMO_001',
+        invoiceId: '20',
         paymentMethod: PaymentMethod.VIETQR,
         amount: 200000,
         customerEmail: 'customer.demo@gmail.com',
@@ -257,7 +257,7 @@ describe('PaymentService', () => {
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         orderId: 'ORDER_DEMO_001',
-        invoiceId: 'INV_DEMO_001',
+        invoiceId: '20',
         paymentMethod: PaymentMethod.VIETQR,
         amount: 250000,
         transactionId: 'TXN001',
