@@ -27,16 +27,20 @@ export class ConfirmTransactionDto {
   invoiceId: string;
 
   @IsString()
-  transactionId: string;
+  @IsOptional()
+  transactionId?: string;
 
   @IsString()
-  transactionContent: string;
+  @IsOptional()
+  transactionContent?: string;
 
   @IsDateString()
-  transactionDateTime: string;
+  @IsOptional()
+  transactionDateTime?: string;
 
   @IsEnum(PaymentStatus)
-  status: PaymentStatus = PaymentStatus.SUCCESS;
+  @IsOptional()
+  status?: PaymentStatus;
 
   @IsNumber()
   @Min(1)
