@@ -12,6 +12,10 @@ import {
   VietQrPaymentInput,
   VietQrPaymentSnapshot,
 } from '../app/payment/models/vietqr-payment.models';
+import {
+  CheckoutDraft,
+  CheckoutDraftService,
+} from '../app/place-order/services/checkout-draft.service';
 import { AimsButtonComponent } from '../app/shared/ui/aims-button/aims-button';
 import { StatusMessageComponent } from '../app/shared/ui/status-message/status-message';
 
@@ -42,9 +46,13 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
   private readonly paymentService = inject(PaymentService);
   private readonly vietQrPaymentFlow = inject(VietQrPaymentFlowService);
+  private readonly checkoutDraftService = inject(CheckoutDraftService);
   private snapshotSubscription?: Subscription;
+  private checkoutDraft: CheckoutDraft | null = null;
 
   ngOnInit(): void {
+    this.checkoutDraft = this.checkoutDraftService.get();
+    this.applyCheckoutDraft();
     this.order.total = this.paymentService.calculateTotal(
       this.order.subtotal,
       this.order.vatRate,
@@ -159,6 +167,13 @@ export class PaymentComponent implements OnInit, OnDestroy {
   }
 
   private buildVietQrPaymentInput(): VietQrPaymentInput {
+    if (this.checkoutDraft) {
+      return {
+        items: this.checkoutDraftService.toPlaceOrderItems(this.checkoutDraft),
+        deliveryInfo: this.checkoutDraft.deliveryInfo,
+      };
+    }
+
     return {
       items: this.order.items.map((item) => ({
         productId: Number(item.id),
@@ -173,5 +188,20 @@ export class PaymentComponent implements OnInit, OnDestroy {
         shippingInstructions: 'Sandbox VietQR payment test',
       },
     };
+  }
+
+  private applyCheckoutDraft(): void {
+    if (!this.checkoutDraft) return;
+
+    this.order.items = this.checkoutDraft.items.map((item) => ({
+      id: item.productId.toString(),
+      name: item.title,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+    }));
+    this.order.subtotal = this.checkoutDraft.items.reduce(
+      (sum, item) => sum + item.unitPrice * item.quantity,
+      0,
+    );
   }
 }

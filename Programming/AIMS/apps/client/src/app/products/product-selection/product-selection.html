@@ -1,0 +1,79 @@
+<div class="product-page">
+  <header class="product-nav">
+    <div class="product-nav__brand">AIMS</div>
+    <div class="product-nav__search">Search for books, CDs, DVDs...</div>
+    <div class="product-nav__hint">VietQR test checkout</div>
+  </header>
+
+  <main class="product-page__main">
+    <section class="product-heading">
+      <h1>Select Products</h1>
+      <p>Choose real products from the backend database before opening the VietQR payment flow.</p>
+    </section>
+
+    <app-status-message *ngIf="errorMessage" tone="error">
+      {{ errorMessage }}
+    </app-status-message>
+
+    <section class="product-layout">
+      <div class="product-grid">
+        <article class="product-card" *ngFor="let product of products">
+          <div class="product-card__media">
+            <img *ngIf="product.imageUrl" [src]="product.imageUrl" [alt]="product.title" />
+            <span *ngIf="!product.imageUrl">▥</span>
+          </div>
+
+          <div class="product-card__body">
+            <div class="product-card__meta">{{ product.category }}</div>
+            <h2>{{ product.title }}</h2>
+            <p>{{ product.description }}</p>
+
+            <div class="product-card__price">
+              <strong>{{ formatPrice(product.currentPrice) }}</strong>
+              <span>Stock: {{ product.quantity }}</span>
+            </div>
+
+            <div class="quantity-control">
+              <button type="button" (click)="updateQuantity(product, getQuantity(product) - 1)">−</button>
+              <span>{{ getQuantity(product) }}</span>
+              <button type="button" (click)="selectProduct(product)">+</button>
+            </div>
+          </div>
+        </article>
+
+        <div class="product-empty" *ngIf="!isLoading && products.length === 0">
+          No available products returned from backend.
+        </div>
+      </div>
+
+      <aside class="checkout-panel">
+        <h2>Selected Items</h2>
+
+        <div class="checkout-item" *ngFor="let item of selectedList">
+          <div>
+            <strong>{{ item.title }}</strong>
+            <span>Qty: {{ item.quantity }}</span>
+          </div>
+          <span>{{ (item.unitPrice * item.quantity) | number }} VND</span>
+        </div>
+
+        <div class="checkout-empty" *ngIf="selectedList.length === 0">
+          Select products to create a real place-order request.
+        </div>
+
+        <div class="checkout-total">
+          <span>Subtotal</span>
+          <strong>{{ subtotal | number }} VND</strong>
+        </div>
+
+        <app-aims-button
+          variant="primary"
+          [disabled]="selectedList.length === 0"
+          (pressed)="proceedToPayment()"
+        >
+          Continue to Payment →
+        </app-aims-button>
+      </aside>
+    </section>
+  </main>
+</div>

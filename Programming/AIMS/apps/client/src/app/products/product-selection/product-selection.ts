@@ -1,0 +1,125 @@
+import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
+import { StatusMessageComponent } from '../../shared/ui/status-message/status-message';
+import { CheckoutDraftService } from '../../place-order/services/checkout-draft.service';
+import { Product, ProductSelection } from '../models/product.model';
+import { ProductApiService } from '../services/product-api.service';
+
+@Component({
+  selector: 'app-product-selection',
+  standalone: true,
+  imports: [CommonModule, AimsButtonComponent, StatusMessageComponent],
+  templateUrl: './product-selection.html',
+  styleUrl: './product-selection.scss',
+})
+export class ProductSelectionComponent implements OnInit {
+  products: Product[] = [];
+  selectedItems = new Map<string, ProductSelection>();
+  isLoading = false;
+  errorMessage = '';
+
+  private readonly productApi = inject(ProductApiService);
+  private readonly checkoutDraft = inject(CheckoutDraftService);
+  private readonly router = inject(Router);
+
+  ngOnInit(): void {
+    this.loadProducts();
+  }
+
+  loadProducts(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.productApi.findAll().subscribe({
+      next: (products) => {
+        this.products = products.filter((product) => this.isAvailable(product));
+        this.isLoading = false;
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage =
+          err.error?.message || err.message || 'Unable to load products.';
+      },
+    });
+  }
+
+  selectProduct(product: Product): void {
+    const existing = this.selectedItems.get(product.id);
+    const nextQuantity = existing ? existing.quantity + 1 : 1;
+    this.updateQuantity(product, nextQuantity);
+  }
+
+  updateQuantity(product: Product, quantity: number): void {
+    const normalizedQuantity = Math.max(0, Math.min(quantity, product.quantity));
+
+    if (normalizedQuantity === 0) {
+      this.selectedItems.delete(product.id);
+      return;
+    }
+
+    this.selectedItems.set(product.id, {
+      productId: Number(product.id),
+      title: product.title,
+      quantity: normalizedQuantity,
+      unitPrice: this.toNumber(product.currentPrice),
+      imageUrl: product.imageUrl,
+    });
+  }
+
+  getQuantity(product: Product): number {
+    return this.selectedItems.get(product.id)?.quantity || 0;
+  }
+
+  get selectedList(): ProductSelection[] {
+    return Array.from(this.selectedItems.values());
+  }
+
+  get subtotal(): number {
+    return this.selectedList.reduce(
+      (sum, item) => sum + item.unitPrice * item.quantity,
+      0,
+    );
+  }
+
+  proceedToPayment(): void {
+    if (this.selectedItems.size === 0) {
+      this.errorMessage = 'Select at least one available product.';
+      return;
+    }
+
+    this.checkoutDraft.save({
+      items: this.selectedList,
+      deliveryInfo: {
+        receiverName: 'Sarah Jenkins',
+        phoneNumber: '0981413168',
+        email: 'customer@example.com',
+        province: 'Hanoi',
+        streetAddress: '123 Media Blvd, Suite 400',
+        shippingInstructions: 'Sandbox VietQR payment test',
+      },
+    });
+
+    this.router.navigate(['/payment']);
+  }
+
+  formatPrice(value: number | string): string {
+    return `${this.toNumber(value).toLocaleString('vi-VN')} VND`;
+  }
+
+  private isAvailable(product: Product): boolean {
+    const status = String(product.status).toUpperCase();
+    return (
+      product.quantity > 0 &&
+      status !== 'DEACTIVATED' &&
+      status !== 'DELETED' &&
+      status !== 'INACTIVE' &&
+      status !== 'UNAVAILABLE'
+    );
+  }
+
+  private toNumber(value: number | string): number {
+    return Number(value);
+  }
+}
