@@ -63,6 +63,7 @@ export class PaymentService {
   async requestPayment(dto: RequestPaymentDto): Promise<PaymentResultDto> {
     const paymentMethod = dto.paymentMethod || PaymentMethod.VIETQR;
     this.ensureSupportedPaymentMethod(paymentMethod);
+    const invoiceId = this.parseInvoiceId(dto.invoiceId);
 
     const paymentContext = await this.placeOrderPaymentPort.getPaymentContext({
       orderId: dto.orderId,
@@ -78,7 +79,7 @@ export class PaymentService {
     const transaction = await this.prisma.paymentTransaction.create({
       data: {
         orderId: dto.orderId,
-        invoiceId: dto.invoiceId,
+        invoiceId,
         paymentMethod,
         provider: paymentMethod,
         amount: dto.amount,
@@ -150,7 +151,7 @@ export class PaymentService {
     const existing = await this.prisma.paymentTransaction.findFirst({
       where: {
         orderId: dto.orderId,
-        invoiceId: dto.invoiceId,
+        invoiceId: this.parseInvoiceId(dto.invoiceId),
         paymentMethod: dto.fromMethod,
       },
       orderBy: { createdAt: 'desc' },
@@ -191,7 +192,7 @@ export class PaymentService {
     const transaction = await this.prisma.paymentTransaction.findFirst({
       where: {
         orderId: dto.orderId,
-        invoiceId: dto.invoiceId,
+        invoiceId: this.parseInvoiceId(dto.invoiceId),
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -224,7 +225,7 @@ export class PaymentService {
 
     await this.placeOrderPaymentPort.markPaidAndPendingProcessing({
       orderId: updated.orderId,
-      invoiceId: updated.invoiceId,
+      invoiceId: updated.invoiceId.toString(),
       paymentMethod: updated.paymentMethod,
       amount: updated.amount,
       transactionId: updated.transactionId || dto.transactionId,
@@ -306,7 +307,7 @@ export class PaymentService {
 
     await this.placeOrderPaymentPort.markPaidAndPendingProcessing({
       orderId: updated.orderId,
-      invoiceId: updated.invoiceId,
+      invoiceId: updated.invoiceId.toString(),
       paymentMethod: updated.paymentMethod,
       amount: updated.amount,
       transactionId: updated.transactionId || callback.transactionid,
@@ -339,7 +340,9 @@ export class PaymentService {
   }
 
   async handleRejectedOrderRefund(orderId: string, rejectReason: string) {
-    const transaction = await this.getPaymentTransactionByOrderId(orderId);
+    const transaction = await this.findLatestPaymentTransactionByOrderId(
+      orderId,
+    );
     if (!transaction) {
       throw new NotFoundException('Payment transaction not found');
     }
@@ -366,10 +369,11 @@ export class PaymentService {
   }
 
   async getPaymentTransactionByOrderId(orderId: string) {
-    return this.prisma.paymentTransaction.findFirst({
-      where: { orderId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const transaction = await this.findLatestPaymentTransactionByOrderId(
+      orderId,
+    );
+
+    return transaction ? this.serializePaymentTransaction(transaction) : null;
   }
 
   private ensureSupportedPaymentMethod(paymentMethod: string): void {
@@ -379,6 +383,28 @@ export class PaymentService {
     ) {
       throw new BadRequestException('Unsupported payment method');
     }
+  }
+
+  private parseInvoiceId(invoiceId: string): bigint {
+    if (!/^\d+$/.test(invoiceId)) {
+      throw new BadRequestException('Invoice id must be a numeric string');
+    }
+
+    return BigInt(invoiceId);
+  }
+
+  private findLatestPaymentTransactionByOrderId(orderId: string) {
+    return this.prisma.paymentTransaction.findFirst({
+      where: { orderId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  private serializePaymentTransaction(transaction: Record<string, any>) {
+    return {
+      ...transaction,
+      invoiceId: transaction.invoiceId?.toString(),
+    };
   }
 
   private buildQrTransactionUpdateData(

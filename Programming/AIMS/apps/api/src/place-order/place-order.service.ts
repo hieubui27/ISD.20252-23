@@ -331,7 +331,7 @@ export class PlaceOrderBeService {
         await tx.paymentTransaction.create({
           data: {
             orderId: order.orderId,
-            invoiceId: invoice.id.toString(),
+            invoiceId: invoice.id,
             paymentMethod: dto.paymentMethod,
             provider: PAYMENT_TRANSACTION_PROVIDER_PLACE_ORDER,
             amount: Math.round(invoicePreview.totalAmount),
