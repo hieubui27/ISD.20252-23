@@ -1,0 +1,13 @@
+<button
+  class="aims-button"
+  [class.aims-button--primary]="variant === 'primary'"
+  [class.aims-button--ghost]="variant === 'ghost'"
+  [class.aims-button--secondary]="variant === 'secondary'"
+  [type]="type"
+  [disabled]="disabled || loading"
+  (click)="onClick()"
+>
+  <span class="aims-button__content">
+    <ng-content></ng-content>
+  </span>
+</button>
