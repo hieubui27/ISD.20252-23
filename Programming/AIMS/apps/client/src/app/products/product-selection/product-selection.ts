@@ -1,28 +1,33 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
 import { StatusMessageComponent } from '../../shared/ui/status-message/status-message';
-import { CheckoutDraftService } from '../../place-order/services/checkout-draft.service';
+import {
+  CheckoutDraft,
+  CheckoutDraftService,
+} from '../../place-order/services/checkout-draft.service';
 import { Product, ProductSelection } from '../models/product.model';
 import { ProductApiService } from '../services/product-api.service';
 
 @Component({
   selector: 'app-product-selection',
   standalone: true,
-  imports: [CommonModule, AimsButtonComponent, StatusMessageComponent],
+  imports: [CommonModule, StatusMessageComponent],
   templateUrl: './product-selection.html',
   styleUrl: './product-selection.scss',
 })
 export class ProductSelectionComponent implements OnInit {
   products: Product[] = [];
+  totalProducts = 0;
   selectedItems = new Map<string, ProductSelection>();
   isLoading = false;
+  isCreatingPayment = false;
   errorMessage = '';
 
   private readonly productApi = inject(ProductApiService);
   private readonly checkoutDraft = inject(CheckoutDraftService);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     this.loadProducts();
@@ -34,13 +39,17 @@ export class ProductSelectionComponent implements OnInit {
 
     this.productApi.findAll().subscribe({
       next: (products) => {
-        this.products = products.filter((product) => this.isAvailable(product));
+        this.products = products;
+        this.totalProducts = products.length;
         this.isLoading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
+        console.error('Load products failed:', err);
         this.isLoading = false;
         this.errorMessage =
           err.error?.message || err.message || 'Unable to load products.';
+        this.cdr.detectChanges();
       },
     });
   }
@@ -89,7 +98,7 @@ export class ProductSelectionComponent implements OnInit {
       return;
     }
 
-    this.checkoutDraft.save({
+    const draft: CheckoutDraft = {
       items: this.selectedList,
       deliveryInfo: {
         receiverName: 'Sarah Jenkins',
@@ -99,9 +108,11 @@ export class ProductSelectionComponent implements OnInit {
         streetAddress: '123 Media Blvd, Suite 400',
         shippingInstructions: 'Sandbox VietQR payment test',
       },
-    });
+    };
 
-    this.router.navigate(['/payment']);
+    this.checkoutDraft.save(draft);
+    this.errorMessage = '';
+    this.router.navigate(['/delivery']);
   }
 
   formatPrice(value: number | string): string {
@@ -122,4 +133,5 @@ export class ProductSelectionComponent implements OnInit {
   private toNumber(value: number | string): number {
     return Number(value);
   }
+
 }

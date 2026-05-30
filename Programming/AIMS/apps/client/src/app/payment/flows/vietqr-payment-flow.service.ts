@@ -18,7 +18,6 @@ import {
 } from '../models/vietqr-payment.models';
 
 const POLLING_INTERVAL_MS = 10_000;
-const SANDBOX_CALLBACK_DELAY_MS = 10_000;
 const VIETQR_TRANS_TYPE_CREDIT = 'C';
 
 @Injectable({ providedIn: 'root' })
@@ -39,6 +38,10 @@ export class VietQrPaymentFlowService
     return this.latestSnapshot$.asObservable();
   }
 
+  get currentSnapshot(): VietQrPaymentSnapshot | null {
+    return this.latestSnapshot$.value;
+  }
+
   start(input: VietQrPaymentInput): Observable<VietQrPaymentSnapshot> {
     this.stop();
 
@@ -52,9 +55,9 @@ export class VietQrPaymentFlowService
           const snapshot: VietQrPaymentSnapshot = { payment };
           this.latestSnapshot$.next(snapshot);
           this.startPolling(payment.orderId);
-          this.scheduleSandboxCallback(payment.orderId, payment.totalAmount);
         }),
         switchMap((payment) => this.snapshotForOrder(payment)),
+        tap((snapshot) => this.requestSandboxCallback(snapshot)),
       );
   }
 
@@ -105,18 +108,33 @@ export class VietQrPaymentFlowService
       });
   }
 
-  private scheduleSandboxCallback(orderId: string, amount: number): void {
-    this.sandboxCallbackSubscription = timer(SANDBOX_CALLBACK_DELAY_MS)
+  private requestSandboxCallback(snapshot: VietQrPaymentSnapshot): void {
+    const orderId = snapshot.payment.orderId;
+    const latestTransaction = snapshot.latestTransaction;
+    const content =
+      latestTransaction?.qrContent ||
+      (latestTransaction?.gatewayOrderId
+        ? `AIMS ${latestTransaction.gatewayOrderId}`
+        : `AIMS ${this.buildGatewayOrderId(snapshot.payment.paymentTransactionId)}`);
+
+    if (!content) return;
+
+    this.sandboxCallbackSubscription?.unsubscribe();
+    this.sandboxCallbackSubscription = this.paymentStatusApi
+      .requestVietQrSandboxCallback({
+        amount: snapshot.payment.totalAmount,
+        content,
+        transType: VIETQR_TRANS_TYPE_CREDIT,
+      })
       .pipe(
         takeUntil(this.stop$),
         switchMap(() => this.paymentStatusApi.getLatestByOrderId(orderId)),
-        switchMap((transaction) =>
-          this.paymentStatusApi.requestVietQrSandboxCallback({
-            amount,
-            content: transaction.qrContent || `AIMS ${transaction.gatewayOrderId}`,
-            transType: VIETQR_TRANS_TYPE_CREDIT,
-          }),
-        ),
+        tap((transaction) => {
+          this.latestSnapshot$.next({
+            payment: snapshot.payment,
+            latestTransaction: transaction,
+          });
+        }),
         catchError(() => EMPTY),
       )
       .subscribe();
@@ -128,5 +146,9 @@ export class VietQrPaymentFlowService
       status === 'FAILED' ||
       status === 'REFUND_REQUIRED'
     );
+  }
+
+  private buildGatewayOrderId(transactionId: string): string {
+    return transactionId.replace(/-/g, '').slice(0, 13).toUpperCase();
   }
 }

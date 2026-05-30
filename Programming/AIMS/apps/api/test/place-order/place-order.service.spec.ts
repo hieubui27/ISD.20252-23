@@ -18,7 +18,7 @@ describe('PlaceOrderBeService', () => {
     id: BigInt(1),
     title: 'Clean Code',
     currentPrice: 100000,
-    weight: 1,
+    weight: 1000,
     quantity: 5,
     status: 'AVAILABLE',
   };
@@ -153,7 +153,7 @@ describe('PlaceOrderBeService', () => {
       ).rejects.toThrow(InvalidQuantityException);
     });
 
-    it('should build invoice preview from database price and weight', async () => {
+    it('should build invoice preview from database price and gram weight', async () => {
       prisma.product.findMany.mockResolvedValue([activeProduct]);
 
       const result = await service.processDeliveryInfo({
@@ -176,6 +176,51 @@ describe('PlaceOrderBeService', () => {
       expect(result.subtotalAfterVat).toBe(220000);
       expect(result.deliveryFee).toBe(0);
       expect(result.totalAmount).toBe(220000);
+    });
+
+    it('should convert product gram weights to kilograms before calculating shipping', async () => {
+      prisma.product.findMany.mockResolvedValue([
+        {
+          ...activeProduct,
+          title: "Harry Potter and the Philosopher's Stone",
+          currentPrice: 125000,
+          weight: 250.5,
+        },
+      ]);
+
+      const result = await service.processDeliveryInfo({
+        items: [{ productId: 1, quantity: 1 }],
+        deliveryInfo: validDeliveryInfo,
+      });
+
+      expect(result.items[0].weight).toBe(0.2505);
+      expect(result.subtotalBeforeVat).toBe(125000);
+      expect(result.vatAmount).toBe(12500);
+      expect(result.subtotalAfterVat).toBe(137500);
+      expect(result.deliveryFee).toBe(0);
+      expect(result.totalAmount).toBe(137500);
+    });
+
+    it('should not charge oversized shipping when Thriller has 100 grams weight', async () => {
+      prisma.product.findMany.mockResolvedValue([
+        {
+          ...activeProduct,
+          title: 'Thriller',
+          currentPrice: 159000,
+          weight: 100,
+        },
+      ]);
+
+      const result = await service.processDeliveryInfo({
+        items: [{ productId: 1, quantity: 1 }],
+        deliveryInfo: validDeliveryInfo,
+      });
+
+      expect(result.items[0].weight).toBe(0.1);
+      expect(result.subtotalBeforeVat).toBe(159000);
+      expect(result.vatAmount).toBe(15900);
+      expect(result.deliveryFee).toBe(0);
+      expect(result.totalAmount).toBe(174900);
     });
   });
 

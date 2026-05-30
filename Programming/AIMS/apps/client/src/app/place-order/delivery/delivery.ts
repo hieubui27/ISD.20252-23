@@ -1,0 +1,239 @@
+import { CommonModule } from '@angular/common';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter } from 'rxjs/operators';
+import {
+  InvoicePreview,
+  PlaceOrderDeliveryInfo,
+} from '../models/place-order.models';
+import {
+  CheckoutDraft,
+  CheckoutDraftService,
+} from '../services/checkout-draft.service';
+import { PlaceOrderApiService } from '../services/place-order-api.service';
+import { VietQrPaymentFlowService } from '../../payment/flows/vietqr-payment-flow.service';
+import { StatusMessageComponent } from '../../shared/ui/status-message/status-message';
+
+@Component({
+  selector: 'app-delivery',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, StatusMessageComponent],
+  templateUrl: './delivery.html',
+  styleUrl: './delivery.scss',
+})
+export class DeliveryComponent implements OnInit, OnDestroy {
+  readonly provinces = [
+    'Select Region',
+    'Hà Nội',
+    'Hồ Chí Minh',
+    'Đà Nẵng',
+    'Hải Phòng',
+    'Cần Thơ',
+    'An Giang',
+    'Bà Rịa - Vũng Tàu',
+    'Bình Dương',
+    'Đồng Nai',
+  ];
+
+  readonly form = inject(FormBuilder).nonNullable.group({
+    receiverName: ['', [Validators.required]],
+    phoneNumber: ['', [Validators.required]],
+    email: ['', [Validators.required, Validators.email]],
+    streetAddress: ['', [Validators.required]],
+    province: ['Select Region', [Validators.required]],
+    postalCode: ['10001'],
+    shippingInstructions: [''],
+  });
+
+  invoicePreview: InvoicePreview | null = null;
+  errorMessage = '';
+  statusMessage = '';
+  isLoadingPreview = false;
+  isCreatingPayment = false;
+  submitted = false;
+
+  private readonly checkoutDraftService = inject(CheckoutDraftService);
+  private readonly placeOrderApi = inject(PlaceOrderApiService);
+  private readonly vietQrPaymentFlow = inject(VietQrPaymentFlowService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private valueChangesSubscription?: Subscription;
+  private draft: CheckoutDraft | null = null;
+
+  ngOnInit(): void {
+    this.draft = this.checkoutDraftService.get();
+
+    if (!this.draft || this.draft.items.length === 0) {
+      this.router.navigate(['/products']);
+      return;
+    }
+
+    this.form.patchValue({
+      receiverName: this.draft.deliveryInfo.receiverName || 'Sarah Jenkins',
+      phoneNumber: this.draft.deliveryInfo.phoneNumber || '0981413168',
+      email: this.draft.deliveryInfo.email || 'customer@example.com',
+      streetAddress:
+        this.draft.deliveryInfo.streetAddress || '123 Media Blvd, Suite 400',
+      province: this.draft.deliveryInfo.province || 'Hà Nội',
+      shippingInstructions:
+        this.draft.deliveryInfo.shippingInstructions ||
+        'Sandbox VietQR payment test',
+    });
+
+    this.loadInvoicePreview();
+    this.valueChangesSubscription = this.form.valueChanges
+      .pipe(
+        debounceTime(250),
+        filter(() => this.canPreview),
+        distinctUntilChanged(
+          (previous, current) =>
+            JSON.stringify(previous) === JSON.stringify(current),
+        ),
+      )
+      .subscribe(() => this.loadInvoicePreview());
+  }
+
+  ngOnDestroy(): void {
+    this.valueChangesSubscription?.unsubscribe();
+  }
+
+  get cartItemCount(): number {
+    return this.draftItems.reduce((sum, item) => sum + item.quantity, 0);
+  }
+
+  get draftItems() {
+    return this.draft?.items ?? [];
+  }
+
+  get subtotal(): number {
+    return this.draftItems.reduce(
+      (sum, item) => sum + item.unitPrice * item.quantity,
+      0,
+    );
+  }
+
+  get vatAmount(): number {
+    return this.invoicePreview?.vatAmount ?? Math.round(this.subtotal * 0.1);
+  }
+
+  get shippingFee(): number {
+    return this.invoicePreview?.deliveryFee ?? 0;
+  }
+
+  get totalAmount(): number {
+    return this.invoicePreview?.totalAmount ?? this.subtotal + this.vatAmount;
+  }
+
+  get canPreview(): boolean {
+    return Boolean(
+      this.draft &&
+        this.form.controls.receiverName.valid &&
+        this.form.controls.phoneNumber.valid &&
+        this.form.controls.email.valid &&
+        this.form.controls.streetAddress.valid &&
+        this.form.controls.province.value !== 'Select Region',
+    );
+  }
+
+  submit(): void {
+    this.submitted = true;
+    this.errorMessage = '';
+    this.statusMessage = '';
+
+    if (!this.draft) {
+      this.router.navigate(['/products']);
+      return;
+    }
+
+    if (!this.canPreview || this.form.invalid) {
+      this.errorMessage = 'Please complete valid delivery information.';
+      return;
+    }
+
+    const updatedDraft: CheckoutDraft = {
+      ...this.draft,
+      deliveryInfo: this.buildDeliveryInfo(),
+    };
+    this.checkoutDraftService.save(updatedDraft);
+    this.draft = updatedDraft;
+    this.isCreatingPayment = true;
+
+    this.vietQrPaymentFlow
+      .start({
+        items: this.checkoutDraftService.toPlaceOrderItems(updatedDraft),
+        deliveryInfo: updatedDraft.deliveryInfo,
+      })
+      .subscribe({
+        next: (snapshot) => {
+          this.isCreatingPayment = false;
+
+          if (!snapshot.payment.qrCode && !snapshot.latestTransaction?.qrCode) {
+            this.errorMessage = 'Unable to create VietQR code.';
+            this.cdr.detectChanges();
+            return;
+          }
+
+          this.router.navigate(['/payment']);
+        },
+        error: (err) => {
+          this.isCreatingPayment = false;
+          console.error('Create VietQR payment failed:', err);
+          this.errorMessage =
+            err.error?.message ||
+            err.message ||
+            'Unable to create VietQR payment request.';
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  backToProducts(): void {
+    this.router.navigate(['/products']);
+  }
+
+  formatPrice(value: number): string {
+    return `${Math.round(value).toLocaleString('vi-VN')} VND`;
+  }
+
+  private loadInvoicePreview(): void {
+    if (!this.draft || !this.canPreview) return;
+
+    this.isLoadingPreview = true;
+    this.placeOrderApi
+      .previewInvoice({
+        items: this.checkoutDraftService.toPlaceOrderItems(this.draft),
+        deliveryInfo: this.buildDeliveryInfo(),
+      })
+      .subscribe({
+        next: (preview) => {
+          this.invoicePreview = preview;
+          this.isLoadingPreview = false;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.isLoadingPreview = false;
+          console.error('Load invoice preview failed:', err);
+          this.errorMessage =
+            err.error?.message ||
+            err.message ||
+            'Unable to calculate delivery fee.';
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  private buildDeliveryInfo(): PlaceOrderDeliveryInfo {
+    const value = this.form.getRawValue();
+
+    return {
+      receiverName: value.receiverName.trim(),
+      phoneNumber: value.phoneNumber.trim(),
+      email: value.email.trim(),
+      province: value.province.trim(),
+      streetAddress: value.streetAddress.trim(),
+      shippingInstructions: value.shippingInstructions.trim(),
+    };
+  }
+}
