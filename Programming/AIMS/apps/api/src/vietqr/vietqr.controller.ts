@@ -60,10 +60,9 @@ export class VietqrController {
 
   @Post('payments/vietqr/test-callback')
   testCallback(@Body() vietqrTestCallbackDto: VietqrTestCallbackDto) {
-    // TODO(VIETQR_SANDBOX_TEST_ONLY): Keep this endpoint disabled outside sandbox/test usage.
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.VIETQR_SANDBOX_TEST_CALLBACK_ENABLED !== 'true') {
       throw new BadRequestException(
-        'VietQR test callback is not available in production',
+        'VietQR test callback is disabled',
       );
     }
 
