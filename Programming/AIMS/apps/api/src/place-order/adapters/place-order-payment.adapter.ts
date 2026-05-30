@@ -24,6 +24,61 @@ type PrismaClientLike = {
   [key: string]: any;
 };
 
+/**
+ * ============================================================
+ * SOLID VIOLATIONS IN PlaceOrderPaymentAdapter
+ * ============================================================
+ *
+ * [SRP VIOLATION] – Single Responsibility Principle
+ * This adapter bundles at least 4 distinct responsibilities:
+ *   1. Payment context lookup – querying DB to return PaymentContext
+ *      (getPaymentContext).
+ *   2. Order status management – transitioning order from PENDING_PAYMENT
+ *      to PENDING_PROCESSING (markPaidAndPendingProcessing).
+ *   3. Inventory management – decrementing product stock quantities inside
+ *      the same transaction (markPaidAndPendingProcessing).
+ *   4. Email notification – building the invoice preview and sending the
+ *      order-confirmation email (sendOrderConfirmationEmail, buildInvoicePreview).
+ *
+ * Impact: A change to the email template, a new stock-decrement rule, or
+ * a change in how the order status machine works all force modifications
+ * to this single class. Notification logic mixed with persistence makes
+ * isolated unit testing difficult.
+ *
+ * Improvement direction:
+ *   - Extract an OrderStatusService that owns the status transition and
+ *     stock decrement transaction.
+ *   - Move sendOrderConfirmationEmail and buildInvoicePreview into a
+ *     dedicated OrderNotificationService (or emit an event and let a
+ *     notification handler consume it).
+ *   - Keep PlaceOrderPaymentAdapter thin: only bridge payment callbacks
+ *     to the order domain without owning notification.
+ *
+ * ============================================================
+ *
+ * [LSP CONCERN] – Liskov Substitution Principle
+ * PlaceOrderPaymentPort declares markPaidAndPendingProcessing(): Promise<void>.
+ * This adapter's implementation triggers significant observable side effects:
+ *   - Stock decrement across all ordered products
+ *   - Order status DB update
+ *   - Order confirmation email sent to the customer
+ *
+ * FakePlaceOrderPaymentAdapter (payment/adapters/fake-place-order-payment.adapter.ts)
+ * implements the same interface but does none of these things (it only logs).
+ * The two implementations are NOT substitutable for one another: swapping
+ * the real adapter for the fake in production leaves orders unpaid and
+ * customers without confirmation emails. This breaks the LSP guarantee that
+ * any implementation of PlaceOrderPaymentPort can be substituted without
+ * changing the correctness of the program.
+ *
+ * Improvement direction:
+ *   - Strengthen the interface contract by documenting the expected post-conditions
+ *     of markPaidAndPendingProcessing (order marked as paid, stock decremented).
+ *   - Extract the notification side-effect out of the interface boundary so that
+ *     both real and fake implementations can satisfy the core contract without
+ *     having to replicate the notification logic.
+ * ============================================================
+ */
 @Injectable()
 export class PlaceOrderPaymentAdapter implements PlaceOrderPaymentPort {
   constructor(
