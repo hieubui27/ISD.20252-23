@@ -1,5 +1,54 @@
 import { BadRequestException } from '@nestjs/common';
 
+/**
+ * ============================================================
+ * SOLID VIOLATIONS IN DeliveryInfoValidator
+ * ============================================================
+ *
+ * [OCP VIOLATION] – Open/Closed Principle
+ * Every new validation rule (e.g., validate province against a list of
+ * allowed provinces, enforce email format beyond @IsEmail, add a regex
+ * on street address) requires modifying this class directly.
+ * There is no plugin or strategy mechanism to register new rules.
+ *
+ * Impact: As business rules grow, this class grows with them, and all
+ * existing rules risk being accidentally broken with each change.
+ *
+ * Improvement direction:
+ *   - Define an IValidationRule interface:
+ *       interface IValidationRule {
+ *         validate(info: DeliveryInfoValidationInput): string | null;
+ *       }
+ *   - DeliveryInfoValidator receives a list of IValidationRule objects
+ *     and executes them. Adding a new rule means adding a new class,
+ *     not modifying DeliveryInfoValidator.
+ *
+ * [ISP VIOLATION] – Interface Segregation Principle
+ * DeliveryInfoValidator exposes 5 individual public static methods
+ * (validateReceiverName, validatePhoneNumber, validateProvince,
+ * validateAddress, validateShippingInstructions) in addition to the
+ * aggregate validate(). PlaceOrderBeService only ever calls validate().
+ * Callers are forced to depend on a wider surface area than they need;
+ * they must know about granular methods they will never use.
+ *
+ * Improvement direction:
+ *   - Change the individual validation methods to private. Expose only
+ *     the aggregate validate() as the public contract.
+ *   - If individual methods need independent testing, test them through
+ *     the aggregate method or via package-private test helpers.
+ *
+ * [DIP VIOLATION] – Dependency Inversion Principle
+ * PlaceOrderBeService calls DeliveryInfoValidator as a static concrete
+ * class: DeliveryInfoValidator.validate(...). This makes the validator
+ * non-injectable and non-mockable, coupling high-level business logic
+ * directly to a specific implementation.
+ *
+ * Improvement direction:
+ *   - Add @Injectable() and define an IDeliveryInfoValidator interface.
+ *   - Inject IDeliveryInfoValidator into PlaceOrderBeService via the
+ *     constructor so it can be swapped or mocked in tests.
+ * ============================================================
+ */
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
