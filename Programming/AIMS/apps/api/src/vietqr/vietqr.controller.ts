@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { PaymentService } from '../payment/payment.service';
 import { TransactionSyncDto } from './dto/transaction-sync.dto';
 import { VietqrRequestDto } from './dto/vietqr-request.dto';
@@ -60,12 +54,6 @@ export class VietqrController {
 
   @Post('payments/vietqr/test-callback')
   testCallback(@Body() vietqrTestCallbackDto: VietqrTestCallbackDto) {
-    if (process.env.VIETQR_SANDBOX_TEST_CALLBACK_ENABLED !== 'true') {
-      throw new BadRequestException(
-        'VietQR test callback is disabled',
-      );
-    }
-
     return this.vietqrService.testCallback(vietqrTestCallbackDto);
   }
 }
