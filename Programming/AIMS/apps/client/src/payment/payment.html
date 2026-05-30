@@ -1,281 +1,157 @@
-<div class="payment-screen">
-  <div class="main-canvas">
-
-    <header class="header">
-      <div class="text-wrapper">
-        <div class="text">Complete Your Purchase</div>
-      </div>
-
-      <div class="container">
-        <p class="div">
-          Review your order details and select a payment method to finalize
-          <br />
-          your transaction securely.
-        </p>
-      </div>
-    </header>
-
-    <div class="container-2">
-
-      <!-- LEFT COLUMN -->
-      <div class="left-column-invoice">
-
-        <div class="tonal-lift-layer">
-
-          <div class="heading">
-            <div class="div-2">
-              <img class="icon" src="img/icon-7.svg" />
-            </div>
-
-            <div class="text-2">Invoice Summary</div>
-          </div>
-
-          <div class="div-3">
-
-            <div class="container-3">
-              <div class="div-2">
-                <div class="text-3">Subtotal</div>
-              </div>
-
-              <div class="div-2">
-                <div class="text-wrapper-2">{{ order.subtotal | number }} VND</div>
-              </div>
-            </div>
-
-            <div class="container-3">
-              <div class="div-2">
-                <div class="text-3">VAT ({{ order.vatRate * 100 }}%)</div>
-              </div>
-
-              <div class="div-2">
-                <div class="text-wrapper-2">{{ order.subtotal * order.vatRate | number }} VND</div>
-              </div>
-            </div>
-
-            <div class="container-3">
-              <div class="div-2">
-                <div class="text-3">Shipping Fee</div>
-              </div>
-
-              <div class="div-2">
-                <div class="text-4">{{ order.shippingFee > 0 ? (order.shippingFee | number) + ' VND' : 'Free' }}</div>
-              </div>
-            </div>
-
-            <div class="divider-via-tonal">
-              <div class="divider-via-tonal-2"></div>
-            </div>
-
-            <div class="container-4">
-
-              <div class="div-2">
-
-                <div class="div-wrapper">
-                  <div class="text-wrapper-3">Total Amount</div>
-                </div>
-
-                <div class="div-wrapper">
-                  <div class="includes-taxes-and">
-                    Includes taxes and
-                    <br />
-                    fees
-                  </div>
-                </div>
-
-              </div>
-
-              <div class="container-5">
-                <div class="text-wrapper-4">{{ order.total | number }} VND</div>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-
-        <div class="order-items-quick">
-
-          <div class="div-wrapper">
-            <div class="text-wrapper-5">ITEMS ({{ order.items.length }})</div>
-          </div>
-
-          <div class="container-6" *ngFor="let item of order.items">
-
-            <div class="background">
-              <div class="abaxuc-psv"></div>
-            </div>
-
-            <div class="container-7">
-
-              <div class="div-wrapper">
-                <div class="text-wrapper-6">{{ item.name }}</div>
-              </div>
-
-              <div class="div-wrapper">
-                <div class="text-wrapper-7">Qty: {{ item.quantity }}</div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- RIGHT COLUMN -->
-      <div class="right-column-payment">
-
-        <div class="heading">
-
-          <div class="div-2">
-            <img class="img" src="img/icon.svg" />
-          </div>
-
-          <div class="text-2">Payment Method</div>
-        </div>
-
-        <div class="div-3">
-
-          <!-- PayPal -->
-          <div class="label-option-2" [class.selected]="selectedPaymentMethod === 'PAYPAL'" (click)="selectedPaymentMethod = 'PAYPAL'">
-            <div class="div-4"></div>
-            <div class="container-10">
-              <div class="background-4"></div>
-              <div class="container-11">
-                <div class="div-2">
-                  <div class="text-wrapper-8">PayPal</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- VietQR -->
-          <div class="label-option-2" [class.selected]="selectedPaymentMethod === 'VIETQR'" (click)="selectedPaymentMethod = 'VIETQR'">
-            <div class="div-4"></div>
-            <div class="container-10">
-              <div class="background-4"></div>
-              <div class="container-11">
-                <div class="div-2">
-                  <div class="text-wrapper-8">VietQR</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Error message -->
-        <div *ngIf="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </div>
-
-        <!-- ACTION BUTTONS -->
-        <div class="action-area-margin">
-
-          <div class="action-area">
-
-            <div class="div-4"></div>
-
-            <button class="button" (click)="cancelOrder()">
-
-            
-              <div class="text-6">Cancel Order</div>
-            </button>
-
-            <button class="button-primary-CTA" (click)="confirmPayment()" [disabled]="isLoading">
-
-              <div class="text-7">{{ isLoading ? 'Processing...' : 'Confirm Payment' }}</div>
-
-              <div class="icon-wrapper" *ngIf="!isLoading">
-                <img class="icon-5" src="img/icon-3.svg" />
-              </div>
-
-            </button>
-          </div>
-        </div>
-
-      </div>
+<div class="payment-page">
+  <header class="payment-nav">
+    <div class="payment-nav__brand">AIMS</div>
+    <div class="payment-nav__search">Search for books, CDs, DVDs...</div>
+    <div class="payment-nav__links">
+      <span>Browse</span>
+      <span>New Arrivals</span>
+      <span>Collections</span>
+      <span>Deals</span>
+      <span class="payment-nav__cart">3</span>
     </div>
-  </div>
+  </header>
 
-  <!-- TOP NAVBAR -->
-  <div class="header-topnavbar">
+  <main class="payment-page__main">
+    <section class="payment-heading">
+      <h1>Complete Your Purchase</h1>
+      <p>
+        Review your order details and select a payment method to finalize your
+        transaction securely.
+      </p>
+    </section>
 
-    <div class="container-12">
+    <section class="payment-layout">
+      <aside class="invoice-column">
+        <section class="panel">
+          <h2 class="panel__title">
+            <span class="panel__icon">▤</span>
+            Invoice Summary
+          </h2>
 
-      <div class="div-2">
-        <div class="text-8">AIMS</div>
-      </div>
-
-      <div class="search-bar-center">
-
-        <div class="search-bar-center-2">
-
-          <div class="input">
-            <input class="container-13" placeholder="Search for books, CDs, DVDs..." type="text" />
+          <div class="summary-list">
+            <div class="summary-row">
+              <span>Subtotal</span>
+              <strong>{{ order.subtotal | number }} VND</strong>
+            </div>
+            <div class="summary-row">
+              <span>VAT ({{ order.vatRate * 100 }}%)</span>
+              <strong>{{ order.subtotal * order.vatRate | number }} VND</strong>
+            </div>
+            <div class="summary-row">
+              <span>Shipping Fee</span>
+              <strong class="summary-row__accent">
+                {{ order.shippingFee > 0 ? (order.shippingFee | number) + ' VND' : 'Free' }}
+              </strong>
+            </div>
           </div>
 
-        </div>
-      </div>
+          <div class="summary-total">
+            <div>
+              <strong>Total Amount</strong>
+              <span>Includes taxes and fees</span>
+            </div>
+            <strong>{{ order.total | number }} VND</strong>
+          </div>
+        </section>
 
-      <div class="navigation-links">
+        <section class="items-panel">
+          <h3>Items ({{ order.items.length }})</h3>
+          <article class="cart-item" *ngFor="let item of order.items">
+            <div class="cart-item__thumb">▥</div>
+            <div>
+              <strong>{{ item.name }}</strong>
+              <span>Qty: {{ item.quantity }}</span>
+            </div>
+          </article>
+        </section>
+      </aside>
 
-        <div class="link">
-          <div class="text-9">Browse</div>
-        </div>
+      <section class="payment-column">
+        <section class="panel">
+          <h2 class="panel__title">Payment Method</h2>
 
-        <div class="div-wrapper-2">
-          <div class="text-wrapper-9">New Arrivals</div>
-        </div>
+          <button
+            type="button"
+            class="method-card"
+            [class.method-card--selected]="selectedPaymentMethod === 'VIETQR'"
+            (click)="selectedPaymentMethod = 'VIETQR'"
+          >
+            <span class="method-card__radio"></span>
+            <span class="method-card__content">
+              <strong>VietQR</strong>
+              <small>Scan using any supported banking app</small>
+            </span>
+            <span class="method-card__badge">Recommended</span>
+          </button>
 
-        <div class="div-wrapper-2">
-          <div class="text-wrapper-9">Collections</div>
-        </div>
+          <div class="vietqr-panel" *ngIf="selectedPaymentMethod === 'VIETQR' && vietQrSnapshot">
+            <div class="vietqr-panel__qr">
+              <img *ngIf="visibleQrCode" [src]="visibleQrCode" alt="VietQR code" />
+              <span *ngIf="!visibleQrCode">QR</span>
+            </div>
 
-        <div class="div-wrapper-2">
-          <div class="text-wrapper-9">Deals</div>
-        </div>
-
-        <div class="div-wrapper-2">
-
-          <div class="vertical-border">
-
-            <button class="button-2">
-              <div class="background-5">
-                <div class="text-10">3</div>
+            <div class="vietqr-panel__details">
+              <div>
+                <span>Order</span>
+                <strong>{{ vietQrSnapshot.payment.orderId }}</strong>
               </div>
-
-            </button>
-
+              <div>
+                <span>Amount</span>
+                <strong>{{ vietQrSnapshot.payment.totalAmount | number }} VND</strong>
+              </div>
+              <div>
+                <span>Status</span>
+                <strong>{{ vietQrSnapshot.latestTransaction?.status || vietQrSnapshot.payment.paymentStatus }}</strong>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+
+          <button
+            type="button"
+            class="method-card"
+            [class.method-card--selected]="selectedPaymentMethod === 'PAYPAL'"
+            (click)="selectedPaymentMethod = 'PAYPAL'"
+          >
+            <span class="method-card__radio"></span>
+            <span class="method-card__content">
+              <strong>PayPal</strong>
+              <small>Continue to PayPal checkout</small>
+            </span>
+          </button>
+
+          <app-status-message *ngIf="statusMessage" [tone]="isVietQrSuccess ? 'success' : 'info'">
+            {{ statusMessage }}
+          </app-status-message>
+
+          <app-status-message *ngIf="errorMessage" tone="error">
+            {{ errorMessage }}
+          </app-status-message>
+        </section>
+
+        <section class="action-panel">
+          <app-aims-button variant="ghost" (pressed)="cancelOrder()">
+            ← Cancel Order
+          </app-aims-button>
+
+          <app-aims-button
+            variant="primary"
+            [loading]="isLoading"
+            [disabled]="isLoading || isVietQrSuccess"
+            (pressed)="confirmPayment()"
+          >
+            {{ isLoading ? 'Processing...' : isVietQrSuccess ? 'Payment Confirmed' : 'Confirm Payment' }}
+            <span *ngIf="!isLoading && !isVietQrSuccess">→</span>
+          </app-aims-button>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <footer class="payment-footer">
+    <p>© 2024 AIMS Digital Media. All rights reserved.</p>
+    <div>
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Service</a>
     </div>
-
-    <div class="separation-logic"></div>
-  </div>
-
-  <!-- FOOTER -->
-  <div class="footer-minimal-for">
-
-    <div class="container-15">
-
-      <div class="text-wrapper">
-        <p class="text-11">
-          &copy; 2024 AIMS Digital Media. All rights reserved.
-        </p>
-      </div>
-
-      <div class="container-16">
-
-        <div class="link-2">
-          <div class="text-12">Privacy Policy</div>
-        </div>
-
-        <div class="link-2">
-          <div class="text-12">Terms of Service</div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
+  </footer>
 </div>
