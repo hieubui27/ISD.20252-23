@@ -9,10 +9,10 @@
     } @else {
     <div class="image-placeholder">{{ product.type }}</div>
     }
+    <span class="product-type">{{ product.type }}</span>
   </div>
 
   <div class="product-body">
-    <div class="product-type">{{ product.type }}</div>
     <h2>{{ product.title }}</h2>
     <div class="product-footer">
       <span class="price">{{ product.currentPrice | number }} VND</span>

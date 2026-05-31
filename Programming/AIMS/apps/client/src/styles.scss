@@ -54,37 +54,3 @@ $inter-fonts: (
     src: local('#{$family}');
   }
 }
-
-.specific-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin: 0;
-}
-
-.specific-grid div {
-  min-width: 0;
-  padding: 14px;
-  background: #f6f8fb;
-  border: 1px solid #e1e7ed;
-  border-radius: 8px;
-}
-
-.specific-grid dt {
-  color: #5d6975;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.specific-grid dd {
-  margin: 4px 0 0;
-  overflow-wrap: anywhere;
-  color: #19212a;
-  font-weight: 700;
-}
-
-@media (max-width: 720px) {
-  .specific-grid {
-    grid-template-columns: 1fr;
-  }
-}

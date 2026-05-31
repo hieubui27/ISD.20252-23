@@ -1,76 +1,57 @@
+@use '../../../../shared/styles/aims-tokens' as *;
+
 .detail-page {
   min-height: 100vh;
-  color: #19212a;
-  background: #f6f8fb;
-}
-
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 68px;
-  padding: 0 32px;
-  background: #ffffff;
-  border-bottom: 1px solid #dfe5eb;
+  flex-direction: column;
+  color: $aims-color-text;
+  background: $aims-color-page;
+  font-family: $aims-font-regular;
 }
 
-.brand {
-  color: #19212a;
-  font-size: 22px;
-  font-weight: 900;
-  text-decoration: none;
-}
-
-nav {
-  display: flex;
-  gap: 18px;
-}
-
-nav a,
-.back-link {
-  color: #3f4b57;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.content {
-  width: min(1180px, calc(100% - 40px));
+.detail-page__main {
+  flex: 1;
+  width: 100%;
+  max-width: $aims-page-max-width;
   margin: 0 auto;
-  padding: 26px 0 56px;
+  padding: 32px 24px 56px;
 }
 
-.back-link {
-  display: inline-flex;
-  margin-bottom: 18px;
-  color: #2d5d55;
-}
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  color: $aims-color-text-muted;
+  font-size: 14px;
 
-.state {
-  padding: 24px;
-  color: #3f4b57;
-  background: #ffffff;
-  border: 1px solid #d9e1e8;
-  border-radius: 8px;
-}
+  button {
+    border: 0;
+    background: transparent;
+    color: $aims-color-text-muted;
+    cursor: pointer;
+    padding: 0;
 
-.state.error {
-  color: #8a1f1f;
-  border-color: #e7b5b5;
-  background: #fff4f4;
+    &:hover {
+      color: $aims-color-primary;
+    }
+  }
+
+  span {
+    color: rgba(65, 71, 82, 0.45);
+  }
+
+  strong {
+    color: $aims-color-text;
+    font-family: $aims-font-medium;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
 }
 
 @media (max-width: 640px) {
-  .topbar {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 10px;
-    padding: 14px 20px;
-  }
-
-  .content {
-    width: min(100% - 28px, 1180px);
+  .detail-page__main {
+    padding: 24px 16px 40px;
   }
 }

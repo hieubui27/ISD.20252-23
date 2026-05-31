@@ -1,8 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { ProductApiService } from '../../../../core/services/product-api.service';
+import { AimsFooterComponent } from '../../../../shared/layout/aims-footer/aims-footer';
+import { AimsHeaderComponent } from '../../../../shared/layout/aims-header/aims-header';
+import { StatusMessageComponent } from '../../../../shared/ui/status-message/status-message';
 import { ProductCardComponent } from '../../components/product-card/product-card';
 import { ProductListItem } from '../../models/product.model';
 
@@ -23,7 +26,13 @@ import { ProductListItem } from '../../models/product.model';
 @Component({
   selector: 'app-product-list-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, ProductCardComponent],
+  imports: [
+    CommonModule,
+    AimsFooterComponent,
+    AimsHeaderComponent,
+    ProductCardComponent,
+    StatusMessageComponent,
+  ],
   templateUrl: './product-list-page.html',
   styleUrl: './product-list-page.scss',
 })
@@ -34,6 +43,7 @@ export class ProductListPageComponent implements OnInit {
 
   private readonly productApi = inject(ProductApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
 
   ngOnInit(): void {
     this.productApi
@@ -49,5 +59,13 @@ export class ProductListPageComponent implements OnInit {
           this.isLoading.set(false);
         },
       });
+  }
+
+  goToProducts(): void {
+    this.router.navigate(['/products']);
+  }
+
+  goToCatalog(): void {
+    this.router.navigate(['/product-catalog']);
   }
 }

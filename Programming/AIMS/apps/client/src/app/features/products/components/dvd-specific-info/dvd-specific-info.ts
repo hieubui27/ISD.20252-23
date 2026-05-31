@@ -21,6 +21,7 @@ import { DVDSpecificInfo } from '../../models/product.model';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './dvd-specific-info.html',
+  styleUrl: '../product-specific-info/specific-info-grid.scss',
 })
 export class DVDSpecificInfoComponent {
   @Input({ required: true }) info!: DVDSpecificInfo;

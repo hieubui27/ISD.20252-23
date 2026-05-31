@@ -1,33 +1,46 @@
-<main class="products-page">
-  <header class="topbar">
-    <a class="brand" routerLink="/">AIMS</a>
-    <nav>
-      <a routerLink="/">Products</a>
-      <a routerLink="/payment">Payment</a>
-    </nav>
-  </header>
+<div class="products-page">
+  <app-aims-header
+    (brandClicked)="goToProducts()"
+    (browseClicked)="goToCatalog()"
+    (cartClicked)="goToProducts()"
+  ></app-aims-header>
 
-  <section class="content">
-    <div class="page-heading">
+  <main class="products-page__main">
+    <section class="catalog-heading">
       <div>
-        <p>Product Catalog</p>
-        <h1>Browse Products</h1>
+        <h1>Browse Our Media Collection</h1>
+        <p>Discover products loaded from the AIMS backend.</p>
       </div>
-      <div class="count">{{ products().length }} items</div>
-    </div>
+
+      <span>{{ products().length }} items</span>
+    </section>
 
     @if (isLoading()) {
-    <div class="state">Loading products...</div>
+    <app-status-message tone="info">Loading products...</app-status-message>
     } @else if (errorMessage()) {
-    <div class="state error">{{ errorMessage() }}</div>
+    <app-status-message tone="error">{{ errorMessage() }}</app-status-message>
     } @else if (products().length === 0) {
-    <div class="state">No products available.</div>
+    <app-status-message tone="info">No products available.</app-status-message>
     } @else {
+    <div class="catalog-toolbar">
+      <span>Showing {{ products().length }} results</span>
+      <label>
+        Sort by:
+        <select aria-label="Sort products">
+          <option>Recommended</option>
+          <option>Price: Low to High</option>
+          <option>Price: High to Low</option>
+        </select>
+      </label>
+    </div>
+
     <section class="product-grid" aria-label="Product list">
       @for (product of products(); track product.id) {
       <app-product-card [product]="product" />
       }
     </section>
     }
-  </section>
-</main>
+  </main>
+
+  <app-aims-footer></app-aims-footer>
+</div>

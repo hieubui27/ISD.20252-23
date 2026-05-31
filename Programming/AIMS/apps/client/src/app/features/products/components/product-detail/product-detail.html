@@ -23,7 +23,7 @@
     </div>
 
     @if (isUnavailableStatus(product.status)) {
-    <div class="notice">{{ statusNotice(product.status) }}</div>
+    <app-status-message tone="info">{{ statusNotice(product.status) }}</app-status-message>
     }
 
     <div class="price-row">

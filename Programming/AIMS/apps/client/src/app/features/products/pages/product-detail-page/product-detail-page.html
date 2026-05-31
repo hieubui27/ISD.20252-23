@@ -1,23 +1,31 @@
-<main class="detail-page">
-  <header class="topbar">
-    <a class="brand" routerLink="/">AIMS</a>
-    <nav>
-      <a routerLink="/">Products</a>
-      <a routerLink="/payment">Payment</a>
-    </nav>
-  </header>
+<div class="detail-page">
+  <app-aims-header
+    (brandClicked)="goToProducts()"
+    (browseClicked)="goToCatalog()"
+    (cartClicked)="goToProducts()"
+  ></app-aims-header>
 
-  <section class="content">
-    <a class="back-link" routerLink="/">Back to products</a>
+  <main class="detail-page__main">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <button type="button" (click)="goToProducts()">Products</button>
+      <span>›</span>
+      <button type="button" (click)="goToCatalog()">Product Catalog</button>
+      @if (product(); as selectedProduct) {
+      <span>›</span>
+      <strong>{{ selectedProduct.title }}</strong>
+      }
+    </nav>
 
     @if (isLoading()) {
-    <div class="state">Loading product detail...</div>
+    <app-status-message tone="info">Loading product detail...</app-status-message>
     } @else if (notFound()) {
-    <div class="state error">Product not found.</div>
+    <app-status-message tone="error">Product not found.</app-status-message>
     } @else if (errorMessage()) {
-    <div class="state error">{{ errorMessage() }}</div>
+    <app-status-message tone="error">{{ errorMessage() }}</app-status-message>
     } @else if (product(); as selectedProduct) {
     <app-product-detail [product]="selectedProduct" />
     }
-  </section>
-</main>
+  </main>
+
+  <app-aims-footer></app-aims-footer>
+</div>

@@ -21,6 +21,7 @@ import { NewspaperSpecificInfo } from '../../models/product.model';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './newspaper-specific-info.html',
+  styleUrl: '../product-specific-info/specific-info-grid.scss',
 })
 export class NewspaperSpecificInfoComponent {
   @Input({ required: true }) info!: NewspaperSpecificInfo;

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AimsFooterComponent } from '../../shared/layout/aims-footer/aims-footer';
 import { AimsHeaderComponent } from '../../shared/layout/aims-header/aims-header';
 import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
@@ -20,6 +20,7 @@ import { ProductApiService } from '../services/product-api.service';
     AimsButtonComponent,
     AimsFooterComponent,
     AimsHeaderComponent,
+    RouterLink,
     StatusMessageComponent,
   ],
   templateUrl: './product-selection.html',

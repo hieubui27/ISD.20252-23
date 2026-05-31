@@ -21,6 +21,7 @@ import { CDSpecificInfo } from '../../models/product.model';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './cd-specific-info.html',
+  styleUrl: '../product-specific-info/specific-info-grid.scss',
 })
 export class CDSpecificInfoComponent {
   @Input({ required: true }) info!: CDSpecificInfo;

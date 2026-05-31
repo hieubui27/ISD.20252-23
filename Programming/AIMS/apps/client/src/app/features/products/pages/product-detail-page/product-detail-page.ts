@@ -2,10 +2,13 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { throwError } from 'rxjs';
 import { switchMap, tap } from 'rxjs/operators';
 import { ProductApiService } from '../../../../core/services/product-api.service';
+import { AimsFooterComponent } from '../../../../shared/layout/aims-footer/aims-footer';
+import { AimsHeaderComponent } from '../../../../shared/layout/aims-header/aims-header';
+import { StatusMessageComponent } from '../../../../shared/ui/status-message/status-message';
 import { ProductDetailComponent } from '../../components/product-detail/product-detail';
 import { ProductDetail } from '../../models/product.model';
 
@@ -26,7 +29,13 @@ import { ProductDetail } from '../../models/product.model';
 @Component({
   selector: 'app-product-detail-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, ProductDetailComponent],
+  imports: [
+    CommonModule,
+    AimsFooterComponent,
+    AimsHeaderComponent,
+    ProductDetailComponent,
+    StatusMessageComponent,
+  ],
   templateUrl: './product-detail-page.html',
   styleUrl: './product-detail-page.scss',
 })
@@ -37,6 +46,7 @@ export class ProductDetailPageComponent implements OnInit {
   readonly notFound = signal(false);
 
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly productApi = inject(ProductApiService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -80,5 +90,13 @@ export class ProductDetailPageComponent implements OnInit {
     }
 
     this.errorMessage.set('Cannot load product detail from backend.');
+  }
+
+  goToProducts(): void {
+    this.router.navigate(['/products']);
+  }
+
+  goToCatalog(): void {
+    this.router.navigate(['/product-catalog']);
   }
 }

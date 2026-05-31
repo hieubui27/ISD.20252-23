@@ -1,0 +1,37 @@
+@use '../../../../shared/styles/aims-tokens' as *;
+
+.specific-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.specific-grid div {
+  min-width: 0;
+  padding: 14px;
+  background: $aims-color-page;
+  border: 1px solid $aims-color-muted;
+  border-radius: $aims-radius-lg;
+}
+
+.specific-grid dt {
+  color: $aims-color-text-muted;
+  font-family: $aims-font-bold;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.specific-grid dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  color: $aims-color-text;
+  font-family: $aims-font-bold;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .specific-grid {
+    grid-template-columns: 1fr;
+  }
+}

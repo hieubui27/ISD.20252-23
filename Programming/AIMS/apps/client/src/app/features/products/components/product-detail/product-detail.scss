@@ -1,20 +1,21 @@
+@use '../../../../shared/styles/aims-tokens' as *;
+
 .detail-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
-  gap: 28px;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 40px;
 }
 
 .media-panel,
 .detail-panel {
-  background: #ffffff;
-  border: 1px solid #d9e1e8;
-  border-radius: 8px;
+  background: $aims-color-surface;
+  border-radius: $aims-radius-sm;
 }
 
 .media-panel {
   display: grid;
   place-items: center;
-  min-height: 520px;
+  min-height: 500px;
   overflow: hidden;
 }
 
@@ -29,18 +30,18 @@
   place-items: center;
   width: 128px;
   height: 128px;
-  color: #2d5d55;
+  color: $aims-color-primary;
+  font-family: $aims-font-bold;
   font-size: 20px;
   font-weight: 800;
-  background: #dcefeb;
-  border: 1px solid #b5d7d0;
-  border-radius: 8px;
+  background: rgba(0, 95, 172, 0.08);
+  border-radius: $aims-radius-lg;
 }
 
 .detail-panel {
   display: grid;
   gap: 24px;
-  padding: 28px;
+  padding: 0;
 }
 
 .title-row {
@@ -52,41 +53,40 @@
 
 .title-row p {
   margin: 0 0 6px;
-  color: #2d5d55;
+  color: $aims-color-text-muted;
+  font-family: $aims-font-semibold;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 h1 {
   margin: 0;
-  color: #19212a;
-  font-size: 34px;
-  line-height: 42px;
+  color: $aims-color-text;
+  font-family: $aims-font-extrabold;
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 43px;
+  letter-spacing: 0;
 }
 
 .status {
   max-width: 180px;
-  padding: 7px 10px;
+  padding: 6px 10px;
   overflow-wrap: anywhere;
-  color: #22543d;
+  color: $aims-color-success;
+  font-family: $aims-font-bold;
   font-size: 12px;
-  font-weight: 800;
-  background: #e8f6ee;
-  border-radius: 6px;
+  font-weight: 700;
+  background: rgba(26, 97, 0, 0.09);
+  border-radius: 999px;
+  text-transform: uppercase;
 }
 
 .status.notice {
-  color: #8a4a00;
-  background: #fff0d8;
-}
-
-.notice {
-  padding: 12px 14px;
-  color: #7a3c00;
-  font-weight: 700;
-  background: #fff5e5;
-  border: 1px solid #ebc27f;
-  border-radius: 8px;
+  color: $aims-color-warning;
+  background: $aims-color-warning-surface;
 }
 
 .price-row {
@@ -99,25 +99,27 @@ h1 {
   display: grid;
   gap: 4px;
   padding: 14px;
-  background: #f6f8fb;
-  border: 1px solid #e1e7ed;
-  border-radius: 8px;
+  background: $aims-color-page;
+  border: 1px solid $aims-color-muted;
+  border-radius: $aims-radius-lg;
 }
 
 .price-row span {
-  color: #5d6975;
+  color: $aims-color-text-muted;
+  font-family: $aims-font-bold;
   font-size: 13px;
   font-weight: 700;
 }
 
 .price-row strong {
-  color: #8a3d24;
+  color: $aims-color-primary;
+  font-family: $aims-font-bold;
   font-size: 20px;
 }
 
 .description {
   margin: 0;
-  color: #3f4b57;
+  color: $aims-color-text-muted;
   line-height: 26px;
 }
 
@@ -133,7 +135,8 @@ h1 {
 }
 
 dt {
-  color: #5d6975;
+  color: $aims-color-text-muted;
+  font-family: $aims-font-bold;
   font-size: 13px;
   font-weight: 800;
 }
@@ -141,7 +144,8 @@ dt {
 dd {
   margin: 4px 0 0;
   overflow-wrap: anywhere;
-  color: #19212a;
+  color: $aims-color-text;
+  font-family: $aims-font-bold;
   font-weight: 700;
 }
 

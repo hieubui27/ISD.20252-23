@@ -5,6 +5,7 @@ import {
   ProductDetail,
   ProductDimensions,
 } from '../../models/product.model';
+import { StatusMessageComponent } from '../../../../shared/ui/status-message/status-message';
 import { ProductSpecificInfoComponent } from '../product-specific-info/product-specific-info';
 
 /**
@@ -24,7 +25,7 @@ import { ProductSpecificInfoComponent } from '../product-specific-info/product-s
 @Component({
   selector: 'app-product-detail',
   standalone: true,
-  imports: [CommonModule, ProductSpecificInfoComponent],
+  imports: [CommonModule, ProductSpecificInfoComponent, StatusMessageComponent],
   templateUrl: './product-detail.html',
   styleUrl: './product-detail.scss',
 })

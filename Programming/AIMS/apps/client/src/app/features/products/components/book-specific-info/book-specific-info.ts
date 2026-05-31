@@ -21,6 +21,7 @@ import { BookSpecificInfo } from '../../models/product.model';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './book-specific-info.html',
+  styleUrl: '../product-specific-info/specific-info-grid.scss',
 })
 export class BookSpecificInfoComponent {
   @Input({ required: true }) info!: BookSpecificInfo;
