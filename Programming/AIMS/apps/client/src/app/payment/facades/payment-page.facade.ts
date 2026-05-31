@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Subscription } from 'rxjs';
 import * as QRCode from 'qrcode';
-import { OrderSummary } from '../../services/payment.service';
+import { OrderSummary, PaymentMethod } from '../../services/payment.service';
 import { InvoicePreview } from '../../place-order/models/place-order.models';
 import {
   CheckoutDraft,
@@ -23,6 +23,8 @@ export interface PaymentPageState {
   cartItemCount: number;
   qrImageUrl: string;
   isVietQrSuccess: boolean;
+  selectedMethod: PaymentMethod;
+  paypalRedirectUrl: string;
 }
 
 const EMPTY_ORDER: OrderSummary = {
@@ -41,6 +43,8 @@ const INITIAL_STATE: PaymentPageState = {
   cartItemCount: 0,
   qrImageUrl: '',
   isVietQrSuccess: false,
+  selectedMethod: 'VIETQR',
+  paypalRedirectUrl: '',
 };
 
 @Injectable()
@@ -92,7 +96,7 @@ export class PaymentPageFacade {
       return;
     }
 
-    this.confirmPayment();
+    this.startPaymentFlow();
   }
 
   destroy(): void {
@@ -100,7 +104,36 @@ export class PaymentPageFacade {
     this.vietQrPaymentFlow.stop();
   }
 
-  confirmPayment(): void {
+  selectPaymentMethod(method: PaymentMethod): void {
+    if (method === this.stateSubject.value.selectedMethod) return;
+
+    this.vietQrPaymentFlow.stop();
+    this.snapshotSubscription?.unsubscribe();
+    this.currentSnapshot = null;
+
+    this.patchState({
+      selectedMethod: method,
+      isLoading: false,
+      errorMessage: '',
+      statusMessage: '',
+      qrImageUrl: '',
+      isVietQrSuccess: false,
+      paypalRedirectUrl: '',
+    });
+
+    this.startPaymentFlow();
+  }
+
+  private startPaymentFlow(): void {
+    const method = this.stateSubject.value.selectedMethod;
+    if (method === 'VIETQR') {
+      this.startVietQrPayment();
+    } else if (method === 'PAYPAL') {
+      this.startPaypalPayment();
+    }
+  }
+
+  private startVietQrPayment(): void {
     this.patchState({
       isLoading: true,
       errorMessage: '',
@@ -130,13 +163,64 @@ export class PaymentPageFacade {
     });
   }
 
+  private startPaypalPayment(): void {
+    if (!this.checkoutDraft) return;
+
+    this.patchState({
+      isLoading: true,
+      errorMessage: '',
+      statusMessage: '',
+      paypalRedirectUrl: '',
+    });
+
+    this.placeOrderApi
+      .createPayment({
+        items: this.checkoutDraftService.toPlaceOrderItems(this.checkoutDraft),
+        deliveryInfo: this.checkoutDraft.deliveryInfo,
+        paymentMethod: 'PAYPAL',
+      })
+      .subscribe({
+        next: (result) => {
+          this.patchState({
+            isLoading: false,
+            paypalRedirectUrl: result.paymentUrl || '',
+            statusMessage: result.paymentUrl
+              ? ''
+              : 'PayPal payment created. Awaiting redirect URL.',
+          });
+        },
+        error: (err) => {
+          console.error('PayPal payment error:', err);
+          this.patchState({
+            isLoading: false,
+            errorMessage:
+              err.error?.message ||
+              err.message ||
+              'Unable to create PayPal payment request.',
+          });
+        },
+      });
+  }
+
   confirmOrder(): void {
     this.patchState({ errorMessage: '' });
 
     if (this.stateSubject.value.isLoading) {
       this.patchState({
-        statusMessage: 'Your payment QR is still being prepared. Please wait.',
+        statusMessage: 'Your payment is still being prepared. Please wait.',
       });
+      return;
+    }
+
+    if (this.stateSubject.value.selectedMethod === 'PAYPAL') {
+      const paypalUrl = this.stateSubject.value.paypalRedirectUrl;
+      if (paypalUrl) {
+        window.open(paypalUrl, '_blank');
+      } else {
+        this.patchState({
+          statusMessage: 'PayPal redirect URL is not available yet.',
+        });
+      }
       return;
     }
 
@@ -146,7 +230,8 @@ export class PaymentPageFacade {
     }
 
     this.patchState({
-      statusMessage: 'Please complete your payment before confirming the order.',
+      statusMessage:
+        'Please complete your payment before confirming the order.',
     });
   }
 
