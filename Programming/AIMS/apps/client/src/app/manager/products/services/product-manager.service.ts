@@ -33,4 +33,10 @@ export class ProductManagerService {
   deleteProduct(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+
+  deleteBulkProducts(ids: string[]): Observable<any> {
+    return this.http.request('delete', `${this.apiUrl}/bulk`, {
+      body: { ids },
+    });
+  }
 }

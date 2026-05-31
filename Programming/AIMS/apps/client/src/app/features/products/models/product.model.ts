@@ -26,6 +26,7 @@ export interface ProductListItem {
   type: ProductType;
   currentPrice: number;
   imageUrl?: string;
+  stockQuantity: number;
   status: string;
 }
 
@@ -87,6 +88,7 @@ export interface ProductDetail {
   weight: number;
   dimensions: ProductDimensions;
   imageUrl?: string;
+  imageUrls?: string[];
   stockQuantity: number;
   status: string;
   specificInfo: ProductSpecificInfo;

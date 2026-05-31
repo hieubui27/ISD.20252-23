@@ -17,10 +17,10 @@ export class CdHandler implements IProductHandler {
     await tx.discProduct.create({
       data: {
         id: productId,
-        releaseDate: new Date(),
-        genre: 'N/A',
-        language: 'N/A',
-        totalLength: 0,
+        releaseDate: data.releaseDate ? new Date(data.releaseDate) : new Date(),
+        genre: data.genre || 'N/A',
+        language: data.language || 'N/A',
+        totalLength: data.totalLength || 0,
         cd: {
           create: {
             artist: data.artist || 'N/A',

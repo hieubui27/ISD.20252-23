@@ -44,7 +44,7 @@ export class CreateProductDto {
   @IsString() @IsOptional() coverType?: string;
   @IsNumber() @IsOptional() nbPages?: number;
   @IsString() @IsOptional() genre?: string;
-  @IsArray() @IsOptional() authorIds?: string[];
+  @IsArray() @IsOptional() authors?: string[];
 
   // CD Fields
   @IsString() @IsOptional() artist?: string;
@@ -56,6 +56,10 @@ export class CreateProductDto {
   @IsString() @IsOptional() director?: string;
   @IsString() @IsOptional() studio?: string;
   @IsString() @IsOptional() subtitles?: string;
+
+  // CD & DVD Fields
+  @IsDateString() @IsOptional() releaseDate?: string;
+  @IsNumber() @IsOptional() totalLength?: number;
 
   // Newspaper Fields
   @IsString() @IsOptional() editorInChief?: string;

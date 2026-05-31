@@ -6,6 +6,7 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
+import { PrismaService } from './prisma/prisma.service';
 const cookieParser = require('cookie-parser');
 
 async function bootstrap() {
@@ -24,6 +25,29 @@ async function bootstrap() {
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
   const port = process.env.PORT || 3000;
+
+  // Sync postgres sequences
+  const prismaService = app.get(PrismaService);
+  const tables = [
+    'product',
+    'orders',
+    'invoice',
+    'transaction',
+    'authors',
+    'roles',
+    'users',
+    'product_log',
+  ];
+  for (const table of tables) {
+    try {
+      await prismaService.$executeRawUnsafe(
+        `SELECT setval('"${table}_id_seq"', COALESCE((SELECT MAX(id) + 1 FROM "${table}"), 1), false);`,
+      );
+    } catch (e: any) {
+      Logger.error(`Error fixing sequence for ${table}: ` + e.message);
+    }
+  }
+
   await app.listen(port);
   Logger.log(
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`,

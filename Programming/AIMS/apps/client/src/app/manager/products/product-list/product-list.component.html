@@ -7,8 +7,8 @@
   </div>
   <div class="actions">
     <button class="icon-btn">
-      <svg width="16" height="16" viewBox="0 0 16 17" fill="none">
-        <path d="M8 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14z" stroke="#414752" stroke-width="1.5" />
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#414752" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
       </svg>
     </button>
     <div class="avatar">
@@ -23,18 +23,26 @@
       <p class="subtitle">Catalog</p>
       <h1 class="title">Product Overview</h1>
     </div>
-    <button class="add-btn" (click)="logic.navigateToAddProduct()">
-      <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
-        <path d="M6 1v10M1 6h10" stroke="white" stroke-width="2" stroke-linecap="round" />
-      </svg>
-      <span>Add New Product</span>
-    </button>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-danger" *ngIf="logic.selectedIds.size > 0" (click)="logic.deleteSelected()" style="padding: 10px; border-radius: 8px; color: #ba1a1a; border: 1px solid #ba1a1a; background: transparent; cursor: pointer; font-size: 13px; font-weight: 600;">
+        Delete Selected
+      </button>
+      <button class="add-btn" (click)="logic.navigateToAddProduct()">
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+          <path d="M6 1v10M1 6h10" stroke="white" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <span>Add New Product</span>
+      </button>
+    </div>
   </div>
 
   <div class="table-container">
     <table class="product-table">
       <thead>
         <tr>
+          <th style="width: 40px">
+            <input type="checkbox" (change)="logic.toggleAll($event)" />
+          </th>
           <th>PRODUCT</th>
           <th>CATEGORY</th>
           <th>PRICE (VND)</th>
@@ -44,7 +52,10 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let product of (products$ | async) || []">
+        <tr *ngFor="let product of (products$ | async) || []" (click)="logic.navigateToViewProduct(product.id)" style="cursor: pointer">
+          <td (click)="$event.stopPropagation()">
+            <input type="checkbox" [checked]="logic.isSelected(product.id)" (change)="logic.toggleSelection(product.id)" />
+          </td>
           <td>
             <div class="product-info">
               <div class="image-wrapper">
@@ -58,19 +69,18 @@
           </td>
           <td>{{ product.type }}</td>
           <td class="price">{{ product.currentPrice | number }}</td>
-          <td>-</td> <!-- Needs stock property from full detail -->
+          <td>{{ product.stockQuantity }}</td>
           <td>
             <span class="status-badge" [ngClass]="product.status.toLowerCase()">{{ product.status }}</span>
           </td>
-          <td class="actions-cell">
-            <button class="action-btn" (click)="logic.navigateToViewProduct(product.id)">View</button>
+          <td class="actions-cell" (click)="$event.stopPropagation()">
             <button class="action-btn" (click)="logic.navigateToEditProduct(product.id)">Edit</button>
           </td>
         </tr>
         
         <!-- Empty state or loading -->
         <tr *ngIf="(products$ | async)?.length === 0">
-          <td colspan="6" class="empty-state">No products found.</td>
+          <td colspan="7" class="empty-state">No products found.</td>
         </tr>
       </tbody>
     </table>

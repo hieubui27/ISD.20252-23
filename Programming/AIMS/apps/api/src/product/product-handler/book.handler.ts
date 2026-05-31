@@ -14,6 +14,17 @@ export class BookHandler implements IProductHandler {
     productId: bigint,
     data: CreateProductDto,
   ): Promise<void> {
+    const authorLinks = [];
+    if (data.authors && data.authors.length > 0) {
+      for (const authorName of data.authors) {
+        let author = await tx.author.findFirst({ where: { name: authorName } });
+        if (!author) {
+          author = await tx.author.create({ data: { name: authorName } });
+        }
+        authorLinks.push({ authorId: author.id });
+      }
+    }
+
     await tx.printableProduct.create({
       data: {
         id: productId,
@@ -25,6 +36,9 @@ export class BookHandler implements IProductHandler {
             coverType: data.coverType || 'N/A',
             nbPages: data.nbPages || 0,
             genre: data.genre || 'N/A',
+            bookAuthors: {
+              create: authorLinks,
+            },
           },
         },
       },

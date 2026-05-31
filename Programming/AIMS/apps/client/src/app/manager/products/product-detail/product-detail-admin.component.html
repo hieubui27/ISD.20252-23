@@ -25,7 +25,7 @@
         <img [src]="product.imageUrl || 'assets/default-product.png'" alt="Product" class="product-img" />
       </div>
       <div class="actions-group">
-        <button class="btn btn-outline" (click)="logic.navigateToEdit(product.id)">
+        <button class="btn btn-outline" (click)="logic.openAdjustModal()">
           Adjust Quantity
         </button>
         <button class="btn btn-primary" (click)="logic.navigateToEdit(product.id)">
@@ -80,6 +80,25 @@
             <p class="spec-value">{{ product.weight || '-' }}</p>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Adjust Quantity Modal -->
+  <div class="modal-overlay" *ngIf="logic.showAdjustModal$ | async">
+    <div class="modal-card">
+      <h3 class="modal-title">Adjust Quantity</h3>
+      <div class="form-group">
+        <label class="form-label">New Quantity</label>
+        <input type="number" #qtyInput [value]="product.stockQuantity || 0" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason</label>
+        <textarea #reasonInput rows="3" placeholder="Enter reason for adjustment..." class="form-input textarea"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" (click)="logic.confirmAdjustQuantity(qtyInput.value, reasonInput.value)">Confirm</button>
+        <button class="btn btn-outline" (click)="logic.closeAdjustModal()">Cancel</button>
       </div>
     </div>
   </div>

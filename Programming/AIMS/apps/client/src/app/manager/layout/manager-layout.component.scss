@@ -96,12 +96,15 @@
       }
 
       &.active {
+        color: #005fac;
+
         &.product-menu .menu-inner, &.order-menu .menu-inner {
           background-color: #ffffff;
         }
         
         span {
           font-weight: 600;
+          color: #005fac;
         }
       }
     }
