@@ -115,11 +115,18 @@ export class ProductService {
     const product = await this.findOne(id);
 
     if (product.quantity === 0) {
-      this.dailyDeletes++;
-      await this.remove(id);
-      return { status: 'DELETED' };
+      try {
+        await this.remove(id);
+        this.dailyDeletes++;
+        return { status: 'DELETED' };
+      } catch (error) {
+        await this.update(id, { status: 'DEACTIVATED' } as any);
+        this.dailyDeletes++;
+        return { status: 'DEACTIVATED' };
+      }
     } else {
       await this.update(id, { status: 'DEACTIVATED' } as any);
+      this.dailyDeletes++;
       return { status: 'DEACTIVATED' };
     }
   }

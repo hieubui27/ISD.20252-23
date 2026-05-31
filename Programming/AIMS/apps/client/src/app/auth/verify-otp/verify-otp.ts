@@ -11,10 +11,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthPageBase } from '../auth-page.base';
 import { VerifyOtpLogic } from './verify-otp.logic';
+import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
+import { AimsIconComponent } from '../../shared/ui/aims-icon/aims-icon';
 
 @Component({
   selector: 'app-verify-otp',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AimsButtonComponent, AimsIconComponent],
   templateUrl: './verify-otp.html',
   styleUrl: './verify-otp.scss',
   standalone: true,

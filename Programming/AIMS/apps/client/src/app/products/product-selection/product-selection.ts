@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AimsFooterComponent } from '../../shared/layout/aims-footer/aims-footer';
 import { AimsHeaderComponent } from '../../shared/layout/aims-header/aims-header';
 import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
+import { AimsIconComponent } from '../../shared/ui/aims-icon/aims-icon';
 import { StatusMessageComponent } from '../../shared/ui/status-message/status-message';
 import {
   CheckoutDraft,
@@ -22,6 +23,7 @@ import { ProductApiService } from '../services/product-api.service';
     AimsHeaderComponent,
     RouterLink,
     StatusMessageComponent,
+    AimsIconComponent,
   ],
   templateUrl: './product-selection.html',
   styleUrl: './product-selection.scss',
@@ -72,7 +74,10 @@ export class ProductSelectionComponent implements OnInit {
   }
 
   updateQuantity(product: Product, quantity: number): void {
-    const normalizedQuantity = Math.max(0, Math.min(quantity, product.quantity));
+    const normalizedQuantity = Math.max(
+      0,
+      Math.min(quantity, product.quantity),
+    );
 
     if (normalizedQuantity === 0) {
       this.selectedItems.delete(product.id);
@@ -148,5 +153,4 @@ export class ProductSelectionComponent implements OnInit {
   private toNumber(value: number | string): number {
     return Number(value);
   }
-
 }

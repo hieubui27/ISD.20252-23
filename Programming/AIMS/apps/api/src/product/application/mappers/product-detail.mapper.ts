@@ -38,6 +38,7 @@ export class ProductDetailMapper {
       type: this.normalizeType(product.category),
       currentPrice: this.toNumber(product.currentPrice),
       imageUrl: this.optionalString(product.imageUrl),
+      stockQuantity: this.toNumber(product.quantity),
       status: this.normalizeStatus(product.status, product.quantity),
     };
   }

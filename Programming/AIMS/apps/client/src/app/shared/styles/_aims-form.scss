@@ -12,7 +12,8 @@
   label {
     display: block;
 
-    > span {
+    > span,
+    &.form-label {
       display: block;
       margin-bottom: 4px;
       color: $aims-color-text-muted;

@@ -17,10 +17,10 @@ export class DvdHandler implements IProductHandler {
     await tx.discProduct.create({
       data: {
         id: productId,
-        releaseDate: new Date(),
-        genre: 'N/A',
-        language: 'N/A',
-        totalLength: 0,
+        releaseDate: data.releaseDate ? new Date(data.releaseDate) : new Date(),
+        genre: data.genre || 'N/A',
+        language: data.language || 'N/A',
+        totalLength: data.totalLength || 0,
         dvd: {
           create: {
             discType: data.discType || 'N/A',

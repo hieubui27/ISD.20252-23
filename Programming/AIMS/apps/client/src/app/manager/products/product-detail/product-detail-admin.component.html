@@ -1,0 +1,106 @@
+<div class="top-bar">
+  <h2 class="top-bar-title">Product Detail</h2>
+  <div class="search-container">
+    <div class="input-wrap">
+      <input type="text" placeholder="Search..." class="search-input" />
+      <app-aims-icon name="search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #414752"></app-aims-icon>
+    </div>
+  </div>
+</div>
+
+<div class="page-content" *ngIf="product$ | async as product">
+  <app-aims-button variant="ghost" (pressed)="logic.navigateToCatalog()">
+    <app-aims-icon name="chevron-left"></app-aims-icon>
+    <span>Back to Catalog</span>
+  </app-aims-button>
+
+  <div class="page-header">
+    <p class="subtitle">Catalog</p>
+    <h1 class="title">Product Details</h1>
+  </div>
+
+  <div class="grid-layout">
+    <!-- Left: image + actions -->
+    <div class="sidebar-col">
+      <div class="image-card">
+        <img [src]="product.imageUrl || 'assets/default-product.png'" alt="Product" class="product-img" />
+      </div>
+      <div class="actions-group">
+        <app-aims-button variant="secondary" (pressed)="logic.openAdjustModal()" [fullWidth]="true">
+          Adjust Quantity
+        </app-aims-button>
+        <app-aims-button variant="primary" (pressed)="logic.navigateToEdit(product.id)" [fullWidth]="true">
+          Edit
+        </app-aims-button>
+        <app-aims-button variant="danger" (pressed)="logic.deleteProduct(product.id)" [fullWidth]="true">
+          Delete
+        </app-aims-button>
+      </div>
+    </div>
+
+    <!-- Right: details -->
+    <div class="main-col">
+      <div class="detail-card">
+        <div class="detail-header">
+          <div class="title-section">
+            <h2 class="product-title">{{ product.title }}</h2>
+            <span class="status-badge" [ngClass]="product.status.toLowerCase()">{{ product.status }}</span>
+          </div>
+          <span class="category-badge">{{ product.type }}</span>
+        </div>
+
+        <p class="price">{{ product.currentPrice | number }} VND</p>
+
+        <p class="description">
+          {{ product.description || 'No description available.' }}
+        </p>
+
+        <div class="spec-grid">
+          <div class="spec-item">
+            <p class="spec-label">Product ID</p>
+            <p class="spec-value">#{{ product.id }}</p>
+          </div>
+          <div class="spec-item">
+            <p class="spec-label">Category</p>
+            <p class="spec-value">{{ product.type }}</p>
+          </div>
+          <div class="spec-item">
+            <p class="spec-label">Stock</p>
+            <p class="spec-value">{{ product.stockQuantity || 0 }}</p>
+          </div>
+          <div class="spec-item">
+            <p class="spec-label">Status</p>
+            <p class="spec-value">{{ product.status }}</p>
+          </div>
+          <div class="spec-item">
+            <p class="spec-label">Barcode</p>
+            <p class="spec-value">{{ product.barcode || '-' }}</p>
+          </div>
+          <div class="spec-item">
+            <p class="spec-label">Weight</p>
+            <p class="spec-value">{{ product.weight || '-' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Adjust Quantity Modal -->
+  <div class="modal-overlay" *ngIf="logic.showAdjustModal$ | async">
+    <div class="modal-card">
+      <h3 class="modal-title">Adjust Quantity</h3>
+      <div class="form-group">
+        <label class="form-label">New Quantity</label>
+        <input type="number" #qtyInput [value]="product.stockQuantity || 0" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason</label>
+        <textarea #reasonInput rows="3" placeholder="Enter reason for adjustment..." class="form-input textarea"></textarea>
+      </div>
+      <div class="modal-actions">
+        <app-aims-button variant="primary" (pressed)="logic.confirmAdjustQuantity(qtyInput.value, reasonInput.value)">Confirm</app-aims-button>
+        <app-aims-button variant="secondary" (pressed)="logic.closeAdjustModal()">Cancel</app-aims-button>
+      </div>
+    </div>
+  </div>
+</div>

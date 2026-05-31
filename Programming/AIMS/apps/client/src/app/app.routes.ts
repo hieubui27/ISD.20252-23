@@ -16,6 +16,11 @@ export const appRoutes: Route[] = [
     path: 'auth',
     loadChildren: () => import('./auth/auth-module').then((m) => m.AuthModule),
   },
+  {
+    path: 'manager',
+    loadChildren: () =>
+      import('./manager/manager.routes').then((m) => m.managerRoutes),
+  },
   { path: 'payment', component: PaymentComponent },
   { path: 'order-result', component: OrderResultComponent },
 ];

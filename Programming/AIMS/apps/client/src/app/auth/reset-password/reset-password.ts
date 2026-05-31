@@ -10,6 +10,8 @@ import {
 } from '@angular/forms';
 import { AuthPageBase } from '../auth-page.base';
 import { ResetPasswordLogic } from './reset-password.logic';
+import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
+import { AimsIconComponent } from '../../shared/ui/aims-icon/aims-icon';
 
 // Custom validator to check if both passwords match
 export function matchPasswordValidator(
@@ -25,7 +27,12 @@ export function matchPasswordValidator(
 
 @Component({
   selector: 'app-reset-password',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    AimsButtonComponent,
+    AimsIconComponent,
+  ],
   templateUrl: './reset-password.html',
   styleUrl: './reset-password.scss',
   standalone: true,

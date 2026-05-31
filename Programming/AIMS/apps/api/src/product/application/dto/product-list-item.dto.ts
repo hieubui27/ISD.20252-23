@@ -19,4 +19,5 @@ export class ProductListItemDto {
   currentPrice!: number;
   imageUrl?: string;
   status!: string;
+  stockQuantity!: number;
 }
