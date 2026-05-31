@@ -3,9 +3,10 @@
 </div>
 
 <div class="page-content">
-  <button class="back-btn" (click)="logic.navigateToCatalog()">
-    ← Back to Catalog
-  </button>
+  <app-aims-button variant="ghost" (pressed)="logic.navigateToCatalog()">
+    <app-aims-icon name="chevron-left"></app-aims-icon>
+    <span>Back to Catalog</span>
+  </app-aims-button>
 
   <div class="page-header">
     <p class="subtitle">Catalog</p>
@@ -254,12 +255,12 @@
 
     <!-- Actions -->
     <div class="form-actions">
-      <button type="submit" class="btn btn-primary" [disabled]="form.invalid || (logic.loading$ | async)">
+      <app-aims-button type="submit" variant="primary" [disabled]="form.invalid || (logic.loading$ | async) === true">
         {{ (isEditMode$ | async) ? 'Save Changes' : 'Save Product' }}
-      </button>
-      <button type="button" class="btn btn-secondary" (click)="logic.navigateToCatalog()">
+      </app-aims-button>
+      <app-aims-button variant="secondary" (pressed)="logic.navigateToCatalog()">
         Cancel
-      </button>
+      </app-aims-button>
     </div>
   </form>
 </div>

@@ -1,3 +1,6 @@
+@use '../../../shared/styles/aims-tokens' as *;
+@use '../../../shared/styles/aims-form' as *;
+
 .top-bar {
   background-color: #ffffff;
   border-bottom: 1px solid #f3f3f3;
@@ -58,6 +61,8 @@
   }
 
   .form-layout {
+    @include aims-form-controls;
+    
     .grid-layout {
       display: grid;
       grid-template-columns: 1fr 300px;
@@ -97,40 +102,7 @@
       .form-group {
         display: flex;
         flex-direction: column;
-
-        .form-label {
-          display: block;
-          font-size: 11px;
-          font-weight: 700;
-          color: #414752;
-          letter-spacing: 0.55px;
-          text-transform: uppercase;
-          margin-bottom: 6px;
-        }
-
-        .form-input {
-          width: 100%;
-          padding: 10px 14px;
-          background-color: #f9f9f9;
-          border: 1px solid #e8e8e8;
-          border-radius: 8px;
-          font-size: 13px;
-          color: #1a1c1c;
-          outline: none;
-          transition: border-color 0.2s;
-
-          &:focus {
-            border-color: #005fac;
-          }
-
-          &.textarea {
-            resize: none;
-          }
-        }
-
-        select.form-input {
-          appearance: auto;
-        }
+        gap: 6px;
       }
 
       .grid-2-cols {
@@ -212,44 +184,12 @@
       }
     }
 
+
     .form-actions {
       display: flex;
       align-items: center;
       gap: 12px;
       margin-top: 24px;
-
-      .btn {
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
-        
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-      }
-
-      .btn-primary {
-        color: white;
-        background-image: linear-gradient(166.817deg, rgb(0, 95, 172) 0%, rgb(0, 120, 215) 100%);
-        
-        &:not(:disabled):hover {
-          opacity: 0.9;
-        }
-      }
-
-      .btn-secondary {
-        border: 1px solid #e8e8e8;
-        background-color: transparent;
-        color: #414752;
-        
-        &:hover {
-          background-color: #f3f3f3;
-        }
-      }
     }
   }
 }

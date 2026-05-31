@@ -234,47 +234,5 @@
         color: #8c939e;
       }
     }
-
-    .pagination {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 20px;
-
-      .pagination-info {
-        font-size: 12px;
-        color: #414752;
-        margin: 0;
-      }
-
-      .pagination-controls {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-
-        .page-btn {
-          width: 28px;
-          height: 28px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 4px;
-          border: 1px solid #e8e8e8;
-          background: none;
-          cursor: pointer;
-          font-size: 12px;
-
-          &:hover {
-            background-color: #f3f3f3;
-          }
-
-          &.active {
-            background-color: #005fac;
-            color: white;
-            border-color: #005fac;
-          }
-        }
-      }
-    }
   }
 }

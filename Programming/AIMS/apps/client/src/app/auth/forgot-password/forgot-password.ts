@@ -8,10 +8,17 @@ import {
 } from '@angular/forms';
 import { AuthPageBase } from '../auth-page.base';
 import { ForgotPasswordLogic } from './forgot-password.logic';
+import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
+import { AimsIconComponent } from '../../shared/ui/aims-icon/aims-icon';
 
 @Component({
   selector: 'app-forgot-password',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    AimsButtonComponent,
+    AimsIconComponent,
+  ],
   templateUrl: './forgot-password.html',
   styleUrl: './forgot-password.scss',
   standalone: true,

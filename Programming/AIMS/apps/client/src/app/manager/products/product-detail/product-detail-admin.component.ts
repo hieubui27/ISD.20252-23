@@ -2,11 +2,13 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { ProductDetailAdminLogic } from './product-detail-admin.logic';
+import { AimsButtonComponent } from '../../../shared/ui/aims-button/aims-button';
+import { AimsIconComponent } from '../../../shared/ui/aims-icon/aims-icon';
 
 @Component({
   selector: 'app-product-detail-admin',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AimsButtonComponent, AimsIconComponent],
   templateUrl: './product-detail-admin.component.html',
   styleUrls: ['./product-detail-admin.component.scss'],
 })

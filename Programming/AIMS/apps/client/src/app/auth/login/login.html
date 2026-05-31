@@ -32,12 +32,12 @@
                     <form class="form" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
                         <div class="email-field">
                             <label class="label-email-address" for="input-1">EMAIL ADDRESS</label>
-                            <div class="input" [class.invalid]="f.email.invalid && (f.email.dirty || f.email.touched)">
-                                <input class="container-3" placeholder="name@example.com" type="email" id="input-1" formControlName="email" />
+                            <div class="input-wrap" [class.input-wrap--error]="f.email.invalid && (f.email.dirty || f.email.touched)">
+                                <input placeholder="name@example.com" type="email" id="input-1" formControlName="email" />
                             </div>
                             <div *ngIf="f.email.invalid && (f.email.dirty || f.email.touched)" class="error-msg">
-                                <span *ngIf="f.email.errors?.['required']">Email is required.</span>
-                                <span *ngIf="f.email.errors?.['email']">Invalid email format.</span>
+                                <small *ngIf="f.email.errors?.['required']">Email is required.</small>
+                                <small *ngIf="f.email.errors?.['email']">Invalid email format.</small>
                             </div>
                         </div>
                         <div class="div-2">
@@ -50,16 +50,14 @@
                                 </div>
                             </div>
                             <div class="div-3">
-                                <div class="input" [class.invalid]="f.password.invalid && (f.password.dirty || f.password.touched)">
-                                    <input class="container-5" placeholder="••••••••" type="password" formControlName="password" />
-                                </div>
-                                <div class="button">
-                                    <div class="icon-wrapper"><img class="icon" src="img/image.svg" /></div>
+                                <div class="input-wrap" [class.input-wrap--error]="f.password.invalid && (f.password.dirty || f.password.touched)">
+                                    <input placeholder="••••••••" type="password" formControlName="password" />
+                                    <!-- Assume eye icon is placed here later if needed -->
                                 </div>
                             </div>
                             <div *ngIf="f.password.invalid && (f.password.dirty || f.password.touched)" class="error-msg">
-                                <span *ngIf="f.password.errors?.['required']">Password is required.</span>
-                                <span *ngIf="f.password.errors?.['minlength']">Password must be at least 8 characters.</span>
+                                <small *ngIf="f.password.errors?.['required']">Password is required.</small>
+                                <small *ngIf="f.password.errors?.['minlength']">Password must be at least 8 characters.</small>
                             </div>
                         </div>
                         <div class="remember-me" (click)="toggleRememberMe()" style="cursor: pointer;">
@@ -73,21 +71,17 @@
                         <div *ngIf="message && status === 'error'" class="error-msg" style="margin-bottom: 12px; font-weight: bold; text-align: center;">
                             {{ message }}
                         </div>
-                        <button type="submit" class="button-primary" style="cursor: pointer; border: none; padding: 0;" [disabled]="loginForm.invalid || isPending">
-                            <div class="button-primary-2"></div>
-                            <div class="text-4" style="display: flex; gap: 8px; align-items: center;">
-                                <svg *ngIf="isPending" class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <svg *ngIf="status === 'success'" style="width: 20px; height: 20px; color: #a5d6a7;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                <span *ngIf="status === 'idle' || status === 'error'">Sign In</span>
-                                <span *ngIf="isPending">Please wait...</span>
-                                <span *ngIf="status === 'success'">Login successful!</span>
-                            </div>
-                        </button>
+                        <app-aims-button 
+                            type="submit" 
+                            variant="primary" 
+                            [fullWidth]="true" 
+                            [disabled]="loginForm.invalid" 
+                            [loading]="isPending">
+                            <app-aims-icon *ngIf="status === 'success'" name="check"></app-aims-icon>
+                            <span *ngIf="status === 'idle' || status === 'error'">Sign In</span>
+                            <span *ngIf="isPending">Please wait...</span>
+                            <span *ngIf="status === 'success'">Login successful!</span>
+                        </app-aims-button>
                     </form>
                 </div>
                 <div class="security-trust-badge">

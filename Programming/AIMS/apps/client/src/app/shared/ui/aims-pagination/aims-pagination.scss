@@ -1,0 +1,53 @@
+@use '../../styles/aims-tokens' as *;
+
+:host {
+  display: block;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+
+  .pagination-info {
+    font-size: 12px;
+    color: $aims-color-text-muted;
+    margin: 0;
+  }
+
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .page-btn {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      border: 1px solid $aims-color-muted;
+      background: none;
+      cursor: pointer;
+      font-size: 12px;
+      color: $aims-color-text;
+
+      &:hover:not(:disabled) {
+        background-color: $aims-color-page;
+      }
+
+      &:disabled {
+        opacity: $aims-disabled-opacity;
+        cursor: not-allowed;
+      }
+
+      &.active {
+        background-color: $aims-color-primary;
+        color: white;
+        border-color: $aims-color-primary;
+      }
+    }
+  }
+}

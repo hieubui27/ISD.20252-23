@@ -1,16 +1,14 @@
 <div class="top-bar">
   <div class="search-container">
-    <input type="text" placeholder="Search..." class="search-input" />
-    <svg class="search-icon" width="16" height="16" viewBox="0 0 22 22" fill="none">
-      <path d="M19.75 19.75l-4.5-4.5m1.5-6.5a8 8 0 1 1-16 0 8 8 0 0 1 16 0z" stroke="#414752" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-    </svg>
+    <div class="input-wrap">
+      <input type="text" placeholder="Search..." class="search-input" />
+      <app-aims-icon name="search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #414752"></app-aims-icon>
+    </div>
   </div>
   <div class="actions">
-    <button class="icon-btn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#414752" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-      </svg>
-    </button>
+    <app-aims-button variant="ghost" [iconOnly]="true" size="sm">
+      <app-aims-icon name="menu"></app-aims-icon>
+    </app-aims-button>
     <div class="avatar">
       <img src="assets/avatar.png" alt="avatar" />
     </div>
@@ -24,15 +22,13 @@
       <h1 class="title">Product Overview</h1>
     </div>
     <div style="display: flex; gap: 12px;">
-      <button class="btn btn-danger" *ngIf="logic.selectedIds.size > 0" (click)="logic.deleteSelected()" style="padding: 10px; border-radius: 8px; color: #ba1a1a; border: 1px solid #ba1a1a; background: transparent; cursor: pointer; font-size: 13px; font-weight: 600;">
+      <app-aims-button variant="danger" *ngIf="logic.selectedIds.size > 0" (pressed)="logic.deleteSelected()">
         Delete Selected
-      </button>
-      <button class="add-btn" (click)="logic.navigateToAddProduct()">
-        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
-          <path d="M6 1v10M1 6h10" stroke="white" stroke-width="2" stroke-linecap="round" />
-        </svg>
+      </app-aims-button>
+      <app-aims-button variant="primary" (pressed)="logic.navigateToAddProduct()">
+        <app-aims-icon name="plus"></app-aims-icon>
         <span>Add New Product</span>
-      </button>
+      </app-aims-button>
     </div>
   </div>
 
@@ -85,17 +81,6 @@
       </tbody>
     </table>
     
-    <div class="pagination">
-      <p class="pagination-info">Showing results</p>
-      <div class="pagination-controls">
-        <button class="page-btn prev">
-          <svg width="5" height="8" viewBox="0 0 5 8" fill="none"><path d="M4 1L1 4L4 7" stroke="#414752" stroke-width="1.2" stroke-linecap="round" /></svg>
-        </button>
-        <button class="page-btn active">1</button>
-        <button class="page-btn next">
-          <svg width="5" height="8" viewBox="0 0 5 8" fill="none"><path d="M1 1L4 4L1 7" stroke="#414752" stroke-width="1.2" stroke-linecap="round" /></svg>
-        </button>
-      </div>
-    </div>
+    <app-aims-pagination [currentPage]="1" [totalPages]="1"></app-aims-pagination>
   </div>
 </div>
