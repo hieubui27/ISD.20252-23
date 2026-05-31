@@ -1,0 +1,91 @@
+<div class="verify-OTP">
+<main class="main-canvas">
+<section class="container" aria-labelledby="verify-identity-title">
+<div class="branding-subtle">
+<div class="text" aria-label="AIMS">AIMS</div>
+</div>
+<section class="OTP-card" aria-labelledby="verify-identity-title" aria-describedby="verify-identity-description">
+<div class="div">
+<header class="heading">
+<h1 class="text-wrapper" id="verify-identity-title">Verify Identity</h1>
+</header>
+<div class="we-ve-sent-a-digit-wrapper">
+<p class="we-ve-sent-a-digit" id="verify-identity-description">We&#39;ve sent a 6-digit code to your email. Please enter it<br />below to reset your password.</p>
+</div>
+</div>
+<form class="form" (ngSubmit)="onSubmit()" novalidate>
+<fieldset class="OTP-inputs" aria-label="Enter 6-digit verification code">
+<legend class="sr-only">One-time password input</legend>
+<input #otpInput (paste)="onPaste($event)" (keydown)="onKeyDown($event, 0)" class="input-digit" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="1" aria-label="Digit 1" />
+<input #otpInput (paste)="onPaste($event)" (keydown)="onKeyDown($event, 1)" class="input-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 2" />
+<input #otpInput (paste)="onPaste($event)" (keydown)="onKeyDown($event, 2)" class="input-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 3" />
+<input #otpInput (paste)="onPaste($event)" (keydown)="onKeyDown($event, 3)" class="input-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 4" />
+<input #otpInput (paste)="onPaste($event)" (keydown)="onKeyDown($event, 4)" class="input-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 5" />
+<input #otpInput (paste)="onPaste($event)" (keydown)="onKeyDown($event, 5)" class="input-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="Digit 6" />
+</fieldset>
+
+<div *ngIf="message && status === 'error'" style="color: #e53935; font-size: 14px; text-align: center; margin-bottom: 8px;">
+    {{ message }}
+</div>
+
+<button class="action-button" type="submit" aria-label="Verify OTP" [disabled]="isPending" style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+    <svg *ngIf="isPending" class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style="width: 20px; height: 20px; animation: spin 1s linear infinite;">
+        <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    <svg *ngIf="status === 'success'" style="width: 20px; height: 20px; color: #a5d6a7;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+    </svg>
+    <span class="text-2" *ngIf="status === 'idle' || status === 'error'">Verify OTP</span>
+    <span class="text-2" *ngIf="isPending">Verifying...</span>
+    <span class="text-2" *ngIf="status === 'success'">Success!</span>
+</button>
+</form>
+
+<div class="footer-links">
+<button class="button" type="button" (click)="resend()" [disabled]="isResending || !email" style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+    <span class="text-3" *ngIf="!isResending">Resend Code</span>
+    <span class="text-3" *ngIf="isResending" style="opacity: 0.5;">Resending...</span>
+    <span *ngIf="resendSuccessMsg" style="color: #4caf50; font-size: 12px; margin-top: 4px;">{{ resendSuccessMsg }}</span>
+</button>
+<a class="link" href="/auth/login" aria-label="Back to Login">
+<span class="icon-wrapper" aria-hidden="true">
+<img class="icon" src="img/image.svg" alt="" />
+</span>
+<span class="text-4">Back to Login</span>
+</a>
+</div>
+</section>
+<div class="atmosphere">
+<div class="background">
+<div class="container-2">
+<img class="img" src="img/icon.svg" alt="" />
+</div>
+<div class="container-2">
+<div class="text-5">SECURE VERIFICATION</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer class="footer-component">
+<div class="paragraph">
+<div class="text-6">AIMS</div>
+<p class="p">© 2024 AIMS Digital Curators. All rights reserved.</p>
+</div>
+<nav class="nav" aria-label="Footer navigation">
+<a class="div-wrapper" href="#">
+<span class="text-7">Privacy Policy</span>
+</a>
+<a class="div-wrapper" href="#">
+<span class="text-7">Terms of Service</span>
+</a>
+<a class="div-wrapper" href="#">
+<span class="text-7">Shipping &amp; Returns</span>
+</a>
+<a class="div-wrapper" href="#">
+<span class="text-7">Contact</span>
+</a>
+</nav>
+</footer>
+</div>

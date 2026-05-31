@@ -1,0 +1,8 @@
+<div
+  class="status-message"
+  [class.status-message--info]="tone === 'info'"
+  [class.status-message--success]="tone === 'success'"
+  [class.status-message--error]="tone === 'error'"
+>
+  <ng-content></ng-content>
+</div>

@@ -7,6 +7,10 @@ export const appRoutes: Route[] = [
   { path: '', component: ProductListPageComponent },
   { path: 'products', component: ProductListPageComponent },
   { path: 'products/:id', component: ProductDetailPageComponent },
+  {
+    path: 'auth',
+    loadChildren: () => import('./auth/auth-module').then((m) => m.AuthModule),
+  },
   { path: 'payment', component: PaymentComponent },
   { path: '**', redirectTo: '' },
 ];

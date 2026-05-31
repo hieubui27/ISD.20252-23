@@ -1,0 +1,25 @@
+@use '../../styles/aims-tokens' as *;
+
+.status-message {
+  border-radius: $aims-radius-md;
+  font-family: 'Inter-Medium', Helvetica, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  padding: 12px 14px;
+  width: 100%;
+}
+
+.status-message--info {
+  background: rgba(0, 95, 172, 0.08);
+  color: $aims-color-primary;
+}
+
+.status-message--success {
+  background: rgba(26, 97, 0, 0.09);
+  color: $aims-color-success;
+}
+
+.status-message--error {
+  background: #ffdad6;
+  color: $aims-color-danger;
+}

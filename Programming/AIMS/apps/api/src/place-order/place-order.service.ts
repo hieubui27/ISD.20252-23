@@ -35,6 +35,56 @@ type PrismaClientLike = {
   [key: string]: any;
 };
 
+/**
+ * ============================================================
+ * SOLID VIOLATIONS IN PlaceOrderBeService
+ * ============================================================
+ *
+ * [SRP VIOLATION] – Single Responsibility Principle
+ * This service bears at least 7 distinct responsibilities:
+ *   1. Cart item normalization and input validation (normalizeItems)
+ *   2. Delivery info validation (validateDeliveryInfo)
+ *   3. Payment info validation (validatePaymentInfo)
+ *   4. Stock availability checking (checkStock, checkStockFromProducts)
+ *   5. Invoice & VAT calculation (buildInvoicePreviewFromProducts)
+ *   6. Order persistence – creating Order, Invoice, OrderProduct, Transaction
+ *      records and decrementing stock (createPayment, confirmOrder)
+ *   7. Email notification (sendOrderConfirmationEmail)
+ *
+ * Impact: Any change to the email template, VAT rate, validation rules,
+ * persistence schema, or payment flow forces a modification of this class,
+ * increasing the risk of regressions across unrelated workflows.
+ *
+ * Improvement direction:
+ *   - Extract an OrderValidationService that owns cart normalization,
+ *     delivery validation, and payment info validation.
+ *   - Extract an InvoiceCalculationService that owns VAT/shipping fee logic.
+ *   - Extract an OrderPersistenceService (or repository) for all DB writes.
+ *   - Move email sending behind an event/observer so PlaceOrderBeService
+ *     only emits an "OrderConfirmed" event and does not own notification logic.
+ *   - Keep PlaceOrderBeService as a thin orchestrator that delegates to the above.
+ *
+ * ============================================================
+ *
+ * [DIP VIOLATION] – Dependency Inversion Principle
+ * PlaceOrderBeService directly depends on two concrete classes:
+ *   - ShippingFeeService (no interface; any alternative strategy requires
+ *     changing this class's constructor and call sites).
+ *   - MailService (no interface; switching to SMS/Zalo notification requires
+ *     modifying this class).
+ *
+ * Impact: High-level business logic (order placement) is tightly coupled to
+ * low-level infrastructure (a specific shipping calculation and a specific
+ * notification channel). This makes the class hard to test in isolation and
+ * hard to extend.
+ *
+ * Improvement direction:
+ *   - Introduce IShippingFeeCalculator interface; inject it instead of
+ *     ShippingFeeService. ShippingFeeService implements the interface.
+ *   - Introduce INotificationService interface; inject it instead of
+ *     MailService. EmailNotificationService implements the interface.
+ * ============================================================
+ */
 @Injectable()
 export class PlaceOrderBeService {
   constructor(
@@ -281,7 +331,7 @@ export class PlaceOrderBeService {
         await tx.paymentTransaction.create({
           data: {
             orderId: order.orderId,
-            invoiceId: invoice.id.toString(),
+            invoiceId: invoice.id,
             paymentMethod: dto.paymentMethod,
             provider: PAYMENT_TRANSACTION_PROVIDER_PLACE_ORDER,
             amount: Math.round(invoicePreview.totalAmount),
@@ -348,6 +398,10 @@ export class PlaceOrderBeService {
     deliveryInfo: DeliveryInfoDto,
     requireEmail = false,
   ): void {
+    // [DIP VIOLATION] PlaceOrderBeService calls DeliveryInfoValidator as a static
+    // concrete class — not injectable, not mockable, not swappable.
+    // Fix: make DeliveryInfoValidator an @Injectable() class behind an
+    // IDeliveryInfoValidator interface and inject it via the constructor.
     const validationResult = DeliveryInfoValidator.validate(deliveryInfo);
     const errors = [...validationResult.errors];
 
@@ -535,6 +589,13 @@ export class PlaceOrderBeService {
     };
   }
 
+  // [OCP VIOLATION] Notification channel is hardcoded to email only.
+  // Future requirements (SMS, Zalo, push notifications) would require
+  // modifying this method and adding new MailService-like dependencies —
+  // violating the "closed for modification" rule.
+  // Fix: introduce INotificationService { notify(recipient, content) } and
+  // inject it. Add new channels by implementing the interface, not by
+  // changing PlaceOrderBeService.
   private async sendOrderConfirmationEmail(
     successDto: OrderSuccessDto,
     invoicePreview: InvoicePreviewDto,

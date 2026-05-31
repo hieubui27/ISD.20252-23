@@ -1,0 +1,27 @@
+$aims-color-primary: #005fac;
+$aims-color-primary-strong: #0078d7;
+$aims-color-surface: #ffffff;
+$aims-color-page: #f3f3f3;
+$aims-color-muted: #e8e8e8;
+$aims-color-border: #c0c7d426;
+$aims-color-text: #1a1c1c;
+$aims-color-text-muted: #414752;
+$aims-color-danger: #ba1a1a;
+$aims-color-success: #1a6100;
+
+$aims-radius-sm: 4px;
+$aims-radius-md: 6px;
+$aims-radius-lg: 8px;
+
+$aims-shadow-focus: 0 0 0 2px $aims-color-primary;
+$aims-shadow-primary: 0 8px 30px rgba(0, 95, 172, 0.2);
+
+@mixin aims-card {
+  background: $aims-color-surface;
+  border-radius: $aims-radius-lg;
+  box-shadow: 0 0 0 1px $aims-color-border;
+}
+
+@mixin aims-primary-gradient {
+  background: linear-gradient(166.817deg, $aims-color-primary 0%, $aims-color-primary-strong 100%);
+}

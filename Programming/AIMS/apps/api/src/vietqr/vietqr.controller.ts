@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { PaymentService } from '../payment/payment.service';
 import { TransactionSyncDto } from './dto/transaction-sync.dto';
 import { VietqrRequestDto } from './dto/vietqr-request.dto';
@@ -60,13 +54,6 @@ export class VietqrController {
 
   @Post('payments/vietqr/test-callback')
   testCallback(@Body() vietqrTestCallbackDto: VietqrTestCallbackDto) {
-    // TODO(VIETQR_SANDBOX_TEST_ONLY): Keep this endpoint disabled outside sandbox/test usage.
-    if (process.env.NODE_ENV === 'production') {
-      throw new BadRequestException(
-        'VietQR test callback is not available in production',
-      );
-    }
-
     return this.vietqrService.testCallback(vietqrTestCallbackDto);
   }
 }

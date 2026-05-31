@@ -19,6 +19,7 @@ async function bootstrap() {
 
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.enableCors({ origin: 'http://localhost:4200', credentials: true });
 
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
