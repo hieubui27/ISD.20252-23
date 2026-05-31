@@ -78,6 +78,9 @@
               <h2>{{ product.title }}</h2>
               <p>{{ product.description }}</p>
               <strong>{{ formatPrice(product.currentPrice) }}</strong>
+              <a class="product-card__detail-link" [routerLink]="['/products', product.id]">
+                View details
+              </a>
 
               <div class="quantity-control">
                 <button type="button" (click)="updateQuantity(product, getQuantity(product) - 1)">-</button>

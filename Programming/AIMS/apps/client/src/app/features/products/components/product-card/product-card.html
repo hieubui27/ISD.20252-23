@@ -1,0 +1,24 @@
+<a class="product-card" [routerLink]="['/products', product.id]">
+  <div class="product-image">
+    @if (product.imageUrl && !imageLoadFailed) {
+    <img
+      [src]="product.imageUrl"
+      [alt]="product.title"
+      (error)="onImageError()"
+    />
+    } @else {
+    <div class="image-placeholder">{{ product.type }}</div>
+    }
+    <span class="product-type">{{ product.type }}</span>
+  </div>
+
+  <div class="product-body">
+    <h2>{{ product.title }}</h2>
+    <div class="product-footer">
+      <span class="price">{{ product.currentPrice | number }} VND</span>
+      <span class="status" [class.notice]="hasNoticeStatus">
+        {{ product.status }}
+      </span>
+    </div>
+  </div>
+</a>

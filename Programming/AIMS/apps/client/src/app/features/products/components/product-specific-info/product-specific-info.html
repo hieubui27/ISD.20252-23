@@ -1,0 +1,13 @@
+<section class="specific-info">
+  <h2>Specific Information</h2>
+
+  @switch (product.type) { @case ('BOOK') {
+  <app-book-specific-info [info]="bookInfo" />
+  } @case ('NEWSPAPER') {
+  <app-newspaper-specific-info [info]="newspaperInfo" />
+  } @case ('CD') {
+  <app-cd-specific-info [info]="cdInfo" />
+  } @case ('DVD') {
+  <app-dvd-specific-info [info]="dvdInfo" />
+  } }
+</section>
