@@ -1,0 +1,23 @@
+<main class="detail-page">
+  <header class="topbar">
+    <a class="brand" routerLink="/">AIMS</a>
+    <nav>
+      <a routerLink="/">Products</a>
+      <a routerLink="/payment">Payment</a>
+    </nav>
+  </header>
+
+  <section class="content">
+    <a class="back-link" routerLink="/">Back to products</a>
+
+    @if (isLoading()) {
+    <div class="state">Loading product detail...</div>
+    } @else if (notFound()) {
+    <div class="state error">Product not found.</div>
+    } @else if (errorMessage()) {
+    <div class="state error">{{ errorMessage() }}</div>
+    } @else if (product(); as selectedProduct) {
+    <app-product-detail [product]="selectedProduct" />
+    }
+  </section>
+</main>

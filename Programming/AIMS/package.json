@@ -4,7 +4,8 @@
   "license": "MIT",
   "scripts": {
     "test": "jest --config apps/api-e2e/jest.config.js",
-    "test:unit": "jest --config apps/api/jest.config.js"
+    "test:unit": "jest --config apps/api/jest.config.js",
+    "seed:products": "ts-node apps/api/prisma/seed-products.ts"
   },
   "private": true,
   "devDependencies": {

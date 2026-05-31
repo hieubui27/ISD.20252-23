@@ -1,0 +1,67 @@
+<section class="detail-layout">
+  <div class="media-panel">
+    @if (product.imageUrl && !imageLoadFailed) {
+    <img
+      [src]="product.imageUrl"
+      [alt]="product.title"
+      (error)="onImageError()"
+    />
+    } @else {
+    <div class="image-placeholder">{{ product.type }}</div>
+    }
+  </div>
+
+  <section class="detail-panel">
+    <div class="title-row">
+      <div>
+        <p>{{ product.type }}</p>
+        <h1>{{ product.title }}</h1>
+      </div>
+      <span class="status" [class.notice]="isUnavailableStatus(product.status)">
+        {{ product.status }}
+      </span>
+    </div>
+
+    @if (isUnavailableStatus(product.status)) {
+    <div class="notice">{{ statusNotice(product.status) }}</div>
+    }
+
+    <div class="price-row">
+      <div>
+        <span>Current Price</span>
+        <strong>{{ product.currentPrice | number }} VND</strong>
+      </div>
+      <div>
+        <span>Original Value</span>
+        <strong>{{ product.originalValue | number }} VND</strong>
+      </div>
+    </div>
+
+    <p class="description">{{ product.description }}</p>
+
+    <dl class="common-grid">
+      <div>
+        <dt>ID</dt>
+        <dd>{{ product.id }}</dd>
+      </div>
+      <div>
+        <dt>Barcode</dt>
+        <dd>{{ product.barcode }}</dd>
+      </div>
+      <div>
+        <dt>Weight</dt>
+        <dd>{{ product.weight }} g</dd>
+      </div>
+      <div>
+        <dt>Dimensions</dt>
+        <dd>{{ dimensionText(product.dimensions) }}</dd>
+      </div>
+      <div>
+        <dt>Stock Quantity</dt>
+        <dd>{{ product.stockQuantity }}</dd>
+      </div>
+    </dl>
+
+    <app-product-specific-info [product]="product" />
+  </section>
+</section>

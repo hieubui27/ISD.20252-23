@@ -1,0 +1,34 @@
+<dl class="specific-grid">
+  <div>
+    <dt>Editor-in-Chief</dt>
+    <dd>{{ info.editorInChief || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Publisher</dt>
+    <dd>{{ info.publisher || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Publication Date</dt>
+    <dd>{{ info.publicationDate || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Issue Number</dt>
+    <dd>{{ info.issueNumber || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Release Frequency</dt>
+    <dd>{{ info.releaseFrequency || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>ISSN</dt>
+    <dd>{{ info.issn || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Language</dt>
+    <dd>{{ info.language || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Sections</dt>
+    <dd>{{ listText(info.sections) }}</dd>
+  </div>
+</dl>

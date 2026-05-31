@@ -1,0 +1,33 @@
+<main class="products-page">
+  <header class="topbar">
+    <a class="brand" routerLink="/">AIMS</a>
+    <nav>
+      <a routerLink="/">Products</a>
+      <a routerLink="/payment">Payment</a>
+    </nav>
+  </header>
+
+  <section class="content">
+    <div class="page-heading">
+      <div>
+        <p>Product Catalog</p>
+        <h1>Browse Products</h1>
+      </div>
+      <div class="count">{{ products().length }} items</div>
+    </div>
+
+    @if (isLoading()) {
+    <div class="state">Loading products...</div>
+    } @else if (errorMessage()) {
+    <div class="state error">{{ errorMessage() }}</div>
+    } @else if (products().length === 0) {
+    <div class="state">No products available.</div>
+    } @else {
+    <section class="product-grid" aria-label="Product list">
+      @for (product of products(); track product.id) {
+      <app-product-card [product]="product" />
+      }
+    </section>
+    }
+  </section>
+</main>

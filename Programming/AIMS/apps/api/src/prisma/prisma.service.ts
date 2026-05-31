@@ -10,7 +10,15 @@ export class PrismaService implements OnModuleInit {
   private readonly client: any;
 
   constructor() {
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const connectionString = process.env.DATABASE_URL ?? process.env.DIRECT_URL;
+
+    if (!connectionString) {
+      throw new Error(
+        'DATABASE_URL or DIRECT_URL must be set before connecting Prisma.',
+      );
+    }
+
+    const pool = new Pool({ connectionString });
     const adapter = new PrismaPg(pool);
     const { PrismaClient } = require('./generated/client');
     this.client = new PrismaClient({ adapter });
