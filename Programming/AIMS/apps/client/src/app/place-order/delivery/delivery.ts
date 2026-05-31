@@ -46,6 +46,18 @@ import {
   templateUrl: './delivery.html',
   styleUrl: './delivery.scss',
 })
+/**
+ * SOLID review:
+ * - SRP: Medium risk. The component is mostly a page component, but it owns form
+ *   setup, validation messages, draft persistence, invoice preview loading, VietQR
+ *   payment creation, navigation, and price formatting.
+ * - OCP: Partial violation. Adding a new payment method or delivery preview flow
+ *   requires modifying this component because VietQR is called directly here.
+ * - DIP: Medium risk. The component depends directly on VietQrPaymentFlowService
+ *   and PlaceOrderApiService instead of page-level use-case abstractions.
+ * - Improvement: Extract DeliveryFormFacade and PlaceOrderCheckoutFacade. Let the
+ *   component bind UI state and delegate payment/preview workflows to facades.
+ */
 export class DeliveryComponent implements OnInit, OnDestroy {
   readonly provinces = VIETNAM_PROVINCES;
 
@@ -92,7 +104,8 @@ export class DeliveryComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.draft = this.checkoutDraftService.get();
 
-    if (!this.draft || this.draft.items.length === 0) {
+    if (!this.checkoutDraftService.hasValidItems(this.draft)) {
+      this.checkoutDraftService.clear();
       this.router.navigate(['/products']);
       return;
     }

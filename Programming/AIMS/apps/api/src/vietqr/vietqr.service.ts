@@ -38,6 +38,17 @@ export interface VietqrCallbackResponse {
  * - All methods handle VietQR-specific behavior: token retrieval, QR request mapping, QR generation, callback response mapping, and sandbox callback testing.
  */
 @Injectable()
+/**
+ * SOLID review:
+ * - SRP: Partial violation. This class is still provider-focused, but it combines
+ *   token caching, QR request mapping, QR generation, callback response formatting,
+ *   and sandbox callback testing.
+ * - DIP: Partial violation. It correctly depends on the VietqrClient port, but it
+ *   still reads process.env directly and imports payment-layer DTO/status types.
+ * - Improvement: Extract VietqrConfigService and VietqrTokenService. Move payment
+ *   callback status mapping to the payment layer, and keep this service focused on
+ *   provider-specific VietQR operations.
+ */
 export class VietqrService {
   private accessToken?: string;
   private accessTokenExpiredAt?: Date;

@@ -4,10 +4,6 @@
   display: inline-flex;
 }
 
-:host-context(.aims-button-host--full) {
-  width: 100%;
-}
-
 .aims-button {
   border: 0;
   border-radius: $aims-radius-md;
@@ -16,7 +12,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 48px;
+  min-height: 46px;
   padding: 12px 18px;
   font-family: $aims-font-bold;
   font-size: 15px;
@@ -42,18 +38,35 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  line-height: inherit;
+}
+
+:host ::ng-deep .aims-button__content svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+
+:host ::ng-deep .aims-button--ghost .aims-button__content svg {
+  width: 12px;
+  height: 12px;
+  flex-basis: 12px;
 }
 
 .aims-button--primary {
   @include aims-primary-gradient;
   color: #ffffff;
-  box-shadow: $aims-shadow-primary;
 }
 
 .aims-button--ghost {
   background: transparent;
   color: $aims-color-text-muted;
   box-shadow: none;
+  min-height: 40px;
+  padding: 10px 12px;
+  font-family: $aims-font-medium;
+  font-size: 14px;
 }
 
 .aims-button--secondary {
@@ -66,13 +79,13 @@
 }
 
 .aims-button--sm {
-  min-height: 40px;
-  padding: 8px 14px;
+  min-height: 36px;
+  padding: 8px 12px;
   font-size: 14px;
 }
 
 .aims-button--lg {
   min-height: 54px;
-  padding: 14px 20px;
+  padding: 16px 20px;
   font-size: 16px;
 }

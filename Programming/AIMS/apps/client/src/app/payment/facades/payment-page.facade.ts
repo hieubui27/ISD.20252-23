@@ -44,6 +44,18 @@ const INITIAL_STATE: PaymentPageState = {
 };
 
 @Injectable()
+/**
+ * SOLID review:
+ * - SRP: Medium risk. As a page facade it is allowed to coordinate UI workflows,
+ *   but it currently combines checkout draft validation, invoice preview loading,
+ *   VietQR payment flow, router navigation, state mutation, and QR image generation.
+ * - DIP: Low risk. It depends directly on the concrete qrcode library and concrete
+ *   Angular services instead of a QR image generator abstraction and smaller
+ *   page-use-case services.
+ * - Improvement: Extract QrImageService, PaymentPageStateStore, and
+ *   InvoicePreviewFacade. Keep this facade focused on composing page-level
+ *   interactions.
+ */
 export class PaymentPageFacade {
   private readonly vietQrPaymentFlow = inject(VietQrPaymentFlowService);
   private readonly checkoutDraftService = inject(CheckoutDraftService);
@@ -63,7 +75,8 @@ export class PaymentPageFacade {
   initialize(): void {
     this.checkoutDraft = this.checkoutDraftService.get();
 
-    if (!this.checkoutDraft || this.checkoutDraft.items.length === 0) {
+    if (!this.checkoutDraftService.hasValidItems(this.checkoutDraft)) {
+      this.checkoutDraftService.clear();
       this.router.navigate(['/products']);
       return;
     }
@@ -73,6 +86,7 @@ export class PaymentPageFacade {
 
     const existingSnapshot = this.vietQrPaymentFlow.currentSnapshot;
     if (existingSnapshot) {
+      this.vietQrPaymentFlow.resume(existingSnapshot);
       this.listenForVietQrUpdates();
       this.applySnapshot(existingSnapshot);
       return;

@@ -39,6 +39,7 @@ export class ProductSelectionComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
+    this.checkoutDraft.clear();
     this.loadProducts();
   }
 

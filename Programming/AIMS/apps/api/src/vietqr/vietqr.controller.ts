@@ -18,6 +18,17 @@ import { VietqrService } from './vietqr.service';
  * - All methods expose VietQR-specific endpoints for callback synchronization, QR generation, and sandbox callback testing.
  */
 @Controller()
+/**
+ * SOLID review:
+ * - SRP: Low risk. The controller remains within the VietQR boundary, but it mixes
+ *   production QR/callback endpoints with sandbox callback testing.
+ * - OCP: Partial violation for sandbox behavior. Production hardening currently
+ *   requires modifying this controller instead of enabling/disabling a separate
+ *   test-only module.
+ * - Improvement: Split sandbox endpoints into a VietqrSandboxController registered
+ *   only in non-production environments. Keep this controller for production
+ *   callback and QR endpoints only.
+ */
 export class VietqrController {
   constructor(
     private readonly vietqrService: VietqrService,
