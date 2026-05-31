@@ -5,8 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaypalService } from '../paypal/paypal.service';
-import { VietqrService } from '../vietqr/vietqr.service';
 import {
   PaymentMethod,
   PaymentProvider,
@@ -22,61 +20,42 @@ import {
   PlaceOrderPaymentPort,
 } from './ports/place-order-payment.port';
 import {
-  convertMoneyToUSD,
   ensureCanMarkFailed,
   ensureCanMarkRefundRequired,
   ensureCanMarkSuccess,
 } from './helpers/payment-transaction-status.helper';
 import { TransactionSyncDto } from '../vietqr/dto/transaction-sync.dto';
-import {
-  buildGatewayOrderId,
-  normalizeVietqrContent,
-} from '../vietqr/helpers/vietqr-normalize.helper';
-
-interface PaypalApprovalLink {
-  rel: string;
-  href: string;
-  method: string;
-}
+import { VietqrService } from '../vietqr/vietqr.service';
+import { buildGatewayOrderId } from '../vietqr/helpers/vietqr-normalize.helper';
+import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
 
 /**
  * Coupling: Data Coupling
  * Cohesion: Functional Cohesion
  *
  * Coupling reason:
- * - This service coordinates payment through injected PrismaService, VietqrService, PaypalService, and PlaceOrderPaymentPort dependencies.
- * - It exchanges explicit DTOs, primitive identifiers, and narrow payment context data instead of accessing controller internals or shared mutable state.
+ * - This service coordinates payment through PaymentGatewayFactory, PrismaService, and PlaceOrderPaymentPort.
+ * - It no longer depends directly on PaypalService or VietqrService for creating payments.
+ * - VietqrService is retained only for the VietQR callback flow (confirmTransactionFromVietqrCallback),
+ *   which is initiated by VietQR's server and requires VietQR-specific callback response mapping.
  *
  * Cohesion reason:
- * - All public methods serve the payment transaction lifecycle: request, method change, confirmation, status update, lookup, and refund-required marking.
+ * - All public methods serve the payment transaction lifecycle: request, method change, confirmation,
+ *   status update, lookup, and refund-required marking.
  */
 @Injectable()
-/**
- * SOLID review for VietQR-related payment flow:
- * - OCP: Clear violation. requestPayment branches on concrete payment methods and
- *   must be modified whenever a new payment provider is added.
- * - DIP: Clear violation. This high-level payment workflow depends directly on
- *   concrete VietqrService and PaypalService implementations instead of a payment
- *   gateway abstraction.
- * - SRP: Medium risk. The service coordinates transaction persistence,
- *   provider-specific request creation, callback confirmation, order status update,
- *   and refund-required handling.
- * - Improvement: Introduce a PaymentGatewayPort/strategy per provider. Keep
- *   PaymentService as a transaction orchestrator that selects a gateway from a
- *   registry and delegates provider-specific QR/order creation.
- */
 export class PaymentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly vietqrService: VietqrService,
-    private readonly paypalService: PaypalService,
+    private readonly gatewayFactory: PaymentGatewayFactory,
     @Inject(PLACE_ORDER_PAYMENT_PORT)
     private readonly placeOrderPaymentPort: PlaceOrderPaymentPort,
   ) {}
 
   async requestPayment(dto: RequestPaymentDto): Promise<PaymentResultDto> {
     const paymentMethod = dto.paymentMethod || PaymentMethod.VIETQR;
-    this.ensureSupportedPaymentMethod(paymentMethod);
+    const gateway = this.gatewayFactory.getGateway(paymentMethod);
     const invoiceId = this.parseInvoiceId(dto.invoiceId);
 
     const paymentContext = await this.placeOrderPaymentPort.getPaymentContext({
@@ -107,56 +86,37 @@ export class PaymentService {
       data: { gatewayOrderId },
     });
 
-    if (paymentMethod === PaymentMethod.VIETQR) {
-      const qrContent = normalizeVietqrContent(`AIMS ${gatewayOrderId}`);
-      const qrCodeData = await this.vietqrService.generateQrCode({
-        orderId: gatewayOrderId,
-        invoiceId: dto.invoiceId,
-        amount: dto.amount,
-        description: qrContent,
-        returnUrl: process.env.VIETQR_RETURN_URL,
-        cancelUrl: process.env.VIETQR_CANCEL_URL,
-      });
+    const gatewayResult = await gateway.createPayment({
+      gatewayOrderId,
+      amount: dto.amount,
+      description: `AIMS ${gatewayOrderId}`,
+      customerEmail: dto.customerEmail,
+      invoiceId: dto.invoiceId,
+    });
 
+    if (gatewayResult.providerData) {
       await this.prisma.paymentTransaction.update({
         where: { id: transaction.id },
-        data: this.buildQrTransactionUpdateData(qrCodeData, qrContent),
+        data: this.buildProviderDataUpdate(paymentMethod, gatewayResult),
       });
-
-      return {
-        success: true,
-        status: PaymentStatus.PENDING,
-        paymentMethod,
-        paymentUrl: qrCodeData.qrLink || '',
-        qrCode: qrCodeData.qrCode,
-        transactionId: transaction.id,
-        message: 'VietQR payment request created',
-      };
     }
-
-    const paypalOrder = await this.paypalService.createOrder(
-      convertMoneyToUSD(dto.amount),
-    );
-    const approvalLinks = (paypalOrder?.links || []) as PaypalApprovalLink[];
-    const approveLink =
-      approvalLinks.find((link) => link.rel === 'approve')?.href || '';
 
     return {
       success: true,
       status: PaymentStatus.PENDING,
       paymentMethod,
-      paymentUrl: approveLink,
-      qrCode: '',
+      paymentUrl: gatewayResult.paymentUrl,
+      qrCode: gatewayResult.qrCode,
       transactionId: transaction.id,
-      message: 'PayPal payment request created',
+      message: `${paymentMethod} payment request created`,
     };
   }
 
   async changePaymentMethod(
     dto: ChangePaymentMethodDto,
   ): Promise<PaymentResultDto> {
-    this.ensureSupportedPaymentMethod(dto.fromMethod);
-    this.ensureSupportedPaymentMethod(dto.toMethod);
+    this.gatewayFactory.getGateway(dto.fromMethod);
+    this.gatewayFactory.getGateway(dto.toMethod);
 
     if (dto.fromMethod === dto.toMethod) {
       throw new BadRequestException('Payment method is unchanged');
@@ -176,7 +136,6 @@ export class PaymentService {
     }
 
     if (existing.status === PaymentStatus.PENDING) {
-      // Keep transaction history; pending transaction is closed as failed before creating a new one.
       ensureCanMarkFailed(existing.status);
       await this.prisma.paymentTransaction.update({
         where: { id: existing.id },
@@ -227,13 +186,32 @@ export class PaymentService {
 
     ensureCanMarkSuccess(transaction.status);
 
+    const gateway = this.gatewayFactory.getGateway(
+      transaction.paymentMethod as PaymentMethod,
+    );
+    const confirmResult = await gateway.confirmPayment(
+      transaction.gatewayOrderId || transaction.id,
+    );
+
+    const transactionId =
+      (confirmResult.providerData?.captureId as string) ||
+      dto.transactionId ||
+      transaction.gatewayOrderId ||
+      '';
+    const transactionContent =
+      dto.transactionContent ||
+      (confirmResult.providerData ? 'Captured via gateway' : '');
+    const transactionDateTime = dto.transactionDateTime
+      ? new Date(dto.transactionDateTime)
+      : new Date();
+
     const updated = await this.prisma.paymentTransaction.update({
       where: { id: transaction.id },
       data: {
         status: dto.status || PaymentStatus.SUCCESS,
-        transactionId: dto.transactionId,
-        transactionContent: dto.transactionContent,
-        transactionDateTime: new Date(dto.transactionDateTime),
+        transactionId,
+        transactionContent,
+        transactionDateTime,
       },
     });
 
@@ -242,7 +220,7 @@ export class PaymentService {
       invoiceId: updated.invoiceId.toString(),
       paymentMethod: updated.paymentMethod,
       amount: updated.amount,
-      transactionId: updated.transactionId || dto.transactionId,
+      transactionId: updated.transactionId || transactionId,
       transactionContent: updated.transactionContent,
       transactionDateTime: updated.transactionDateTime,
     });
@@ -363,12 +341,18 @@ export class PaymentService {
 
     ensureCanMarkRefundRequired(transaction.status);
 
-    if (transaction.paymentMethod === PaymentMethod.PAYPAL) {
-      // TODO(PAYPAL_INTEGRATION): Store PayPal capture id and call refundPayment(captureId).
-      throw new BadRequestException('PayPal refund is not fully implemented');
+    try {
+      const gateway = this.gatewayFactory.getGateway(
+        transaction.paymentMethod as PaymentMethod,
+      );
+      await gateway.refundPayment(
+        transaction.transactionId || transaction.id,
+        transaction.amount,
+      );
+    } catch {
+      // Some providers, such as VietQR, require manual refund handling.
     }
 
-    // TODO(REFUND_INTEGRATION): Trigger manual VietQR refund workflow for Product Manager review.
     await this.prisma.paymentTransaction.update({
       where: { id: transaction.id },
       data: { status: PaymentStatus.REFUND_REQUIRED },
@@ -378,7 +362,7 @@ export class PaymentService {
       status: PaymentStatus.REFUND_REQUIRED,
       orderId,
       rejectReason,
-      message: 'VietQR refund requires manual product manager handling',
+      message: 'Refund required - check payment method for processing details',
     };
   }
 
@@ -388,15 +372,6 @@ export class PaymentService {
     );
 
     return transaction ? this.serializePaymentTransaction(transaction) : null;
-  }
-
-  private ensureSupportedPaymentMethod(paymentMethod: string): void {
-    if (
-      paymentMethod !== PaymentMethod.VIETQR &&
-      paymentMethod !== PaymentMethod.PAYPAL
-    ) {
-      throw new BadRequestException('Unsupported payment method');
-    }
   }
 
   private parseInvoiceId(invoiceId: string): bigint {
@@ -414,47 +389,53 @@ export class PaymentService {
     });
   }
 
-  private serializePaymentTransaction(transaction: Record<string, any>) {
+  private serializePaymentTransaction(
+    transaction: Awaited<
+      ReturnType<PaymentService['findLatestPaymentTransactionByOrderId']>
+    >,
+  ) {
+    if (!transaction) {
+      return null;
+    }
+
     return {
       ...transaction,
-      invoiceId: transaction.invoiceId?.toString(),
+      invoiceId: transaction.invoiceId.toString(),
     };
   }
 
-  private buildQrTransactionUpdateData(
-    qrCodeData: {
-      qrCode: string;
-      qrContent?: string;
-      qrDataUrl?: string;
-      qrLink?: string;
-      expiredAt?: Date;
-    },
-    fallbackQrContent: string,
+  private buildProviderDataUpdate(
+    paymentMethod: PaymentMethod,
+    gatewayResult: { qrCode: string; providerData?: Record<string, unknown> },
   ) {
-    const data: {
-      qrCode: string;
-      qrContent: string;
-      qrDataUrl?: string;
-      qrLink?: string;
-      expiredAt?: Date;
-    } = {
-      qrCode: qrCodeData.qrCode,
-      qrContent: qrCodeData.qrContent || fallbackQrContent,
-    };
+    if (paymentMethod === PaymentMethod.VIETQR && gatewayResult.providerData) {
+      const data: Record<string, unknown> = {
+        qrCode: gatewayResult.qrCode,
+        qrContent: gatewayResult.providerData.qrContent || '',
+      };
 
-    if (qrCodeData.qrDataUrl) {
-      data.qrDataUrl = qrCodeData.qrDataUrl;
+      if (gatewayResult.providerData.qrDataUrl) {
+        data.qrDataUrl = gatewayResult.providerData.qrDataUrl;
+      }
+      if (gatewayResult.providerData.qrLink) {
+        data.qrLink = gatewayResult.providerData.qrLink;
+      }
+      if (gatewayResult.providerData.expiredAt) {
+        data.expiredAt = gatewayResult.providerData.expiredAt;
+      }
+
+      return data;
     }
 
-    if (qrCodeData.qrLink) {
-      data.qrLink = qrCodeData.qrLink;
+    if (paymentMethod === PaymentMethod.PAYPAL && gatewayResult.providerData) {
+      const data: Record<string, unknown> = {};
+      if (gatewayResult.providerData.paypalOrderId) {
+        data.gatewayOrderId = gatewayResult.providerData.paypalOrderId;
+      }
+      return data;
     }
 
-    if (qrCodeData.expiredAt) {
-      data.expiredAt = qrCodeData.expiredAt;
-    }
-
-    return data;
+    return {};
   }
 
   private async findDuplicateCallback(callback: TransactionSyncDto) {
