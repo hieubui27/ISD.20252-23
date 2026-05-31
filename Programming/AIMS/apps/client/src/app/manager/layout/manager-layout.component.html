@@ -1,0 +1,71 @@
+<div class="manager-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">AIMS</span>
+      <span class="title">product Manager</span>
+      <span class="subtitle">Media Management</span>
+    </div>
+
+    <div class="sidebar-menu">
+      <a routerLink="/manager/dashboard" class="menu-item" routerLinkActive="active">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M2.5 17.5v-15a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v15z" stroke="#414752" stroke-width="1.5" />
+        </svg>
+        <span>Dashboard</span>
+      </a>
+
+      <a routerLink="/manager/products" class="menu-item product-menu" routerLinkActive="active">
+        <div class="menu-inner">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M2.5 17.5v-15a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v15z" stroke="#414752" stroke-width="1.5" />
+          </svg>
+          <span>Product Management</span>
+        </div>
+      </a>
+
+      <a routerLink="/manager/orders" class="menu-item order-menu" routerLinkActive="active">
+        <div class="menu-inner">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M2.5 17.5v-15a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v15z" stroke="#414752" stroke-width="1.5" />
+          </svg>
+          <span>Order Management</span>
+        </div>
+      </a>
+
+      <a routerLink="/manager/history" class="menu-item" routerLinkActive="active">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M2.5 17.5v-15a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v15z" stroke="#414752" stroke-width="1.5" />
+        </svg>
+        <span>Product History</span>
+      </a>
+    </div>
+
+    <div class="sidebar-upload">
+      <button class="upload-btn">
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+          <path d="M6 1v10M1 6h10" stroke="white" stroke-width="2" />
+        </svg>
+        <span>Upload Asset</span>
+      </button>
+    </div>
+
+    <div class="sidebar-footer">
+      <a class="footer-item">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="7" stroke="#414752" stroke-width="1.5" />
+        </svg>
+        <span>Settings</span>
+      </a>
+      <a class="footer-item">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="7" stroke="#414752" stroke-width="1.5" />
+        </svg>
+        <span>Support</span>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

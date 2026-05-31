@@ -1,0 +1,86 @@
+<div class="top-bar">
+  <h2 class="top-bar-title">Product Detail</h2>
+  <div class="search-container">
+    <input type="text" placeholder="Search..." class="search-input" />
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 22 22" fill="none">
+      <path d="M19.75 19.75l-4.5-4.5m1.5-6.5a8 8 0 1 1-16 0 8 8 0 0 1 16 0z" stroke="#414752" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </div>
+</div>
+
+<div class="page-content" *ngIf="product$ | async as product">
+  <button class="back-btn" (click)="logic.navigateToCatalog()">
+    ← Back to Catalog
+  </button>
+
+  <div class="page-header">
+    <p class="subtitle">Catalog</p>
+    <h1 class="title">Product Details</h1>
+  </div>
+
+  <div class="grid-layout">
+    <!-- Left: image + actions -->
+    <div class="sidebar-col">
+      <div class="image-card">
+        <img [src]="product.imageUrl || 'assets/default-product.png'" alt="Product" class="product-img" />
+      </div>
+      <div class="actions-group">
+        <button class="btn btn-outline" (click)="logic.navigateToEdit(product.id)">
+          Adjust Quantity
+        </button>
+        <button class="btn btn-primary" (click)="logic.navigateToEdit(product.id)">
+          Edit
+        </button>
+        <button class="btn btn-danger" (click)="logic.deleteProduct(product.id)">
+          Delete
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: details -->
+    <div class="main-col">
+      <div class="detail-card">
+        <div class="detail-header">
+          <div class="title-section">
+            <h2 class="product-title">{{ product.title }}</h2>
+            <span class="status-badge" [ngClass]="product.status.toLowerCase()">{{ product.status }}</span>
+          </div>
+          <span class="category-badge">{{ product.type }}</span>
+        </div>
+
+        <p class="price">{{ product.currentPrice | number }} VND</p>
+
+        <p class="description">
+          {{ product.description || 'No description available.' }}
+        </p>
+
+        <div class="spec-grid">
+          <div class="spec-item">
+            <p class="spec-label">Product ID</p>
+            <p class="spec-value">#{{ product.id }}</p>
+          </div>
+          <div class="spec-item">
+            <p class="spec-label">Category</p>
+            <p class="spec-value">{{ product.type }}</p>
+          </div>
+          <div class="spec-item">
+            <p class="spec-label">Stock</p>
+            <p class="spec-value">{{ product.stockQuantity || 0 }}</p>
+          </div>
+          <div class="spec-item">
+            <p class="spec-label">Status</p>
+            <p class="spec-value">{{ product.status }}</p>
+          </div>
+          <div class="spec-item">
+            <p class="spec-label">Barcode</p>
+            <p class="spec-value">{{ product.barcode || '-' }}</p>
+          </div>
+          <div class="spec-item">
+            <p class="spec-label">Weight</p>
+            <p class="spec-value">{{ product.weight || '-' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,91 @@
+<div class="top-bar">
+  <div class="search-container">
+    <input type="text" placeholder="Search..." class="search-input" />
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 22 22" fill="none">
+      <path d="M19.75 19.75l-4.5-4.5m1.5-6.5a8 8 0 1 1-16 0 8 8 0 0 1 16 0z" stroke="#414752" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </div>
+  <div class="actions">
+    <button class="icon-btn">
+      <svg width="16" height="16" viewBox="0 0 16 17" fill="none">
+        <path d="M8 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14z" stroke="#414752" stroke-width="1.5" />
+      </svg>
+    </button>
+    <div class="avatar">
+      <img src="assets/avatar.png" alt="avatar" />
+    </div>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="page-header">
+    <div class="title-group">
+      <p class="subtitle">Catalog</p>
+      <h1 class="title">Product Overview</h1>
+    </div>
+    <button class="add-btn" (click)="logic.navigateToAddProduct()">
+      <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+        <path d="M6 1v10M1 6h10" stroke="white" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <span>Add New Product</span>
+    </button>
+  </div>
+
+  <div class="table-container">
+    <table class="product-table">
+      <thead>
+        <tr>
+          <th>PRODUCT</th>
+          <th>CATEGORY</th>
+          <th>PRICE (VND)</th>
+          <th>STOCK</th>
+          <th>STATUS</th>
+          <th>ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let product of (products$ | async) || []">
+          <td>
+            <div class="product-info">
+              <div class="image-wrapper">
+                <img [src]="product.imageUrl || 'assets/default-product.png'" alt="" />
+              </div>
+              <div class="text-group">
+                <span class="product-name">{{ product.title }}</span>
+                <span class="product-id">#{{ product.id }}</span>
+              </div>
+            </div>
+          </td>
+          <td>{{ product.type }}</td>
+          <td class="price">{{ product.currentPrice | number }}</td>
+          <td>-</td> <!-- Needs stock property from full detail -->
+          <td>
+            <span class="status-badge" [ngClass]="product.status.toLowerCase()">{{ product.status }}</span>
+          </td>
+          <td class="actions-cell">
+            <button class="action-btn" (click)="logic.navigateToViewProduct(product.id)">View</button>
+            <button class="action-btn" (click)="logic.navigateToEditProduct(product.id)">Edit</button>
+          </td>
+        </tr>
+        
+        <!-- Empty state or loading -->
+        <tr *ngIf="(products$ | async)?.length === 0">
+          <td colspan="6" class="empty-state">No products found.</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="pagination">
+      <p class="pagination-info">Showing results</p>
+      <div class="pagination-controls">
+        <button class="page-btn prev">
+          <svg width="5" height="8" viewBox="0 0 5 8" fill="none"><path d="M4 1L1 4L4 7" stroke="#414752" stroke-width="1.2" stroke-linecap="round" /></svg>
+        </button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn next">
+          <svg width="5" height="8" viewBox="0 0 5 8" fill="none"><path d="M1 1L4 4L1 7" stroke="#414752" stroke-width="1.2" stroke-linecap="round" /></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

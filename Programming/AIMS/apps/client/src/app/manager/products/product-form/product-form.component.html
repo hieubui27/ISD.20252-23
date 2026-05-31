@@ -1,0 +1,122 @@
+<div class="top-bar">
+  <h2 class="top-bar-title">{{ (isEditMode$ | async) ? 'Edit Product' : 'Add Product' }}</h2>
+</div>
+
+<div class="page-content">
+  <button class="back-btn" (click)="logic.navigateToCatalog()">
+    ← Back to Catalog
+  </button>
+
+  <div class="page-header">
+    <p class="subtitle">Catalog</p>
+    <h1 class="title">{{ (isEditMode$ | async) ? 'Edit Product' : 'Add New Product' }}</h1>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="logic.saveProduct()" class="form-layout">
+    <div class="grid-layout">
+      <!-- Left Column -->
+      <div class="main-col">
+        <!-- General Info -->
+        <div class="section-card">
+          <h3 class="section-title">General Info</h3>
+          
+          <div class="form-group">
+            <label class="form-label">Product Title</label>
+            <input type="text" formControlName="title" placeholder="Enter product title..." class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Category / Type</label>
+            <select formControlName="type" class="form-input">
+              <option value="BOOK">Book</option>
+              <option value="NEWSPAPER">Newspaper</option>
+              <option value="CD">CD</option>
+              <option value="DVD">DVD</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea rows="4" formControlName="description" placeholder="Enter product description..." class="form-input textarea"></textarea>
+          </div>
+        </div>
+
+        <!-- Media Assets -->
+        <div class="section-card">
+          <h3 class="section-title">Media Assets</h3>
+          <div class="upload-area">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <path d="M6 1v10M1 6h10" stroke="#414752" stroke-width="2" transform="scale(2) translate(4,4)" />
+            </svg>
+            <p class="upload-text">Click to upload cover image</p>
+            <p class="upload-hint">PNG, JPG up to 10MB</p>
+          </div>
+        </div>
+
+        <!-- Specifications -->
+        <div class="section-card">
+          <h3 class="section-title">Specifications</h3>
+          <div class="grid-2-cols">
+            <div class="form-group">
+              <label class="form-label">Barcode</label>
+              <input type="text" formControlName="barcode" placeholder="e.g. 893..." class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Weight (kg)</label>
+              <input type="number" formControlName="weight" placeholder="0" class="form-input" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Pricing -->
+        <div class="section-card">
+          <h3 class="section-title">Pricing</h3>
+          <div class="grid-2-cols">
+            <div class="form-group">
+              <label class="form-label">Regular Price (VND)</label>
+              <input type="number" formControlName="currentPrice" placeholder="0" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Original Value (VND)</label>
+              <input type="number" formControlName="originalValue" placeholder="0" class="form-input" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Inventory -->
+        <div class="section-card">
+          <h3 class="section-title">Inventory</h3>
+          <div class="form-group">
+            <label class="form-label">Stock Quantity</label>
+            <input type="number" formControlName="stockQuantity" placeholder="0" class="form-input" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="sidebar-col">
+        <div class="section-card">
+          <h3 class="section-title">Organization</h3>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select formControlName="status" class="form-input">
+              <option value="ACTIVE">Active</option>
+              <option value="DRAFT">Draft</option>
+              <option value="UNAVAILABLE">Unavailable</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" [disabled]="form.invalid || (logic.loading$ | async)">
+        {{ (isEditMode$ | async) ? 'Save Changes' : 'Save Product' }}
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="logic.navigateToCatalog()">
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>
