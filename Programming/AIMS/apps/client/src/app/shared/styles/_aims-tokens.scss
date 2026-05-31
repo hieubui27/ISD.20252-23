@@ -8,10 +8,24 @@ $aims-color-text: #1a1c1c;
 $aims-color-text-muted: #414752;
 $aims-color-danger: #ba1a1a;
 $aims-color-success: #1a6100;
+$aims-color-cart-count: #af2f00;
+$aims-color-input-error: #ffdad6;
 
 $aims-radius-sm: 4px;
 $aims-radius-md: 6px;
 $aims-radius-lg: 8px;
+$aims-radius-search: 12px;
+
+$aims-font-regular: 'Inter-Regular', Helvetica, sans-serif;
+$aims-font-medium: 'Inter-Medium', Helvetica, sans-serif;
+$aims-font-semibold: 'Inter-SemiBold', Helvetica, sans-serif;
+$aims-font-bold: 'Inter-Bold', Helvetica, sans-serif;
+$aims-font-extrabold: 'Inter-ExtraBold', Helvetica, sans-serif;
+
+$aims-page-max-width: 1200px;
+$aims-shell-max-width: 1280px;
+$aims-footer-link-gap: 24px;
+$aims-disabled-opacity: 0.55;
 
 $aims-shadow-focus: 0 0 0 2px $aims-color-primary;
 $aims-shadow-primary: 0 8px 30px rgba(0, 95, 172, 0.2);

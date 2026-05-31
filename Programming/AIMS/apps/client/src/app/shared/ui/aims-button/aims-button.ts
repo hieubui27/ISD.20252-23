@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, HostBinding, Input, Output } from '@angular/core';
 
 export type AimsButtonVariant = 'primary' | 'ghost' | 'secondary';
+export type AimsButtonSize = 'sm' | 'md' | 'lg';
 
 @Component({
   selector: 'app-aims-button',
@@ -15,8 +16,15 @@ export class AimsButtonComponent {
   @Input() type: 'button' | 'submit' = 'button';
   @Input() disabled = false;
   @Input() loading = false;
+  @Input() fullWidth = false;
+  @Input() size: AimsButtonSize = 'md';
 
   @Output() pressed = new EventEmitter<void>();
+
+  @HostBinding('style.width')
+  get hostWidth(): string | null {
+    return this.fullWidth ? '100%' : null;
+  }
 
   onClick(): void {
     if (this.disabled || this.loading) return;

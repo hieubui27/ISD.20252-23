@@ -1,0 +1,42 @@
+<div class="order-result-page">
+  <app-aims-header
+    [cartItemCount]="cartItemCount"
+    (brandClicked)="returnHome()"
+    (browseClicked)="returnHome()"
+  ></app-aims-header>
+
+  <main class="order-result-page__main">
+    <section class="result-card">
+      <div class="result-card__halo">
+        <div class="result-card__icon">
+          <svg viewBox="0 0 24 20" fill="none" aria-hidden="true">
+            <path d="M2 10L9 17L22 2" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+      </div>
+
+      <h1>Order Confirmed!</h1>
+      <p>Thank you for your purchase. Your order has been placed successfully and is now being processed.</p>
+
+      <section class="order-details">
+        <h2>Order Details</h2>
+        <div>
+          <span>Transaction ID</span>
+          <strong>#{{ transactionId }}</strong>
+        </div>
+        <div>
+          <span>Order Date</span>
+          <strong>{{ orderDate }}</strong>
+        </div>
+        <div>
+          <span>Estimated Delivery</span>
+          <strong>Digital Delivery - Immediate</strong>
+        </div>
+      </section>
+
+      <app-aims-button type="button" (pressed)="returnHome()">
+        Return to Homepage
+      </app-aims-button>
+    </section>
+  </main>
+</div>

@@ -1,31 +1,9 @@
 <div class="delivery-page">
-  <header class="delivery-nav">
-    <div class="delivery-nav__inner">
-      <button type="button" class="delivery-nav__brand" (click)="backToProducts()">AIMS</button>
-
-      <div class="delivery-nav__search">
-        <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
-          <path d="M17 17L13.125 13.125M15.167 8.083C15.167 11.995 12.079 15.167 8.084 15.167C4.088 15.167 1 11.995 1 8.083C1 4.171 4.088 1 8.084 1C12.079 1 15.167 4.171 15.167 8.083Z" stroke="#414752" stroke-width="1.5" stroke-linecap="round" />
-        </svg>
-        <span>Search for books, CDs, DVDs...</span>
-      </div>
-
-      <nav class="delivery-nav__links">
-        <button type="button" class="delivery-nav__link delivery-nav__link--active" (click)="backToProducts()">Browse</button>
-        <button type="button" class="delivery-nav__link">New Arrivals</button>
-        <button type="button" class="delivery-nav__link">Collections</button>
-        <button type="button" class="delivery-nav__link">Deals</button>
-        <div class="delivery-nav__cart-wrap">
-          <button type="button" class="delivery-nav__cart-button" aria-label="Cart">
-            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path d="M1 1H3.5L5.1 11.5C5.18 12.01 5.62 12.37 6.13 12.37H16.5C17.01 12.37 17.44 12.01 17.52 11.5L18.83 4H3.82M8 16.5C8 17.33 7.33 18 6.5 18C5.67 18 5 17.33 5 16.5C5 15.67 5.67 15 6.5 15C7.33 15 8 15.67 8 16.5ZM17 16.5C17 17.33 16.33 18 15.5 18C14.67 18 14 17.33 14 16.5C14 15.67 14.67 15 15.5 15C16.33 15 17 15.67 17 16.5Z" stroke="#1A1C1C" stroke-width="1.5" stroke-linecap="round" />
-            </svg>
-            <span *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
-          </button>
-        </div>
-      </nav>
-    </div>
-  </header>
+  <app-aims-header
+    [cartItemCount]="cartItemCount"
+    (brandClicked)="backToProducts()"
+    (browseClicked)="backToProducts()"
+  ></app-aims-header>
 
   <main class="delivery-page__main">
     <section class="delivery-heading">
@@ -44,48 +22,65 @@
 
           <div class="form-grid">
             <label>
-              <span>Full Name</span>
-              <div class="input-wrap input-wrap--valid">
-                <input type="text" formControlName="receiverName" />
-                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <span>Full Name <span class="aims-required">*</span></span>
+              <div
+                class="input-wrap"
+                [class.input-wrap--valid]="form.controls.receiverName.valid && form.controls.receiverName.value"
+                [class.input-wrap--error]="shouldShowError('receiverName')"
+              >
+                <input type="text" formControlName="receiverName" placeholder="Nguyen Van A" />
+                <svg *ngIf="form.controls.receiverName.valid && form.controls.receiverName.value" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <circle cx="8" cy="8" r="7" stroke="#1a6100" stroke-width="1.5" />
                   <path d="M5 8L7 10L11 6" stroke="#1a6100" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </div>
+              <small *ngIf="shouldShowError('receiverName')">{{ fieldError('receiverName') }}</small>
             </label>
 
             <label>
-              <span>Phone Number</span>
-              <input type="tel" formControlName="phoneNumber" />
+              <span>Phone Number <span class="aims-required">*</span></span>
+              <input
+                type="tel"
+                formControlName="phoneNumber"
+                placeholder="0981413168"
+                [class.input--error]="shouldShowError('phoneNumber')"
+              />
+              <small *ngIf="shouldShowError('phoneNumber')">{{ fieldError('phoneNumber') }}</small>
             </label>
           </div>
 
           <label class="form-field">
-            <span>Email Address</span>
+            <span>Email Address <span class="aims-required">*</span></span>
             <div
               class="input-wrap"
-              [class.input-wrap--error]="submitted && form.controls.email.invalid"
+              [class.input-wrap--error]="shouldShowError('email')"
             >
-              <input type="text" formControlName="email" />
-              <svg *ngIf="submitted && form.controls.email.invalid" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <input type="text" formControlName="email" placeholder="customer@example.com" />
+              <svg *ngIf="shouldShowError('email')" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <circle cx="8" cy="8" r="7" stroke="#ba1a1a" stroke-width="1.5" />
                 <path d="M8 5V8M8 11H8.01" stroke="#ba1a1a" stroke-width="1.5" stroke-linecap="round" />
               </svg>
             </div>
-            <small *ngIf="submitted && form.controls.email.invalid">Please enter a valid email address.</small>
+            <small *ngIf="shouldShowError('email')">{{ fieldError('email') }}</small>
           </label>
 
           <h2>Delivery Address</h2>
 
           <label class="form-field">
-            <span>Street Address</span>
-            <input type="text" formControlName="streetAddress" placeholder="123 Media Blvd, Suite 400" />
+            <span>Street Address <span class="aims-required">*</span></span>
+            <input
+              type="text"
+              formControlName="streetAddress"
+              placeholder="123 Media Blvd, Suite 400"
+              [class.input--error]="shouldShowError('streetAddress')"
+            />
+            <small *ngIf="shouldShowError('streetAddress')">{{ fieldError('streetAddress') }}</small>
           </label>
 
           <div class="form-grid">
             <label>
-              <span>Province/City</span>
-              <div class="select-wrap">
+              <span>Province/City <span class="aims-required">*</span></span>
+              <div class="select-wrap" [class.select-wrap--error]="shouldShowError('province')">
                 <select formControlName="province">
                   <option *ngFor="let province of provinces">{{ province }}</option>
                 </select>
@@ -93,6 +88,7 @@
                   <path d="M4 6L8 10L12 6" stroke="#414752" stroke-width="1.5" stroke-linecap="round" />
                 </svg>
               </div>
+              <small *ngIf="shouldShowError('province')">{{ fieldError('province') }}</small>
             </label>
 
             <label>
@@ -103,7 +99,13 @@
 
           <label class="form-field">
             <span>Delivery Instructions (Optional)</span>
-            <textarea formControlName="shippingInstructions" rows="3" placeholder="Leave at the front desk..."></textarea>
+            <textarea
+              formControlName="shippingInstructions"
+              rows="3"
+              placeholder="Leave at the front desk..."
+              [class.input--error]="shouldShowError('shippingInstructions')"
+            ></textarea>
+            <small *ngIf="shouldShowError('shippingInstructions')">{{ fieldError('shippingInstructions') }}</small>
           </label>
         </section>
 
@@ -148,37 +150,28 @@
             <strong>{{ formatPrice(totalAmount) }}</strong>
           </div>
 
-          <button
+          <app-aims-button
             type="submit"
-            class="summary-panel__continue"
+            size="md"
+            [fullWidth]="true"
             [disabled]="isCreatingPayment || !canPreview"
           >
             <span>{{ isCreatingPayment ? 'Creating QR...' : 'Continue to Payment' }}</span>
             <svg viewBox="0 0 14 12" fill="none" aria-hidden="true">
               <path d="M1 6H13M8 1L13 6L8 11" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-          </button>
+          </app-aims-button>
 
-          <button type="button" class="summary-panel__back" (click)="backToProducts()">
+          <app-aims-button type="button" variant="ghost" [fullWidth]="true" (pressed)="backToProducts()">
             <svg viewBox="0 0 12 10" fill="none" aria-hidden="true">
               <path d="M11 5H1M5 1L1 5L5 9" stroke="#414752" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             Back to Cart
-          </button>
+          </app-aims-button>
         </aside>
       </div>
     </form>
   </main>
 
-  <footer class="delivery-footer">
-    <div>
-      <p>© 2024 AIMS Digital Media. All rights reserved.</p>
-      <nav>
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
-        <a href="#">Licensing</a>
-        <a href="#">Contact</a>
-      </nav>
-    </div>
-  </footer>
+  <app-aims-footer></app-aims-footer>
 </div>

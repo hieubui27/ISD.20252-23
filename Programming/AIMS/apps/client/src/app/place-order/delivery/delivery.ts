@@ -5,6 +5,10 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter } from 'rxjs/operators';
 import {
+  PROVINCE_PLACEHOLDER,
+  VIETNAM_PROVINCES,
+} from '../constants/vietnam-provinces';
+import {
   InvoicePreview,
   PlaceOrderDeliveryInfo,
 } from '../models/place-order.models';
@@ -14,37 +18,60 @@ import {
 } from '../services/checkout-draft.service';
 import { PlaceOrderApiService } from '../services/place-order-api.service';
 import { VietQrPaymentFlowService } from '../../payment/flows/vietqr-payment-flow.service';
+import { AimsFooterComponent } from '../../shared/layout/aims-footer/aims-footer';
+import { AimsHeaderComponent } from '../../shared/layout/aims-header/aims-header';
+import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
 import { StatusMessageComponent } from '../../shared/ui/status-message/status-message';
+import {
+  DeliveryInfoField,
+  deliveryInfoFieldError,
+  notBlankValidator,
+  phoneNumberValidator,
+  provinceValidator,
+  receiverNameLettersOnlyValidator,
+  SHIPPING_INSTRUCTIONS_MAX_LENGTH,
+} from '../validators/delivery-info.validators';
 
 @Component({
   selector: 'app-delivery',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, StatusMessageComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    AimsButtonComponent,
+    AimsFooterComponent,
+    AimsHeaderComponent,
+    StatusMessageComponent,
+  ],
   templateUrl: './delivery.html',
   styleUrl: './delivery.scss',
 })
 export class DeliveryComponent implements OnInit, OnDestroy {
-  readonly provinces = [
-    'Select Region',
-    'Hà Nội',
-    'Hồ Chí Minh',
-    'Đà Nẵng',
-    'Hải Phòng',
-    'Cần Thơ',
-    'An Giang',
-    'Bà Rịa - Vũng Tàu',
-    'Bình Dương',
-    'Đồng Nai',
-  ];
+  readonly provinces = VIETNAM_PROVINCES;
 
   readonly form = inject(FormBuilder).nonNullable.group({
-    receiverName: ['', [Validators.required]],
-    phoneNumber: ['', [Validators.required]],
+    receiverName: [
+      '',
+      [
+        Validators.required,
+        receiverNameLettersOnlyValidator(),
+      ],
+    ],
+    phoneNumber: [
+      '',
+      [Validators.required, phoneNumberValidator()],
+    ],
     email: ['', [Validators.required, Validators.email]],
-    streetAddress: ['', [Validators.required]],
-    province: ['Select Region', [Validators.required]],
-    postalCode: ['10001'],
-    shippingInstructions: [''],
+    streetAddress: ['', [Validators.required, notBlankValidator()]],
+    province: [
+      PROVINCE_PLACEHOLDER,
+      [Validators.required, provinceValidator()],
+    ],
+    postalCode: [''],
+    shippingInstructions: [
+      '',
+      [Validators.maxLength(SHIPPING_INSTRUCTIONS_MAX_LENGTH)],
+    ],
   });
 
   invoicePreview: InvoicePreview | null = null;
@@ -71,15 +98,15 @@ export class DeliveryComponent implements OnInit, OnDestroy {
     }
 
     this.form.patchValue({
-      receiverName: this.draft.deliveryInfo.receiverName || 'Sarah Jenkins',
-      phoneNumber: this.draft.deliveryInfo.phoneNumber || '0981413168',
-      email: this.draft.deliveryInfo.email || 'customer@example.com',
+      receiverName: this.draft.deliveryInfo.receiverName || '',
+      phoneNumber: this.draft.deliveryInfo.phoneNumber || '',
+      email: this.draft.deliveryInfo.email || '',
       streetAddress:
-        this.draft.deliveryInfo.streetAddress || '123 Media Blvd, Suite 400',
-      province: this.draft.deliveryInfo.province || 'Hà Nội',
-      shippingInstructions:
-        this.draft.deliveryInfo.shippingInstructions ||
-        'Sandbox VietQR payment test',
+        this.draft.deliveryInfo.streetAddress || '',
+      province:
+        this.draft.deliveryInfo.province ||
+        PROVINCE_PLACEHOLDER,
+      shippingInstructions: this.draft.deliveryInfo.shippingInstructions || '',
     });
 
     this.loadInvoicePreview();
@@ -133,7 +160,7 @@ export class DeliveryComponent implements OnInit, OnDestroy {
         this.form.controls.phoneNumber.valid &&
         this.form.controls.email.valid &&
         this.form.controls.streetAddress.valid &&
-        this.form.controls.province.value !== 'Select Region',
+        this.form.controls.province.valid,
     );
   }
 
@@ -197,6 +224,16 @@ export class DeliveryComponent implements OnInit, OnDestroy {
     return `${Math.round(value).toLocaleString('vi-VN')} VND`;
   }
 
+  shouldShowError(controlName: DeliveryInfoField): boolean {
+    const control = this.form.controls[controlName];
+    return control.invalid && (this.submitted || control.dirty || control.touched);
+  }
+
+  fieldError(controlName: DeliveryInfoField): string {
+    const control = this.form.controls[controlName];
+    return deliveryInfoFieldError(controlName, control.errors);
+  }
+
   private loadInvoicePreview(): void {
     if (!this.draft || !this.canPreview) return;
 
@@ -236,4 +273,5 @@ export class DeliveryComponent implements OnInit, OnDestroy {
       shippingInstructions: value.shippingInstructions.trim(),
     };
   }
+
 }

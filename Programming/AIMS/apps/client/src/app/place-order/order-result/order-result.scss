@@ -1,0 +1,133 @@
+.order-result-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f3f3f3;
+  color: #1a1c1c;
+  font-family: Inter, Arial, sans-serif;
+}
+
+.order-result-page__main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.result-card {
+  width: 100%;
+  max-width: 520px;
+  padding: 48px 64px;
+  border-radius: 8px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.result-card__halo {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 28px;
+  border-radius: 50%;
+  background: rgba(0, 95, 172, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.result-card__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #005fac;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.result-card__icon svg {
+  width: 24px;
+  height: 20px;
+}
+
+.result-card h1 {
+  margin: 0 0 12px;
+  color: #1a1c1c;
+  font-size: 40px;
+  line-height: 1.1;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.result-card p {
+  margin: 0 0 32px;
+  color: #414752;
+  font-size: 16px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.order-details {
+  width: 100%;
+  margin-bottom: 32px;
+  padding: 24px;
+  border-radius: 8px;
+  background: #f3f3f3;
+}
+
+.order-details h2 {
+  margin: 0 0 20px;
+  color: #1a1c1c;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.order-details div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.order-details div:last-child {
+  margin-bottom: 0;
+}
+
+.order-details span {
+  color: #414752;
+  font-size: 14px;
+}
+
+.order-details strong {
+  color: #1a1c1c;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .result-card {
+    padding: 36px 24px;
+  }
+
+  .result-card h1 {
+    font-size: 32px;
+  }
+
+  .order-details div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .order-details strong {
+    text-align: left;
+  }
+}

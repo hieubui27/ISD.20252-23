@@ -1,6 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { AimsFooterComponent } from '../../shared/layout/aims-footer/aims-footer';
+import { AimsHeaderComponent } from '../../shared/layout/aims-header/aims-header';
+import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
 import { StatusMessageComponent } from '../../shared/ui/status-message/status-message';
 import {
   CheckoutDraft,
@@ -12,7 +15,13 @@ import { ProductApiService } from '../services/product-api.service';
 @Component({
   selector: 'app-product-selection',
   standalone: true,
-  imports: [CommonModule, StatusMessageComponent],
+  imports: [
+    CommonModule,
+    AimsButtonComponent,
+    AimsFooterComponent,
+    AimsHeaderComponent,
+    StatusMessageComponent,
+  ],
   templateUrl: './product-selection.html',
   styleUrl: './product-selection.scss',
 })
@@ -101,18 +110,22 @@ export class ProductSelectionComponent implements OnInit {
     const draft: CheckoutDraft = {
       items: this.selectedList,
       deliveryInfo: {
-        receiverName: 'Sarah Jenkins',
-        phoneNumber: '0981413168',
-        email: 'customer@example.com',
-        province: 'Hanoi',
-        streetAddress: '123 Media Blvd, Suite 400',
-        shippingInstructions: 'Sandbox VietQR payment test',
+        receiverName: '',
+        phoneNumber: '',
+        email: '',
+        province: '',
+        streetAddress: '',
+        shippingInstructions: '',
       },
     };
 
     this.checkoutDraft.save(draft);
     this.errorMessage = '';
     this.router.navigate(['/delivery']);
+  }
+
+  goToProducts(): void {
+    this.router.navigate(['/products']);
   }
 
   formatPrice(value: number | string): string {

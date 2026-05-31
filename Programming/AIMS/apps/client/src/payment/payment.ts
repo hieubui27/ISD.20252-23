@@ -7,13 +7,10 @@ import {
   OnDestroy,
   OnInit,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import * as QRCode from 'qrcode';
-import {
-  OrderSummary,
-  PaymentMethod,
-  PaymentService,
-} from '../app/services/payment.service';
+import { OrderSummary } from '../app/services/payment.service';
 import { VietQrPaymentFlowService } from '../app/payment/flows/vietqr-payment-flow.service';
 import {
   VietQrPaymentInput,
@@ -25,12 +22,21 @@ import {
 } from '../app/place-order/services/checkout-draft.service';
 import { InvoicePreview } from '../app/place-order/models/place-order.models';
 import { PlaceOrderApiService } from '../app/place-order/services/place-order-api.service';
+import { AimsFooterComponent } from '../app/shared/layout/aims-footer/aims-footer';
+import { AimsHeaderComponent } from '../app/shared/layout/aims-header/aims-header';
+import { AimsButtonComponent } from '../app/shared/ui/aims-button/aims-button';
 import { StatusMessageComponent } from '../app/shared/ui/status-message/status-message';
 
 @Component({
   selector: 'app-payment',
   standalone: true,
-  imports: [CommonModule, StatusMessageComponent],
+  imports: [
+    CommonModule,
+    AimsButtonComponent,
+    AimsFooterComponent,
+    AimsHeaderComponent,
+    StatusMessageComponent,
+  ],
   templateUrl: './payment.html',
   styleUrl: './payment.scss',
 })
@@ -38,37 +44,34 @@ export class PaymentComponent implements OnInit, OnDestroy {
   isLoading = false;
   errorMessage = '';
   statusMessage = '';
-  selectedPaymentMethod: PaymentMethod = 'VIETQR';
   vietQrSnapshot: VietQrPaymentSnapshot | null = null;
   qrImageUrl = '';
 
   order: OrderSummary = {
-    items: [
-      { id: '1', name: 'Abstract Liquid Gradient Pack', quantity: 1, unitPrice: 450000 },
-      { id: '2', name: 'Retro Arcade Cabinet Pro', quantity: 2, unitPrice: 1200000 },
-    ],
-    subtotal: 2850000,
+    items: [],
+    subtotal: 0,
     vatRate: 0.1,
     shippingFee: 0,
     total: 0,
   };
 
-  private readonly paymentService = inject(PaymentService);
   private readonly vietQrPaymentFlow = inject(VietQrPaymentFlowService);
   private readonly checkoutDraftService = inject(CheckoutDraftService);
   private readonly placeOrderApi = inject(PlaceOrderApiService);
+  private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
   private snapshotSubscription?: Subscription;
   private checkoutDraft: CheckoutDraft | null = null;
 
   ngOnInit(): void {
     this.checkoutDraft = this.checkoutDraftService.get();
+
+    if (!this.checkoutDraft || this.checkoutDraft.items.length === 0) {
+      this.router.navigate(['/products']);
+      return;
+    }
+
     this.applyCheckoutDraft();
-    this.order.total = this.paymentService.calculateTotal(
-      this.order.subtotal,
-      this.order.vatRate,
-      this.order.shippingFee,
-    );
     this.loadInvoicePreview();
 
     const existingVietQrSnapshot = this.vietQrPaymentFlow.currentSnapshot;
@@ -76,9 +79,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
       this.vietQrSnapshot = existingVietQrSnapshot;
       this.updateQrImageUrl();
       this.listenForVietQrUpdates();
-      this.statusMessage = this.isVietQrSuccess
-        ? 'Bạn đã thanh toán thành công.'
-        : 'VietQR code is ready. Please complete the payment.';
+      this.statusMessage = '';
       return;
     }
 
@@ -95,54 +96,23 @@ export class PaymentComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
     this.statusMessage = '';
 
-    if (this.selectedPaymentMethod === 'PAYPAL') {
-      this.handlePayPalPayment();
-    } else if (this.selectedPaymentMethod === 'VIETQR') {
-      this.handleVietQrPayment();
-    }
+    this.handleVietQrPayment();
   }
 
   checkPaymentStatus(): void {
     this.errorMessage = '';
 
     if (this.isLoading) {
-      this.statusMessage = 'Đang tạo mã QR thanh toán.';
+      this.statusMessage = 'Your payment QR is still being prepared. Please wait.';
       return;
     }
 
     if (this.isVietQrSuccess) {
-      this.statusMessage = 'Bạn đã thanh toán thành công.';
+      this.router.navigate(['/order-result']);
       return;
     }
 
-    this.statusMessage = 'Bạn chưa thanh toán.';
-  }
-
-  handlePayPalPayment(): void {
-    this.paymentService
-      .requestPayment({
-        orderId: 'ORDER_001',
-        invoiceId: 'INV_001',
-        paymentMethod: this.selectedPaymentMethod,
-        amount: this.order.total,
-        customerEmail: 'customer@example.com',
-      })
-      .subscribe({
-        next: (res) => {
-          this.isLoading = false;
-          if (res.paymentUrl) {
-            window.location.href = res.paymentUrl;
-          } else {
-            this.errorMessage = 'Server khÃ´ng tráº£ vá» URL thanh toÃ¡n.';
-          }
-        },
-        error: (err) => {
-          this.isLoading = false;
-          console.error('Payment error:', err);
-          this.errorMessage =
-            err.error?.message || err.message || 'Lá»—i káº¿t ná»‘i tá»›i server.';
-        },
-      });
+    this.statusMessage = 'Please complete your payment before confirming the order.';
   }
 
   handleVietQrPayment(): void {
@@ -156,7 +126,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         this.vietQrSnapshot = snapshot;
         this.updateQrImageUrl();
-        this.statusMessage = 'VietQR code is ready. Sandbox callback requested.';
+        this.statusMessage = '';
       },
       error: (err) => {
         this.isLoading = false;
@@ -172,6 +142,10 @@ export class PaymentComponent implements OnInit, OnDestroy {
   cancelOrder(): void {
     if (!confirm('Báº¡n cÃ³ cháº¯c muá»‘n huá»· Ä‘Æ¡n hÃ ng?')) return;
     // TODO: Implement cancel order via order service
+  }
+
+  goToProducts(): void {
+    this.router.navigate(['/products']);
   }
 
   get isVietQrPending(): boolean {
@@ -196,7 +170,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
         const status = latestSnapshot.latestTransaction?.status;
 
         if (status === 'SUCCESS') {
-          this.statusMessage = 'Bạn đã thanh toán thành công.';
+          this.statusMessage = '';
         } else if (status === 'FAILED' || status === 'REFUND_REQUIRED') {
           this.errorMessage = 'Payment could not be completed.';
         }
@@ -239,26 +213,13 @@ export class PaymentComponent implements OnInit, OnDestroy {
   }
 
   private buildVietQrPaymentInput(): VietQrPaymentInput {
-    if (this.checkoutDraft) {
-      return {
-        items: this.checkoutDraftService.toPlaceOrderItems(this.checkoutDraft),
-        deliveryInfo: this.checkoutDraft.deliveryInfo,
-      };
+    if (!this.checkoutDraft) {
+      throw new Error('Checkout draft is required to create VietQR payment.');
     }
 
     return {
-      items: this.order.items.map((item) => ({
-        productId: Number(item.id),
-        quantity: item.quantity,
-      })),
-      deliveryInfo: {
-        receiverName: 'Sarah Jenkins',
-        phoneNumber: '0981413168',
-        email: 'customer@example.com',
-        province: 'Hanoi',
-        streetAddress: '123 Media Blvd, Suite 400',
-        shippingInstructions: 'Sandbox VietQR payment test',
-      },
+      items: this.checkoutDraftService.toPlaceOrderItems(this.checkoutDraft),
+      deliveryInfo: this.checkoutDraft.deliveryInfo,
     };
   }
 
@@ -275,6 +236,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
       (sum, item) => sum + item.unitPrice * item.quantity,
       0,
     );
+    this.recalculateOrderTotal();
   }
 
   private loadInvoicePreview(): void {
@@ -322,5 +284,12 @@ export class PaymentComponent implements OnInit, OnDestroy {
         : 0.1;
     this.order.shippingFee = preview.deliveryFee;
     this.order.total = preview.totalAmount;
+  }
+
+  private recalculateOrderTotal(): void {
+    this.order.total =
+      this.order.subtotal +
+      this.order.subtotal * this.order.vatRate +
+      this.order.shippingFee;
   }
 }

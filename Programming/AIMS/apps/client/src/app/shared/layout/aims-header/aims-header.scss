@@ -1,0 +1,137 @@
+@use '../../styles/aims-tokens' as *;
+
+.aims-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(249, 249, 249, 0.95);
+  border-bottom: 1px solid $aims-color-page;
+  backdrop-filter: blur(12px);
+}
+
+.aims-header__inner {
+  max-width: $aims-shell-max-width;
+  margin: 0 auto;
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+}
+
+.aims-header__brand {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: $aims-color-text;
+  cursor: pointer;
+  font-family: $aims-font-extrabold;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0;
+  flex: 0 0 auto;
+}
+
+.aims-header__search {
+  flex: 1;
+  max-width: 576px;
+  margin: 0 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: $aims-color-muted;
+  border-radius: $aims-radius-search;
+  padding: 12px 16px;
+  color: $aims-color-text-muted;
+  font-size: 16px;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+  }
+}
+
+.aims-header__links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex: 0 0 auto;
+}
+
+.aims-header__link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: $aims-color-text-muted;
+  cursor: pointer;
+  font-family: $aims-font-medium;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.aims-header__link--active {
+  color: $aims-color-primary;
+  border-bottom: 2px solid $aims-color-primary;
+  padding-bottom: 4px;
+  font-family: $aims-font-bold;
+  font-weight: 700;
+}
+
+.aims-header__cart-wrap {
+  padding-left: 24px;
+  border-left: 1px solid rgba(192, 199, 212, 0.3);
+}
+
+.aims-header__cart-button {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  span {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: $aims-color-cart-count;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: $aims-font-bold;
+    font-size: 10px;
+    font-weight: 700;
+  }
+}
+
+@media (max-width: 900px) {
+  .aims-header__inner,
+  .aims-header__links {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .aims-header__search {
+    margin: 16px 0;
+    max-width: none;
+  }
+
+  .aims-header__links {
+    gap: 12px;
+  }
+
+  .aims-header__cart-wrap {
+    padding-left: 0;
+    border-left: 0;
+  }
+}

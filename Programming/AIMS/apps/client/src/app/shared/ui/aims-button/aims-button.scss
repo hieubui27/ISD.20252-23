@@ -1,5 +1,13 @@
 @use '../../styles/aims-tokens' as *;
 
+:host {
+  display: inline-flex;
+}
+
+:host-context(.aims-button-host--full) {
+  width: 100%;
+}
+
 .aims-button {
   border: 0;
   border-radius: $aims-radius-md;
@@ -10,7 +18,7 @@
   gap: 8px;
   min-height: 48px;
   padding: 12px 18px;
-  font-family: 'Inter-Bold', Helvetica, sans-serif;
+  font-family: $aims-font-bold;
   font-size: 15px;
   line-height: 22px;
   transition:
@@ -51,4 +59,20 @@
 .aims-button--secondary {
   background: $aims-color-muted;
   color: $aims-color-text;
+}
+
+.aims-button--full {
+  width: 100%;
+}
+
+.aims-button--sm {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+.aims-button--lg {
+  min-height: 54px;
+  padding: 14px 20px;
+  font-size: 16px;
 }
