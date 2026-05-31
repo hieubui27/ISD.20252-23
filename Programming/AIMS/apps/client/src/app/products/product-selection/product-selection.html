@@ -1,0 +1,149 @@
+<div class="product-page">
+  <app-aims-header
+    [cartItemCount]="selectedList.length"
+    (brandClicked)="goToProducts()"
+    (browseClicked)="goToProducts()"
+  ></app-aims-header>
+
+  <main class="product-page__main">
+    <app-status-message *ngIf="errorMessage" tone="error">
+      {{ errorMessage }}
+    </app-status-message>
+
+    <div class="product-layout">
+      <aside class="filters-panel">
+        <h2>Filters</h2>
+
+        <section>
+          <h3>Categories</h3>
+          <label class="filter-check filter-check--active">
+            <span>
+              <svg viewBox="0 0 11 9" fill="none" aria-hidden="true">
+                <path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
+            Books
+          </label>
+          <label class="filter-check"><span></span>CDs</label>
+          <label class="filter-check"><span></span>DVDs</label>
+          <label class="filter-check"><span></span>Vinyl</label>
+        </section>
+
+        <section>
+          <h3>Price Range (VND)</h3>
+          <div class="range-track"><span></span></div>
+          <div class="range-labels">
+            <span>0</span>
+            <span>500k</span>
+          </div>
+        </section>
+
+        <button type="button" class="filters-panel__reset">Reset Filters</button>
+      </aside>
+
+      <section class="catalog-column">
+        <div class="catalog-heading">
+          <h1>Browse Our Media Collection</h1>
+          <p>Discover curated books, music, and films.</p>
+        </div>
+
+        <div class="catalog-toolbar">
+          <span>Showing {{ totalProducts || products.length }} results</span>
+          <label>
+            Sort by:
+            <select>
+              <option>Recommended</option>
+              <option>Price: Low to High</option>
+              <option>Price: High to Low</option>
+              <option>Newest</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="product-grid">
+          <article class="product-card" *ngFor="let product of products">
+            <div class="product-card__media">
+              <img *ngIf="product.imageUrl" [src]="product.imageUrl" [alt]="product.title" />
+              <div *ngIf="!product.imageUrl" class="product-card__placeholder">
+                <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                  <rect x="12" y="7" width="24" height="34" rx="3" stroke="#005fac" stroke-width="2" />
+                  <circle cx="24" cy="24" r="7" stroke="#005fac" stroke-width="2" />
+                  <circle cx="24" cy="24" r="2" fill="#005fac" />
+                </svg>
+              </div>
+              <span>{{ product.category || 'MEDIA' }}</span>
+            </div>
+
+            <div class="product-card__body">
+              <h2>{{ product.title }}</h2>
+              <p>{{ product.description }}</p>
+              <strong>{{ formatPrice(product.currentPrice) }}</strong>
+
+              <div class="quantity-control">
+                <button type="button" (click)="updateQuantity(product, getQuantity(product) - 1)">-</button>
+                <span>{{ getQuantity(product) }}</span>
+                <button type="button" (click)="selectProduct(product)">+</button>
+              </div>
+            </div>
+          </article>
+
+          <div class="product-empty" *ngIf="!isLoading && products.length === 0">
+            No available products returned from backend.
+          </div>
+        </div>
+      </section>
+
+      <aside class="order-summary">
+        <h2>Order Summary</h2>
+
+        <div class="order-summary__rows">
+          <div>
+            <span>Items ({{ selectedList.length }}):</span>
+            <strong>{{ subtotal | number }} VND</strong>
+          </div>
+          <div>
+            <span>Discount:</span>
+            <strong>0 VND</strong>
+          </div>
+        </div>
+
+        <div class="order-summary__subtotal">
+          <div>
+            <p>Subtotal</p>
+            <span>(excluding<br />VAT)</span>
+          </div>
+          <strong>{{ subtotal | number }} VND</strong>
+        </div>
+
+        <div class="order-summary__items" *ngIf="selectedList.length > 0">
+          <article *ngFor="let item of selectedList">
+            <div>
+              <strong>{{ item.title }}</strong>
+              <span>Qty: {{ item.quantity }}</span>
+            </div>
+            <span>{{ (item.unitPrice * item.quantity) | number }} VND</span>
+          </article>
+        </div>
+
+        <p class="order-summary__empty" *ngIf="selectedList.length === 0">
+          Select products to create a real place-order request.
+        </p>
+
+        <app-aims-button
+          type="button"
+          size="lg"
+          [fullWidth]="true"
+          [disabled]="selectedList.length === 0 || isCreatingPayment"
+          (pressed)="proceedToPayment()"
+        >
+          <span>Place Order</span>
+          <svg viewBox="0 0 13 13" fill="none" aria-hidden="true">
+            <path d="M6.5 1L12 6.5L6.5 12M1 6.5H12" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </app-aims-button>
+      </aside>
+    </div>
+  </main>
+
+  <app-aims-footer></app-aims-footer>
+</div>

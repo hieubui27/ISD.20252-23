@@ -56,6 +56,10 @@ export class ShippingFeeService {
     'Ha Noi',
     'Hà Nội',
     'Ho Chi Minh City',
+    'Ho Chi Minh',
+    'TP Ho Chi Minh',
+    'TP HCM',
+    'HCM',
     'Hồ Chí Minh',
     'TP Hồ Chí Minh',
     'TP. Hồ Chí Minh',
@@ -66,24 +70,36 @@ export class ShippingFeeService {
     totalWeightKg: number,
     totalItemsValueBeforeVAT: number,
   ): number {
+    return this.calculateShippingFeeBreakdown(
+      province,
+      totalWeightKg,
+      totalItemsValueBeforeVAT,
+    ).finalShippingFee;
+  }
+
+  calculateShippingFeeBreakdown(
+    province: string,
+    totalWeightKg: number,
+    totalItemsValueBeforeVAT: number,
+  ): {
+    shippingFeeBeforeDiscount: number;
+    shippingDiscount: number;
+    finalShippingFee: number;
+  } {
     const rawShippingFee = this.calculateRawShippingFee(
       province,
       totalWeightKg,
     );
-
-    return this.applyFreeShipDiscount(rawShippingFee, totalItemsValueBeforeVAT);
-  }
-
-  private applyFreeShipDiscount(
-    rawShippingFee: number,
-    totalItemsValueBeforeVAT: number,
-  ): number {
     const discount = this.calculateDiscount(
       rawShippingFee,
       totalItemsValueBeforeVAT,
     );
 
-    return Math.max(0, rawShippingFee - discount);
+    return {
+      shippingFeeBeforeDiscount: rawShippingFee,
+      shippingDiscount: discount,
+      finalShippingFee: Math.max(0, rawShippingFee - discount),
+    };
   }
 
   isInnerCity(province: string): boolean {
@@ -125,10 +141,21 @@ export class ShippingFeeService {
   }
 
   private isMajorCity(province: string): boolean {
-    const normalizedProvince = province.trim().toLowerCase();
+    const normalizedProvince = this.normalizeProvinceName(province);
 
     return ShippingFeeService.majorCityProvinces.some(
-      (majorCity) => majorCity.toLowerCase() === normalizedProvince,
+      (majorCity) =>
+        this.normalizeProvinceName(majorCity) === normalizedProvince,
     );
+  }
+
+  private normalizeProvinceName(province: string): string {
+    return province
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[.]/g, '')
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
   }
 }

@@ -51,6 +51,20 @@ interface PaypalApprovalLink {
  * - All public methods serve the payment transaction lifecycle: request, method change, confirmation, status update, lookup, and refund-required marking.
  */
 @Injectable()
+/**
+ * SOLID review for VietQR-related payment flow:
+ * - OCP: Clear violation. requestPayment branches on concrete payment methods and
+ *   must be modified whenever a new payment provider is added.
+ * - DIP: Clear violation. This high-level payment workflow depends directly on
+ *   concrete VietqrService and PaypalService implementations instead of a payment
+ *   gateway abstraction.
+ * - SRP: Medium risk. The service coordinates transaction persistence,
+ *   provider-specific request creation, callback confirmation, order status update,
+ *   and refund-required handling.
+ * - Improvement: Introduce a PaymentGatewayPort/strategy per provider. Keep
+ *   PaymentService as a transaction orchestrator that selects a gateway from a
+ *   registry and delegates provider-specific QR/order creation.
+ */
 export class PaymentService {
   constructor(
     private readonly prisma: PrismaService,

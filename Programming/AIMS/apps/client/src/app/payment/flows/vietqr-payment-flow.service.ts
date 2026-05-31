@@ -18,10 +18,24 @@ import {
 } from '../models/vietqr-payment.models';
 
 const POLLING_INTERVAL_MS = 10_000;
-const SANDBOX_CALLBACK_DELAY_MS = 10_000;
 const VIETQR_TRANS_TYPE_CREDIT = 'C';
+const VIETQR_PAYMENT_SNAPSHOT_KEY = 'aims.vietQrPaymentSnapshot';
 
 @Injectable({ providedIn: 'root' })
+/**
+ * SOLID review:
+ * - SRP: Medium risk. The service is still focused on the VietQR payment flow, but
+ *   it combines payment creation, status polling, sandbox callback triggering,
+ *   snapshot persistence, and gateway order id derivation.
+ * - OCP: Partial violation for callback behavior. Sandbox callback logic is
+ *   hardcoded into the flow, so changing environment behavior requires editing
+ *   this class.
+ * - DIP: Medium risk. It depends on concrete API services and browser localStorage
+ *   instead of narrow persistence/status abstractions.
+ * - Improvement: Extract PaymentSnapshotStore, PaymentPollingService, and
+ *   VietQrSandboxCallbackService. Gate sandbox behavior behind an environment
+ *   strategy or feature flag.
+ */
 export class VietQrPaymentFlowService
   implements
     PaymentFlowStrategy<VietQrPaymentInput, VietQrPaymentSnapshot>,
@@ -33,10 +47,19 @@ export class VietQrPaymentFlowService
   private sandboxCallbackSubscription?: Subscription;
   private pollingSubscription?: Subscription;
   private latestSnapshot$ =
-    new BehaviorSubject<VietQrPaymentSnapshot | null>(null);
+    new BehaviorSubject<VietQrPaymentSnapshot | null>(this.readStoredSnapshot());
 
   get snapshot$(): Observable<VietQrPaymentSnapshot | null> {
     return this.latestSnapshot$.asObservable();
+  }
+
+  get currentSnapshot(): VietQrPaymentSnapshot | null {
+    return this.latestSnapshot$.value;
+  }
+
+  resume(snapshot: VietQrPaymentSnapshot): void {
+    this.setSnapshot(snapshot);
+    this.startPolling(snapshot.payment.orderId);
   }
 
   start(input: VietQrPaymentInput): Observable<VietQrPaymentSnapshot> {
@@ -50,11 +73,11 @@ export class VietQrPaymentFlowService
       .pipe(
         tap((payment) => {
           const snapshot: VietQrPaymentSnapshot = { payment };
-          this.latestSnapshot$.next(snapshot);
+          this.setSnapshot(snapshot);
           this.startPolling(payment.orderId);
-          this.scheduleSandboxCallback(payment.orderId, payment.totalAmount);
         }),
         switchMap((payment) => this.snapshotForOrder(payment)),
+        tap((snapshot) => this.requestSandboxCallback(snapshot)),
       );
   }
 
@@ -75,7 +98,7 @@ export class VietQrPaymentFlowService
   ): Observable<VietQrPaymentSnapshot> {
     return this.paymentStatusApi.getLatestByOrderId(payment.orderId).pipe(
       tap((latestTransaction) => {
-        this.latestSnapshot$.next({ payment, latestTransaction });
+        this.setSnapshot({ payment, latestTransaction });
       }),
       map((latestTransaction) => ({ payment, latestTransaction })),
       catchError(() => [{ payment }]),
@@ -93,7 +116,7 @@ export class VietQrPaymentFlowService
           const current = this.latestSnapshot$.value;
           if (!current) return;
 
-          this.latestSnapshot$.next({
+          this.setSnapshot({
             ...current,
             latestTransaction,
           });
@@ -105,18 +128,33 @@ export class VietQrPaymentFlowService
       });
   }
 
-  private scheduleSandboxCallback(orderId: string, amount: number): void {
-    this.sandboxCallbackSubscription = timer(SANDBOX_CALLBACK_DELAY_MS)
+  private requestSandboxCallback(snapshot: VietQrPaymentSnapshot): void {
+    const orderId = snapshot.payment.orderId;
+    const latestTransaction = snapshot.latestTransaction;
+    const content =
+      latestTransaction?.qrContent ||
+      (latestTransaction?.gatewayOrderId
+        ? `AIMS ${latestTransaction.gatewayOrderId}`
+        : `AIMS ${this.buildGatewayOrderId(snapshot.payment.paymentTransactionId)}`);
+
+    if (!content) return;
+
+    this.sandboxCallbackSubscription?.unsubscribe();
+    this.sandboxCallbackSubscription = this.paymentStatusApi
+      .requestVietQrSandboxCallback({
+        amount: snapshot.payment.totalAmount,
+        content,
+        transType: VIETQR_TRANS_TYPE_CREDIT,
+      })
       .pipe(
         takeUntil(this.stop$),
         switchMap(() => this.paymentStatusApi.getLatestByOrderId(orderId)),
-        switchMap((transaction) =>
-          this.paymentStatusApi.requestVietQrSandboxCallback({
-            amount,
-            content: transaction.qrContent || `AIMS ${transaction.gatewayOrderId}`,
-            transType: VIETQR_TRANS_TYPE_CREDIT,
-          }),
-        ),
+        tap((transaction) => {
+          this.setSnapshot({
+            payment: snapshot.payment,
+            latestTransaction: transaction,
+          });
+        }),
         catchError(() => EMPTY),
       )
       .subscribe();
@@ -128,5 +166,26 @@ export class VietQrPaymentFlowService
       status === 'FAILED' ||
       status === 'REFUND_REQUIRED'
     );
+  }
+
+  private buildGatewayOrderId(transactionId: string): string {
+    return transactionId.replace(/-/g, '').slice(0, 13).toUpperCase();
+  }
+
+  private setSnapshot(snapshot: VietQrPaymentSnapshot): void {
+    this.latestSnapshot$.next(snapshot);
+    localStorage.setItem(VIETQR_PAYMENT_SNAPSHOT_KEY, JSON.stringify(snapshot));
+  }
+
+  private readStoredSnapshot(): VietQrPaymentSnapshot | null {
+    const rawSnapshot = localStorage.getItem(VIETQR_PAYMENT_SNAPSHOT_KEY);
+    if (!rawSnapshot) return null;
+
+    try {
+      return JSON.parse(rawSnapshot) as VietQrPaymentSnapshot;
+    } catch {
+      localStorage.removeItem(VIETQR_PAYMENT_SNAPSHOT_KEY);
+      return null;
+    }
   }
 }
