@@ -1,0 +1,22 @@
+<dl class="specific-grid">
+  <div>
+    <dt>Artists</dt>
+    <dd>{{ listText(info.artists) }}</dd>
+  </div>
+  <div>
+    <dt>Record Label</dt>
+    <dd>{{ info.recordLabel || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Track List</dt>
+    <dd>{{ listText(info.trackList) }}</dd>
+  </div>
+  <div>
+    <dt>Genre</dt>
+    <dd>{{ info.genre || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Release Date</dt>
+    <dd>{{ info.releaseDate || 'N/A' }}</dd>
+  </div>
+</dl>

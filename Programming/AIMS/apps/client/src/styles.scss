@@ -1,44 +1,56 @@
 /* You can add global styles to this file, and also import other style files */
-@import url("https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css");
+@import url('https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css');
 
 * {
-    -webkit-font-smoothing: antialiased;
-    box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
 }
 
 html,
 body {
-    margin: 0;
-    height: 100%;
+  margin: 0;
+  min-height: 100%;
+  height: 100%;
+  color: #19212a;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  background: #f6f8fb;
 }
 
-// Sử dụng Nesting (Lồng CSS)
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
 button {
-    &:focus-visible {
-        outline: 2px solid #4a90e2 !important;
-        outline: -webkit-focus-ring-color auto 5px !important;
-    }
+  &:focus-visible {
+    outline: 2px solid #4a90e2 !important;
+    outline: -webkit-focus-ring-color auto 5px !important;
+  }
 }
 
 a {
-    text-decoration: none;
+  text-decoration: none;
 }
 
-// Tạo Map chứa thông tin các font (Tên font: Độ dày)
 $inter-fonts: (
-    "Inter-ExtraBold": "800",
-    "Inter-Bold": "700",
-    "Inter-Regular": "400",
-    "Inter-Medium": "500",
-    "Inter-SemiBold": "600"
+  'Inter-ExtraBold': '800',
+  'Inter-Bold': '700',
+  'Inter-Regular': '400',
+  'Inter-Medium': '500',
+  'Inter-SemiBold': '600',
 );
 
-// Dùng vòng lặp @each để tự động sinh code cho từng font
 @each $family, $weight in $inter-fonts {
-
-    /* @FONTWARNING[{"type": "restricted", "family": "#{$family}", "weight": "#{$weight}", "style": "normal", "allowsCrossOrigin": false}] */
-    @font-face {
-        font-family: "#{$family}";
-        src: local("#{$family}");
-    }
+  /* @FONTWARNING[{"type": "restricted", "family": "#{$family}", "weight": "#{$weight}", "style": "normal", "allowsCrossOrigin": false}] */
+  @font-face {
+    font-family: '#{$family}';
+    src: local('#{$family}');
+  }
 }

@@ -1,0 +1,57 @@
+@use '../../../../shared/styles/aims-tokens' as *;
+
+.detail-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: $aims-color-text;
+  background: $aims-color-page;
+  font-family: $aims-font-regular;
+}
+
+.detail-page__main {
+  flex: 1;
+  width: 100%;
+  max-width: $aims-page-max-width;
+  margin: 0 auto;
+  padding: 32px 24px 56px;
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  color: $aims-color-text-muted;
+  font-size: 14px;
+
+  button {
+    border: 0;
+    background: transparent;
+    color: $aims-color-text-muted;
+    cursor: pointer;
+    padding: 0;
+
+    &:hover {
+      color: $aims-color-primary;
+    }
+  }
+
+  span {
+    color: rgba(65, 71, 82, 0.45);
+  }
+
+  strong {
+    color: $aims-color-text;
+    font-family: $aims-font-medium;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 640px) {
+  .detail-page__main {
+    padding: 24px 16px 40px;
+  }
+}

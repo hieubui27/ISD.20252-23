@@ -1,0 +1,115 @@
+@use '../../../../shared/styles/aims-tokens' as *;
+
+.product-card {
+  display: grid;
+  grid-template-rows: 160px 1fr;
+  min-height: 318px;
+  overflow: hidden;
+  color: $aims-color-text;
+  text-decoration: none;
+  background: $aims-color-surface;
+  border-radius: $aims-radius-lg;
+  transition:
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.product-card:hover {
+  box-shadow: 0 8px 18px rgba(26, 28, 28, 0.12);
+  transform: translateY(-2px);
+}
+
+.product-image {
+  display: grid;
+  place-items: center;
+  position: relative;
+  background: $aims-color-page;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-placeholder {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  color: $aims-color-primary;
+  font-family: $aims-font-bold;
+  font-weight: 700;
+  background: rgba(0, 95, 172, 0.08);
+  border-radius: $aims-radius-lg;
+}
+
+.product-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+.product-type {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: fit-content;
+  padding: 2px 8px;
+  color: $aims-color-media-badge;
+  font-family: $aims-font-bold;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  background: $aims-color-media-badge-surface;
+  border-radius: $aims-radius-sm;
+  text-transform: uppercase;
+}
+
+h2 {
+  display: -webkit-box;
+  min-height: 38px;
+  margin: 0 0 2px;
+  overflow: hidden;
+  color: $aims-color-text;
+  font-family: $aims-font-bold;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 19px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.product-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.price {
+  color: $aims-color-text;
+  font-family: $aims-font-bold;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.status {
+  max-width: 100%;
+  padding: 3px 7px;
+  overflow-wrap: anywhere;
+  color: $aims-color-success;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(26, 97, 0, 0.09);
+  border-radius: $aims-radius-sm;
+  text-transform: uppercase;
+}
+
+.status.notice {
+  color: $aims-color-warning;
+  background: $aims-color-warning-surface;
+}

@@ -1,0 +1,34 @@
+<dl class="specific-grid">
+  <div>
+    <dt>Disc Type</dt>
+    <dd>{{ info.discType || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Director</dt>
+    <dd>{{ info.director || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Runtime</dt>
+    <dd>{{ info.runtime || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Studio</dt>
+    <dd>{{ info.studio || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Audio Language</dt>
+    <dd>{{ info.language || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Subtitles</dt>
+    <dd>{{ listText(info.subtitles) }}</dd>
+  </div>
+  <div>
+    <dt>Release Date</dt>
+    <dd>{{ info.releaseDate || 'N/A' }}</dd>
+  </div>
+  <div>
+    <dt>Genre</dt>
+    <dd>{{ info.genre || 'N/A' }}</dd>
+  </div>
+</dl>

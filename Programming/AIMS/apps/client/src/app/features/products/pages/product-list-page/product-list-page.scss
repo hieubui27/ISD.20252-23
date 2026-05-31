@@ -1,0 +1,109 @@
+@use '../../../../shared/styles/aims-tokens' as *;
+
+.products-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: $aims-color-text;
+  background: $aims-color-page;
+  font-family: $aims-font-regular;
+}
+
+.products-page__main {
+  flex: 1;
+  width: 100%;
+  max-width: $aims-page-max-width;
+  margin: 0 auto;
+  padding: 40px 24px 56px;
+}
+
+.catalog-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+h1 {
+  margin: 0 0 4px;
+  color: $aims-color-text;
+  font-family: $aims-font-extrabold;
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 43px;
+  letter-spacing: 0;
+}
+
+.catalog-heading p {
+  margin: 0;
+  color: $aims-color-text-muted;
+  font-size: 16px;
+}
+
+.catalog-heading span {
+  flex: 0 0 auto;
+  border-radius: $aims-radius-md;
+  background: rgba(0, 95, 172, 0.08);
+  color: $aims-color-primary;
+  font-family: $aims-font-bold;
+  font-size: 13px;
+  padding: 7px 10px;
+}
+
+.catalog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  color: $aims-color-text-muted;
+  font-size: 14px;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  select {
+    height: 30px;
+    border: 1px solid $aims-color-muted;
+    border-radius: $aims-radius-md;
+    background: $aims-color-surface;
+    color: $aims-color-text;
+    font-family: $aims-font-medium;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0 8px;
+    outline: none;
+  }
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .catalog-heading,
+  .catalog-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .products-page__main {
+    padding: 24px 16px 40px;
+  }
+
+  h1 {
+    font-size: 30px;
+    line-height: 38px;
+  }
+
+  .product-grid {
+    grid-template-columns: 1fr;
+    padding-top: 24px;
+  }
+}

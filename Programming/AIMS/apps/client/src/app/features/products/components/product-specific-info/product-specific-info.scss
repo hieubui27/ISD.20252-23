@@ -1,0 +1,17 @@
+@use '../../../../shared/styles/aims-tokens' as *;
+
+.specific-info {
+  display: grid;
+  gap: 16px;
+  padding-top: 24px;
+  border-top: 1px solid $aims-color-muted;
+}
+
+h2 {
+  margin: 0;
+  color: $aims-color-text;
+  font-family: $aims-font-bold;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+}

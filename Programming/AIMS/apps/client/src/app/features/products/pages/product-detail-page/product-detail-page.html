@@ -1,0 +1,31 @@
+<div class="detail-page">
+  <app-aims-header
+    (brandClicked)="goToProducts()"
+    (browseClicked)="goToCatalog()"
+    (cartClicked)="goToProducts()"
+  ></app-aims-header>
+
+  <main class="detail-page__main">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <button type="button" (click)="goToProducts()">Products</button>
+      <span>›</span>
+      <button type="button" (click)="goToCatalog()">Product Catalog</button>
+      @if (product(); as selectedProduct) {
+      <span>›</span>
+      <strong>{{ selectedProduct.title }}</strong>
+      }
+    </nav>
+
+    @if (isLoading()) {
+    <app-status-message tone="info">Loading product detail...</app-status-message>
+    } @else if (notFound()) {
+    <app-status-message tone="error">Product not found.</app-status-message>
+    } @else if (errorMessage()) {
+    <app-status-message tone="error">{{ errorMessage() }}</app-status-message>
+    } @else if (product(); as selectedProduct) {
+    <app-product-detail [product]="selectedProduct" />
+    }
+  </main>
+
+  <app-aims-footer></app-aims-footer>
+</div>
