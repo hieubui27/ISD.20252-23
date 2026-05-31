@@ -60,6 +60,13 @@ describe('ShippingFeeService', () => {
       expect(result).toBe(22000);
     });
 
+    it('should support real Vietnamese major city names with diacritics', () => {
+      expect(service.calculateShippingFee('Hà Nội', 3.0, 90000)).toBe(22000);
+      expect(service.calculateShippingFee('Hồ Chí Minh', 3.0, 90000)).toBe(
+        22000,
+      );
+    });
+
     it('should never return a negative shipping fee', () => {
       const result = service.calculateShippingFee('Hanoi', 1.0, 200000);
 

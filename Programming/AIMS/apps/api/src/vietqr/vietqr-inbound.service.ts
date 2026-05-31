@@ -29,6 +29,16 @@ interface InboundAccessTokenPayload {
  * - All methods support the single inbound VietQR authentication responsibility: parse credentials, validate them, and issue a temporary token.
  */
 @Injectable()
+/**
+ * SOLID review:
+ * - SRP: Low risk. The service has one broad responsibility: VietQR inbound
+ *   authentication. Inside that boundary it parses Basic Auth, validates merchant
+ *   credentials, signs temporary tokens, parses tokens, and validates expiry.
+ * - DIP: Mostly compliant through ConfigService. The remaining risk is that token
+ *   format and crypto algorithm are hardcoded in this service.
+ * - Improvement: Extract an InboundTokenSigner/Verifier abstraction so token
+ *   creation and validation can change without modifying credential validation.
+ */
 export class VietqrInboundService {
   constructor(private readonly configService: ConfigService) {}
 

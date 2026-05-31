@@ -8,6 +8,17 @@ import {
 } from '../models/vietqr-payment.models';
 
 @Injectable({ providedIn: 'root' })
+/**
+ * SOLID review:
+ * - ISP: Low risk. One API service exposes both production payment status lookup
+ *   and VietQR sandbox callback triggering, so callers may depend on a wider
+ *   surface than they need.
+ * - OCP: Low risk. Adding non-VietQR status actions or removing sandbox support
+ *   requires changing this shared API service.
+ * - Improvement: Split PaymentTransactionStatusApi from
+ *   VietQrSandboxCallbackApi. Production flows should depend only on the status
+ *   lookup API.
+ */
 export class PaymentStatusApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${AIMS_API_BASE_URL}/payments`;

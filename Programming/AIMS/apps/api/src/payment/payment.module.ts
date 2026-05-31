@@ -27,6 +27,16 @@ import { ConfigService } from '../vietqr/config/vietqr-config.service';
  * - All declarations belong to the payment module boundary for payment, VietQR callback, VietQR client, and temporary PlaceOrder integration.
  */
 @Module({
+  /*
+   * SOLID review:
+   * - DIP/OCP: Medium risk. VietQR controllers, services, guards, config, and HTTP
+   *   client are registered directly inside PaymentModule. This is acceptable for a
+   *   small module, but changing the VietQR implementation or disabling sandbox
+   *   endpoints requires editing this payment module.
+   * - Improvement: Create a VietqrModule that owns VietQR providers and exports a
+   *   narrow provider-facing service/port. PaymentModule should import VietqrModule
+   *   and depend on exported abstractions.
+   */
   imports: [PaypalModule, PrismaModule, MailModule],
   controllers: [PaymentController, VietqrController, VietqrInboundController],
   providers: [

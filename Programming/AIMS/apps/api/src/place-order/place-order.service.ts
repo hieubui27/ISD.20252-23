@@ -514,6 +514,7 @@ export class PlaceOrderBeService {
     const invoiceItems: InvoiceItemDto[] = items.map((item) => {
       const product = productsById.get(item.productId);
       const price = Number(product.currentPrice);
+      const weightKg = this.normalizeProductWeightKg(product.weight);
 
       return {
         productId: item.productId,
@@ -521,7 +522,7 @@ export class PlaceOrderBeService {
         price,
         quantity: item.quantity,
         amount: price * item.quantity,
-        weight: Number(product.weight),
+        weight: weightKg,
       };
     });
     const subtotalBeforeVat = invoiceItems.reduce(
@@ -530,15 +531,29 @@ export class PlaceOrderBeService {
     );
     const totalWeight = items.reduce((sum, item) => {
       const product = productsById.get(item.productId);
-      return sum + Number(product.weight) * item.quantity;
+      return sum + this.normalizeProductWeightKg(product.weight) * item.quantity;
     }, 0);
     const vatAmount = subtotalBeforeVat * VAT_RATE;
     const subtotalAfterVat = subtotalBeforeVat + vatAmount;
-    const deliveryFee = this.shippingFeeService.calculateShippingFee(
-      deliveryInfo.province,
+    const shippingBreakdown =
+      this.shippingFeeService.calculateShippingFeeBreakdown(
+        deliveryInfo.province,
+        totalWeight,
+        subtotalBeforeVat,
+      );
+    const deliveryFee = shippingBreakdown.finalShippingFee;
+
+    this.debugInvoiceCalculation({
+      productTotalExVat: subtotalBeforeVat,
+      vatAmount,
+      productTotalInclVat: subtotalAfterVat,
       totalWeight,
-      subtotalBeforeVat,
-    );
+      shippingFeeBeforeDiscount: shippingBreakdown.shippingFeeBeforeDiscount,
+      shippingDiscount: shippingBreakdown.shippingDiscount,
+      finalShippingFee: deliveryFee,
+      totalAmount: subtotalAfterVat + deliveryFee,
+      province: deliveryInfo.province,
+    });
 
     return {
       items: invoiceItems,
@@ -548,6 +563,24 @@ export class PlaceOrderBeService {
       deliveryFee,
       totalAmount: subtotalAfterVat + deliveryFee,
     };
+  }
+
+  private normalizeProductWeightKg(weight: unknown): number {
+    const weightInGrams = Number(weight);
+
+    if (!Number.isFinite(weightInGrams) || weightInGrams <= 0) {
+      return 0;
+    }
+
+    return weightInGrams / 1000;
+  }
+
+  private debugInvoiceCalculation(values: Record<string, unknown>): void {
+    if (process.env.DEBUG_PLACE_ORDER_AMOUNT !== '1') {
+      return;
+    }
+
+    console.debug('[PlaceOrder] invoice calculation', values);
   }
 
   private isProductAvailable(product: any): boolean {

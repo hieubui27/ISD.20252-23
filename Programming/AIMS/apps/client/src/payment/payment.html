@@ -1,63 +1,61 @@
-<div class="payment-page">
-  <header class="payment-nav">
-    <div class="payment-nav__brand">AIMS</div>
-    <div class="payment-nav__search">Search for books, CDs, DVDs...</div>
-    <div class="payment-nav__links">
-      <span>Browse</span>
-      <span>New Arrivals</span>
-      <span>Collections</span>
-      <span>Deals</span>
-      <span class="payment-nav__cart">3</span>
-    </div>
-  </header>
+<div class="payment-page" *ngIf="state$ | async as state">
+  <app-aims-header
+    [cartItemCount]="state.cartItemCount"
+    (brandClicked)="facade.goToProducts()"
+    (browseClicked)="facade.goToProducts()"
+  ></app-aims-header>
 
   <main class="payment-page__main">
     <section class="payment-heading">
       <h1>Complete Your Purchase</h1>
-      <p>
-        Review your order details and select a payment method to finalize your
-        transaction securely.
-      </p>
+      <p>Review your order details and select a payment method to finalize your transaction securely.</p>
     </section>
 
     <section class="payment-layout">
       <aside class="invoice-column">
-        <section class="panel">
-          <h2 class="panel__title">
-            <span class="panel__icon">▤</span>
+        <section class="invoice-panel">
+          <h2>
+            <svg viewBox="0 0 16 18" fill="none" aria-hidden="true">
+              <rect x="1" y="1" width="14" height="16" rx="1.5" stroke="#005fac" stroke-width="1.3" />
+              <path d="M4 6H12M4 9H10M4 12H8" stroke="#005fac" stroke-width="1.3" stroke-linecap="round" />
+            </svg>
             Invoice Summary
           </h2>
 
           <div class="summary-list">
-            <div class="summary-row">
+            <div>
               <span>Subtotal</span>
-              <strong>{{ order.subtotal | number }} VND</strong>
+              <strong>{{ state.order.subtotal | number }} VND</strong>
             </div>
-            <div class="summary-row">
-              <span>VAT ({{ order.vatRate * 100 }}%)</span>
-              <strong>{{ order.subtotal * order.vatRate | number }} VND</strong>
+            <div>
+              <span>VAT ({{ state.order.vatRate * 100 }}%)</span>
+              <strong>{{ state.order.subtotal * state.order.vatRate | number }} VND</strong>
             </div>
-            <div class="summary-row">
+            <div>
               <span>Shipping Fee</span>
-              <strong class="summary-row__accent">
-                {{ order.shippingFee > 0 ? (order.shippingFee | number) + ' VND' : 'Free' }}
+              <strong class="summary-list__accent">
+                {{ state.order.shippingFee > 0 ? (state.order.shippingFee | number) + ' VND' : 'Free' }}
               </strong>
             </div>
           </div>
 
           <div class="summary-total">
-            <div>
-              <strong>Total Amount</strong>
-              <span>Includes taxes and fees</span>
-            </div>
-            <strong>{{ order.total | number }} VND</strong>
+            <p>Total Amount</p>
+            <span>Includes taxes and fees</span>
+            <strong>{{ state.order.total | number }} VND</strong>
           </div>
         </section>
 
         <section class="items-panel">
-          <h3>Items ({{ order.items.length }})</h3>
-          <article class="cart-item" *ngFor="let item of order.items">
-            <div class="cart-item__thumb">▥</div>
+          <h3>Items ({{ state.order.items.length }})</h3>
+          <article *ngFor="let item of state.order.items">
+            <div class="items-panel__thumb">
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <rect x="2" y="1" width="12" height="14" rx="1.5" stroke="#005fac" stroke-width="1.2" />
+                <circle cx="8" cy="8" r="3" stroke="#005fac" stroke-width="1.2" />
+                <circle cx="8" cy="8" r="1" fill="#005fac" />
+              </svg>
+            </div>
             <div>
               <strong>{{ item.name }}</strong>
               <span>Qty: {{ item.quantity }}</span>
@@ -67,91 +65,72 @@
       </aside>
 
       <section class="payment-column">
-        <section class="panel">
-          <h2 class="panel__title">Payment Method</h2>
+        <section class="payment-panel">
+          <h2>Payment Method</h2>
 
           <button
             type="button"
-            class="method-card"
-            [class.method-card--selected]="selectedPaymentMethod === 'VIETQR'"
-            (click)="selectedPaymentMethod = 'VIETQR'"
+            class="method-card method-card--selected"
           >
-            <span class="method-card__radio"></span>
-            <span class="method-card__content">
-              <strong>VietQR</strong>
-              <small>Scan using any supported banking app</small>
-            </span>
-            <span class="method-card__badge">Recommended</span>
-          </button>
-
-          <div class="vietqr-panel" *ngIf="selectedPaymentMethod === 'VIETQR' && vietQrSnapshot">
-            <div class="vietqr-panel__qr">
-              <img *ngIf="visibleQrCode" [src]="visibleQrCode" alt="VietQR code" />
-              <span *ngIf="!visibleQrCode">QR</span>
+            <div class="method-card__header">
+              <div class="method-card__title">
+                <span class="method-card__radio"></span>
+                <strong>VietQR</strong>
+              </div>
+              <span class="method-card__badge">RECOMMENDED</span>
             </div>
 
-            <div class="vietqr-panel__details">
-              <div>
-                <span>Order</span>
-                <strong>{{ vietQrSnapshot.payment.orderId }}</strong>
+            <div class="vietqr-card">
+              <div class="vietqr-card__qr">
+                <img *ngIf="state.qrImageUrl" [src]="state.qrImageUrl" alt="QR Code" />
+                <span *ngIf="!state.qrImageUrl">QR</span>
               </div>
-              <div>
-                <span>Amount</span>
-                <strong>{{ vietQrSnapshot.payment.totalAmount | number }} VND</strong>
-              </div>
-              <div>
-                <span>Status</span>
-                <strong>{{ vietQrSnapshot.latestTransaction?.status || vietQrSnapshot.payment.paymentStatus }}</strong>
+              <div class="vietqr-card__hint">
+                <svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <rect x="1" y="1" width="5" height="5" rx="0.5" stroke="#414752" stroke-width="1.2" />
+                  <rect x="8" y="1" width="5" height="5" rx="0.5" stroke="#414752" stroke-width="1.2" />
+                  <rect x="1" y="8" width="5" height="5" rx="0.5" stroke="#414752" stroke-width="1.2" />
+                  <rect x="9" y="9" width="1.5" height="1.5" fill="#414752" />
+                  <rect x="11.5" y="9" width="1.5" height="1.5" fill="#414752" />
+                  <rect x="9" y="11.5" width="1.5" height="1.5" fill="#414752" />
+                  <rect x="11.5" y="11.5" width="1.5" height="1.5" fill="#414752" />
+                </svg>
+                Scan to pay via any supported banking app
               </div>
             </div>
-          </div>
-
-          <button
-            type="button"
-            class="method-card"
-            [class.method-card--selected]="selectedPaymentMethod === 'PAYPAL'"
-            (click)="selectedPaymentMethod = 'PAYPAL'"
-          >
-            <span class="method-card__radio"></span>
-            <span class="method-card__content">
-              <strong>PayPal</strong>
-              <small>Continue to PayPal checkout</small>
-            </span>
           </button>
 
-          <app-status-message *ngIf="statusMessage" [tone]="isVietQrSuccess ? 'success' : 'info'">
-            {{ statusMessage }}
+          <app-status-message *ngIf="state.statusMessage" tone="info">
+            {{ state.statusMessage }}
           </app-status-message>
 
-          <app-status-message *ngIf="errorMessage" tone="error">
-            {{ errorMessage }}
+          <app-status-message *ngIf="state.errorMessage" tone="error">
+            {{ state.errorMessage }}
           </app-status-message>
         </section>
 
         <section class="action-panel">
-          <app-aims-button variant="ghost" (pressed)="cancelOrder()">
-            ← Cancel Order
+          <app-aims-button type="button" variant="ghost" (pressed)="facade.cancelOrder()">
+            <svg viewBox="0 0 12 10" fill="none" aria-hidden="true">
+              <path d="M11 5H1M5 1L1 5L5 9" stroke="#414752" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Cancel Order
           </app-aims-button>
 
           <app-aims-button
-            variant="primary"
-            [loading]="isLoading"
-            [disabled]="isLoading || isVietQrSuccess"
-            (pressed)="confirmPayment()"
+            type="button"
+            [disabled]="state.isLoading"
+            (pressed)="facade.confirmOrder()"
           >
-            {{ isLoading ? 'Processing...' : isVietQrSuccess ? 'Payment Confirmed' : 'Confirm Payment' }}
-            <span *ngIf="!isLoading && !isVietQrSuccess">→</span>
+            {{ state.isLoading ? 'Creating QR...' : 'Confirm Order' }}
+            <svg *ngIf="!state.isLoading && !state.isVietQrSuccess" viewBox="0 0 14 12" fill="none" aria-hidden="true">
+              <path d="M1 6H13M8 1L13 6L8 11" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
           </app-aims-button>
         </section>
       </section>
     </section>
   </main>
 
-  <footer class="payment-footer">
-    <p>© 2024 AIMS Digital Media. All rights reserved.</p>
-    <div>
-      <a href="#">Privacy Policy</a>
-      <a href="#">Terms of Service</a>
-    </div>
-  </footer>
+  <app-aims-footer></app-aims-footer>
 </div>

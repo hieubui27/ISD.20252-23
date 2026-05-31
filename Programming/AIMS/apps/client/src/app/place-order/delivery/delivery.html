@@ -1,0 +1,177 @@
+<div class="delivery-page">
+  <app-aims-header
+    [cartItemCount]="cartItemCount"
+    (brandClicked)="backToProducts()"
+    (browseClicked)="backToProducts()"
+  ></app-aims-header>
+
+  <main class="delivery-page__main">
+    <section class="delivery-heading">
+      <h1>Shipping &amp; Delivery</h1>
+      <p>Please provide your details to ensure accurate delivery.</p>
+    </section>
+
+    <app-status-message *ngIf="errorMessage" tone="error">
+      {{ errorMessage }}
+    </app-status-message>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="delivery-layout">
+        <section class="delivery-form">
+          <h2>Contact Information</h2>
+
+          <div class="form-grid">
+            <label>
+              <span>Full Name <span class="aims-required">*</span></span>
+              <div
+                class="input-wrap"
+                [class.input-wrap--valid]="form.controls.receiverName.valid && form.controls.receiverName.value"
+                [class.input-wrap--error]="shouldShowError('receiverName')"
+              >
+                <input type="text" formControlName="receiverName" placeholder="Nguyen Van A" />
+                <svg *ngIf="form.controls.receiverName.valid && form.controls.receiverName.value" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="8" cy="8" r="7" stroke="#1a6100" stroke-width="1.5" />
+                  <path d="M5 8L7 10L11 6" stroke="#1a6100" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <small *ngIf="shouldShowError('receiverName')">{{ fieldError('receiverName') }}</small>
+            </label>
+
+            <label>
+              <span>Phone Number <span class="aims-required">*</span></span>
+              <input
+                type="tel"
+                formControlName="phoneNumber"
+                placeholder="0981413168"
+                [class.input--error]="shouldShowError('phoneNumber')"
+              />
+              <small *ngIf="shouldShowError('phoneNumber')">{{ fieldError('phoneNumber') }}</small>
+            </label>
+          </div>
+
+          <label class="form-field">
+            <span>Email Address <span class="aims-required">*</span></span>
+            <div
+              class="input-wrap"
+              [class.input-wrap--error]="shouldShowError('email')"
+            >
+              <input type="text" formControlName="email" placeholder="customer@example.com" />
+              <svg *ngIf="shouldShowError('email')" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="7" stroke="#ba1a1a" stroke-width="1.5" />
+                <path d="M8 5V8M8 11H8.01" stroke="#ba1a1a" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </div>
+            <small *ngIf="shouldShowError('email')">{{ fieldError('email') }}</small>
+          </label>
+
+          <h2>Delivery Address</h2>
+
+          <label class="form-field">
+            <span>Street Address <span class="aims-required">*</span></span>
+            <input
+              type="text"
+              formControlName="streetAddress"
+              placeholder="123 Media Blvd, Suite 400"
+              [class.input--error]="shouldShowError('streetAddress')"
+            />
+            <small *ngIf="shouldShowError('streetAddress')">{{ fieldError('streetAddress') }}</small>
+          </label>
+
+          <div class="form-grid">
+            <label>
+              <span>Province/City <span class="aims-required">*</span></span>
+              <div class="select-wrap" [class.select-wrap--error]="shouldShowError('province')">
+                <select formControlName="province">
+                  <option *ngFor="let province of provinces">{{ province }}</option>
+                </select>
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M4 6L8 10L12 6" stroke="#414752" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+              </div>
+              <small *ngIf="shouldShowError('province')">{{ fieldError('province') }}</small>
+            </label>
+
+            <label>
+              <span>Postal / Zip Code</span>
+              <input type="text" formControlName="postalCode" placeholder="10001" />
+            </label>
+          </div>
+
+          <label class="form-field">
+            <span>Delivery Instructions (Optional)</span>
+            <textarea
+              formControlName="shippingInstructions"
+              rows="3"
+              placeholder="Leave at the front desk..."
+              [class.input--error]="shouldShowError('shippingInstructions')"
+            ></textarea>
+            <small *ngIf="shouldShowError('shippingInstructions')">{{ fieldError('shippingInstructions') }}</small>
+          </label>
+        </section>
+
+        <aside class="summary-panel">
+          <h2>Order Summary</h2>
+
+          <div class="summary-items">
+            <article *ngFor="let item of draftItems">
+              <div class="summary-item__icon">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <rect x="2" y="2" width="12" height="12" rx="1" stroke="#414752" stroke-width="1.2" />
+                  <path d="M5 6H11M5 9H9" stroke="#414752" stroke-width="1.2" stroke-linecap="round" />
+                </svg>
+              </div>
+              <div>
+                <strong>{{ item.title }}</strong>
+                <span>Qty: {{ item.quantity }}</span>
+              </div>
+              <p>{{ formatPrice(item.unitPrice * item.quantity) }}</p>
+            </article>
+          </div>
+
+          <div class="summary-pricing">
+            <div>
+              <span>Subtotal ({{ draftItems.length }} items)</span>
+              <strong>{{ formatPrice(subtotal) }}</strong>
+            </div>
+            <div>
+              <span>Estimated Tax</span>
+              <strong>{{ formatPrice(vatAmount) }}</strong>
+            </div>
+            <div>
+              <span>Shipping Fee</span>
+              <strong class="summary-pricing__accent">
+                {{ shippingFee > 0 ? formatPrice(shippingFee) : 'Digital Delivery (Free)' }}
+              </strong>
+            </div>
+          </div>
+
+          <div class="summary-total">
+            <span>Total</span>
+            <strong>{{ formatPrice(totalAmount) }}</strong>
+          </div>
+
+          <app-aims-button
+            type="submit"
+            size="md"
+            [fullWidth]="true"
+            [disabled]="isCreatingPayment || !canPreview"
+          >
+            <span>{{ isCreatingPayment ? 'Creating QR...' : 'Continue to Payment' }}</span>
+            <svg viewBox="0 0 14 12" fill="none" aria-hidden="true">
+              <path d="M1 6H13M8 1L13 6L8 11" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </app-aims-button>
+
+          <app-aims-button type="button" variant="ghost" [fullWidth]="true" (pressed)="backToProducts()">
+            <svg viewBox="0 0 12 10" fill="none" aria-hidden="true">
+              <path d="M11 5H1M5 1L1 5L5 9" stroke="#414752" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Back to Cart
+          </app-aims-button>
+        </aside>
+      </div>
+    </form>
+  </main>
+
+  <app-aims-footer></app-aims-footer>
+</div>
