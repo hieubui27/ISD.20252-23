@@ -226,14 +226,14 @@ export class ProductFormLogic {
     // Validate file type
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       this.toastService.showError(
-        'Định dạng ảnh không hỗ trợ. Chỉ chấp nhận JPEG, PNG, WebP, GIF.',
+        'Unsupported image format. Only JPEG, PNG, WebP, and GIF are allowed.',
       );
       return;
     }
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      this.toastService.showError('Kích thước ảnh vượt quá giới hạn 10MB.');
+      this.toastService.showError('Image size exceeds the 10MB limit.');
       return;
     }
 
@@ -264,12 +264,12 @@ export class ProductFormLogic {
       next: (response) => {
         this.imageUrlsSubject.next([response.imageUrl]);
         this.uploadingImageSubject.next(false);
-        this.toastService.showSuccess('Tải ảnh lên thành công!');
+        this.toastService.showSuccess('Image uploaded successfully!');
       },
       error: (err) => {
         console.error('Error uploading image', err);
         this.uploadingImageSubject.next(false);
-        this.toastService.showError('Lỗi khi tải ảnh lên. Vui lòng thử lại.');
+        this.toastService.showError('Error uploading image. Please try again.');
       },
     });
   }
@@ -283,9 +283,7 @@ export class ProductFormLogic {
 
   public saveProduct(): void {
     if (this.form.invalid) {
-      this.toastService.showError(
-        'Vui lòng kiểm tra lại các trường thông tin không hợp lệ.',
-      );
+      this.toastService.showError('Please check invalid fields.');
       return;
     }
 
@@ -385,13 +383,13 @@ export class ProductFormLogic {
         .updateProduct(this.productId, payload)
         .subscribe({
           next: () => {
-            this.toastService.showSuccess('Cập nhật sản phẩm thành công!');
+            this.toastService.showSuccess('Product updated successfully!');
             this.navigateToCatalog();
           },
           error: (err) => {
             console.error('Error updating product', err);
             this.toastService.showError(
-              'Lỗi khi cập nhật sản phẩm. Vui lòng thử lại.',
+              'Error updating product. Please try again.',
             );
             this.loadingSubject.next(false);
           },
@@ -411,7 +409,7 @@ export class ProductFormLogic {
                   this.pendingFile = null;
                   this.uploadingImageSubject.next(false);
                   this.toastService.showSuccess(
-                    'Tạo mới sản phẩm và tải ảnh thành công!',
+                    'Product created and image uploaded successfully!',
                   );
                   this.navigateToCatalog();
                 },
@@ -422,20 +420,20 @@ export class ProductFormLogic {
                   );
                   this.uploadingImageSubject.next(false);
                   this.toastService.showSuccess(
-                    'Tạo sản phẩm thành công nhưng tải ảnh thất bại.',
+                    'Product created successfully but image upload failed.',
                   );
                   this.navigateToCatalog();
                 },
               });
           } else {
-            this.toastService.showSuccess('Tạo mới sản phẩm thành công!');
+            this.toastService.showSuccess('Product created successfully!');
             this.navigateToCatalog();
           }
         },
         error: (err) => {
           console.error('Error creating product', err);
           this.toastService.showError(
-            'Lỗi khi tạo sản phẩm. Vui lòng thử lại.',
+            'Error creating product. Please try again.',
           );
           this.loadingSubject.next(false);
         },

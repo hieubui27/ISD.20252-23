@@ -39,7 +39,9 @@ export class ProductService {
   async create(dto: CreateProductDto) {
     const handler = this.handlers.find((h) => h.supports(dto.type));
     if (!handler)
-      throw new BadRequestException(`Loại ${dto.type} không hỗ trợ`);
+      throw new BadRequestException(
+        `Product type ${dto.type} is not supported`,
+      );
 
     const productId = await this.prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
@@ -82,7 +84,7 @@ export class ProductService {
         discProduct: { include: { cd: true, dvd: true } },
       },
     });
-    if (!product) throw new NotFoundException(`Không tìm thấy sản phẩm ${id}`);
+    if (!product) throw new NotFoundException(`Product ${id} not found`);
     return this.serializeBigInt(product);
   }
 
@@ -107,7 +109,7 @@ export class ProductService {
   async deleteProduct(id: string) {
     if (this.dailyDeletes >= 20) {
       throw new HttpException(
-        'Vượt quá hạn mức xóa sản phẩm trong ngày (20)',
+        'Exceeded daily product deletion limit (20)',
         429,
       );
     }
@@ -133,7 +135,9 @@ export class ProductService {
 
   async deleteBulk(ids: string[]) {
     if (!ids || ids.length > 10) {
-      throw new BadRequestException('Chỉ được xóa tối đa 10 sản phẩm 1 lần');
+      throw new BadRequestException(
+        'Maximum 10 products can be deleted at once',
+      );
     }
     const results = [];
     for (const id of ids) {
@@ -153,7 +157,7 @@ export class ProductService {
     const product = await this.prisma.product.findUnique({
       where: { id: BigInt(id) },
     });
-    if (!product) throw new NotFoundException(`Không tìm thấy sản phẩm ${id}`);
+    if (!product) throw new NotFoundException(`Product ${id} not found`);
 
     const updated = await this.prisma.product.update({
       where: { id: BigInt(id) },

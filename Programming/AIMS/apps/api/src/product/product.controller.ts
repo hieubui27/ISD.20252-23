@@ -74,7 +74,7 @@ export class ProductController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(@Param('id') id: string, @UploadedFile() file: any) {
     if (!file) {
-      throw new BadRequestException('Không tìm thấy file ảnh trong request');
+      throw new BadRequestException('Image file not found in request');
     }
 
     const uploadResult = await this.cloudinaryService.uploadImage(file);

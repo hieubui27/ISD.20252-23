@@ -25,7 +25,7 @@ export class LoginLogic {
       error: (err) => {
         console.log('dang nhap that bai');
         const errorMsg =
-          err.status === 401 ? 'Sai tài khoản hoặc mật khẩu' : 'Lỗi hệ thống';
+          err.status === 401 ? 'Invalid username or password' : 'System error';
         onError(errorMsg);
       },
     });

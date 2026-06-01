@@ -31,7 +31,7 @@ export class AuthService implements IAuthService {
     });
 
     if (existingUser) {
-      throw new BadRequestException('Email đã được sử dụng');
+      throw new BadRequestException('Email is already in use');
     }
 
     const hashedPass = await bcrypt.hash(createUserDto.password, 10);
@@ -67,7 +67,7 @@ export class AuthService implements IAuthService {
       loginLink,
     });
 
-    return { message: 'Đăng ký thành công' };
+    return { message: 'Registration successful' };
   }
 
   async login(
@@ -84,7 +84,7 @@ export class AuthService implements IAuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -92,11 +92,11 @@ export class AuthService implements IAuthService {
       user.hashedPass,
     );
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     if (user.status !== 'ACTIVE') {
-      throw new UnauthorizedException('Tài khoản đã bị khóa');
+      throw new UnauthorizedException('Account has been locked');
     }
 
     const roles = user.roles.map((r) => r.role.roleName);
@@ -123,7 +123,7 @@ export class AuthService implements IAuthService {
     this.setCookies(res, accessToken, refreshToken);
 
     return {
-      message: 'Đăng nhập thành công',
+      message: 'Login successful',
       accessToken: accessToken,
       refreshToken: refreshToken,
     };
@@ -134,7 +134,7 @@ export class AuthService implements IAuthService {
     res.clearCookie('refresh_token');
     // Note: In a real app, you might want to clear the hashedRefreshToken in DB as well,
     // but we need the userId. For simplicity, just clearing cookies.
-    return { message: 'Đăng xuất thành công' };
+    return { message: 'Logout successful' };
   }
 
   async refreshToken(
@@ -142,7 +142,7 @@ export class AuthService implements IAuthService {
     res: Response,
   ): Promise<{ message: string; accessToken: string; refreshToken: string }> {
     if (!refreshToken) {
-      throw new UnauthorizedException('Không có refresh token');
+      throw new UnauthorizedException('No refresh token provided');
     }
 
     try {
@@ -159,7 +159,7 @@ export class AuthService implements IAuthService {
       });
 
       if (!user || !user.hashedRefreshToken) {
-        throw new UnauthorizedException('Token không hợp lệ');
+        throw new UnauthorizedException('Invalid token');
       }
 
       const isRefreshTokenValid = await bcrypt.compare(
@@ -167,7 +167,7 @@ export class AuthService implements IAuthService {
         user.hashedRefreshToken,
       );
       if (!isRefreshTokenValid) {
-        throw new UnauthorizedException('Token không hợp lệ');
+        throw new UnauthorizedException('Invalid token');
       }
 
       const roles = user.roles.map((r) => r.role.roleName);
@@ -195,12 +195,12 @@ export class AuthService implements IAuthService {
       this.setCookies(res, newAccessToken, newRefreshToken);
 
       return {
-        message: 'Làm mới token thành công',
+        message: 'Token refreshed successfully',
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
       };
     } catch (e) {
-      throw new UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');
+      throw new UnauthorizedException('Token is invalid or expired');
     }
   }
 

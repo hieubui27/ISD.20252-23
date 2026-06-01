@@ -52,7 +52,7 @@ export class ForgotPassword extends AuthPageBase {
       this.forgotForm.value.email!,
       () => {
         sessionStorage.setItem('reset_email', this.forgotForm.value.email!);
-        this.setSuccess('Link reset password đã được gửi!');
+        this.setSuccess('Password reset link has been sent!');
         this.cdr.detectChanges();
       },
       (msg) => {

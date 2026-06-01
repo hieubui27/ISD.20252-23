@@ -61,7 +61,7 @@ export class Login extends AuthPageBase {
     this.loginLogic.executeLogin(
       this.loginForm.value,
       () => {
-        this.setSuccess('Thành công!');
+        this.setSuccess('Success!');
         this.cdr.detectChanges(); // Ép cập nhật UI thành công
       },
       (msg) => {

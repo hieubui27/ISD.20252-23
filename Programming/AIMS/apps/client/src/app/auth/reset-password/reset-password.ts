@@ -111,7 +111,7 @@ export class ResetPassword extends AuthPageBase implements OnInit {
       () => {
         sessionStorage.removeItem('reset_email');
         sessionStorage.removeItem('otp_verified_email');
-        this.setSuccess('Mật khẩu mới đã được lưu!');
+        this.setSuccess('New password has been saved!');
         this.cdr.detectChanges();
       },
       (msg) => {

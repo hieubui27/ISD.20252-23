@@ -49,7 +49,7 @@
           <!-- Upload loading overlay -->
           <div class="upload-overlay" *ngIf="(logic.uploadingImage$ | async)">
             <div class="upload-spinner"></div>
-            <p class="upload-status-text">Đang tải ảnh lên...</p>
+            <p class="upload-status-text">Uploading image...</p>
           </div>
           
           <div class="image-grid" *ngIf="(logic.imageUrls$ | async)?.length">
@@ -69,7 +69,7 @@
               <path d="M6 1v10M1 6h10" stroke="#414752" stroke-width="2" transform="scale(2) translate(4,4)" />
             </svg>
             <p class="upload-text">Click to add more images</p>
-            <p class="upload-hint">PNG, JPG, WebP, GIF — tối đa 10MB</p>
+            <p class="upload-hint">PNG, JPG, WebP, GIF — max 10MB</p>
           </div>
         </div>
 

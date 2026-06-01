@@ -104,7 +104,7 @@ export class VerifyOtp extends AuthPageBase implements OnInit {
       this.email,
       () => {
         this.isResending = false;
-        this.resendSuccessMsg = 'Mã mới đã được gửi!';
+        this.resendSuccessMsg = 'New code has been sent!';
         this.cdr.detectChanges();
 
         // Ẩn thông báo sau 3 giây
@@ -115,7 +115,7 @@ export class VerifyOtp extends AuthPageBase implements OnInit {
       },
       (msg) => {
         this.isResending = false;
-        this.resendSuccessMsg = msg; // Tạm dùng biến này để hiện lỗi nếu có
+        this.resendSuccessMsg = msg; // Temporarily use this variable to show errors if any
         this.cdr.detectChanges();
       },
     );
@@ -128,7 +128,7 @@ export class VerifyOtp extends AuthPageBase implements OnInit {
     const otpCode = inputs.map((input) => input.nativeElement.value).join('');
 
     if (otpCode.length < 6) {
-      this.setError('Vui lòng nhập đủ 6 số.');
+      this.setError('Please enter all 6 digits.');
       return;
     }
 
@@ -140,7 +140,7 @@ export class VerifyOtp extends AuthPageBase implements OnInit {
       otpCode,
       () => {
         sessionStorage.setItem('otp_verified_email', this.email);
-        this.setSuccess('Xác thực thành công!');
+        this.setSuccess('Verification successful!');
         this.cdr.detectChanges();
       },
       (msg) => {

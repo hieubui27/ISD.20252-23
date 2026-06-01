@@ -56,7 +56,7 @@ export class CloudinaryService {
           if (error || !result) {
             reject(
               new BadRequestException(
-                error?.message || 'Lỗi khi tải ảnh lên Cloudinary',
+                error?.message || 'Error uploading image to Cloudinary',
               ),
             );
             return;
