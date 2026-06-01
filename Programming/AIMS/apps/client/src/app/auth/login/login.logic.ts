@@ -27,13 +27,13 @@ export class LoginLogic {
               if (this.authService.hasRole('Product Manager')) {
                 this.router.navigate(['/manager/products']);
               } else {
-                this.router.navigate(['/products']);
+                this.router.navigate(['/product-catalog']);
               }
             }, 1500);
           },
           error: () => {
             setTimeout(() => {
-              this.router.navigate(['/products']);
+              this.router.navigate(['/product-catalog']);
             }, 1500);
           },
         });

@@ -113,7 +113,7 @@ export class CartPageComponent {
   }
 
   goToProducts(): void {
-    this.router.navigate(['/products']);
+    this.router.navigate(['/product-catalog']);
   }
 
   goToCart(): void {

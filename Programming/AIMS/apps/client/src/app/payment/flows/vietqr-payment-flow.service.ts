@@ -1,7 +1,6 @@
 import { inject, Injectable, OnDestroy } from '@angular/core';
 import {
   BehaviorSubject,
-  EMPTY,
   Observable,
   Subject,
   Subscription,
@@ -44,7 +43,6 @@ export class VietQrPaymentFlowService
   private readonly placeOrderApi = inject(PlaceOrderApiService);
   private readonly paymentStatusApi = inject(PaymentStatusApiService);
   private readonly stop$ = new Subject<void>();
-  private sandboxCallbackSubscription?: Subscription;
   private pollingSubscription?: Subscription;
   private latestSnapshot$ =
     new BehaviorSubject<VietQrPaymentSnapshot | null>(this.readStoredSnapshot());
@@ -77,14 +75,27 @@ export class VietQrPaymentFlowService
           this.startPolling(payment.orderId);
         }),
         switchMap((payment) => this.snapshotForOrder(payment)),
-        tap((snapshot) => this.requestSandboxCallback(snapshot)),
       );
+  }
+
+  confirmCurrentPayment(): Observable<VietQrPaymentSnapshot> {
+    const snapshot = this.latestSnapshot$.value;
+
+    if (!snapshot) {
+      throw new Error('VietQR payment has not been created yet.');
+    }
+
+    return this.requestSandboxCallback(snapshot);
   }
 
   stop(): void {
     this.stop$.next();
-    this.sandboxCallbackSubscription?.unsubscribe();
     this.pollingSubscription?.unsubscribe();
+  }
+
+  clearSnapshot(): void {
+    this.latestSnapshot$.next(null);
+    localStorage.removeItem(VIETQR_PAYMENT_SNAPSHOT_KEY);
   }
 
   ngOnDestroy(): void {
@@ -128,7 +139,9 @@ export class VietQrPaymentFlowService
       });
   }
 
-  private requestSandboxCallback(snapshot: VietQrPaymentSnapshot): void {
+  private requestSandboxCallback(
+    snapshot: VietQrPaymentSnapshot,
+  ): Observable<VietQrPaymentSnapshot> {
     const orderId = snapshot.payment.orderId;
     const latestTransaction = snapshot.latestTransaction;
     const content =
@@ -137,10 +150,11 @@ export class VietQrPaymentFlowService
         ? `AIMS ${latestTransaction.gatewayOrderId}`
         : `AIMS ${this.buildGatewayOrderId(snapshot.payment.paymentTransactionId)}`);
 
-    if (!content) return;
+    if (!content) {
+      throw new Error('VietQR callback content is missing.');
+    }
 
-    this.sandboxCallbackSubscription?.unsubscribe();
-    this.sandboxCallbackSubscription = this.paymentStatusApi
+    return this.paymentStatusApi
       .requestVietQrSandboxCallback({
         amount: snapshot.payment.totalAmount,
         content,
@@ -155,9 +169,11 @@ export class VietQrPaymentFlowService
             latestTransaction: transaction,
           });
         }),
-        catchError(() => EMPTY),
-      )
-      .subscribe();
+        map((transaction) => ({
+          payment: snapshot.payment,
+          latestTransaction: transaction,
+        })),
+      );
   }
 
   private isTerminalStatus(status: PaymentStatus): boolean {

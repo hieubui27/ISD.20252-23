@@ -187,7 +187,7 @@
             (pressed)="facade.confirmOrder()"
           >
             <ng-container *ngIf="state.selectedMethod === 'VIETQR'">
-              {{ state.isLoading ? 'Creating QR...' : 'Confirm Order' }}
+              {{ state.isLoading ? 'Processing Payment...' : 'Confirm Order' }}
             </ng-container>
             <ng-container *ngIf="state.selectedMethod === 'PAYPAL'">
               <ng-container *ngIf="state.paypalApproved">

@@ -106,7 +106,7 @@ export class DeliveryComponent implements OnInit, OnDestroy {
 
     if (!this.checkoutDraftService.hasValidItems(this.draft)) {
       this.checkoutDraftService.clear();
-      this.router.navigate(['/products']);
+      this.router.navigate(['/product-catalog']);
       return;
     }
 
@@ -183,7 +183,7 @@ export class DeliveryComponent implements OnInit, OnDestroy {
     this.statusMessage = '';
 
     if (!this.draft) {
-      this.router.navigate(['/products']);
+      this.router.navigate(['/product-catalog']);
       return;
     }
 
@@ -230,7 +230,7 @@ export class DeliveryComponent implements OnInit, OnDestroy {
   }
 
   backToProducts(): void {
-    this.router.navigate(['/products']);
+    this.router.navigate(['/product-catalog']);
   }
 
   formatPrice(value: number): string {

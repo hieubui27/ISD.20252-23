@@ -5,6 +5,10 @@ import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
 import { AimsHeaderComponent } from '../../shared/layout/aims-header/aims-header';
 import { VietQrPaymentFlowService } from '../../payment/flows/vietqr-payment-flow.service';
 import { CheckoutDraftService } from '../services/checkout-draft.service';
+import {
+  ORDER_RESULT_STATE_KEY,
+  OrderResultState,
+} from './order-result-state';
 
 @Component({
   selector: 'app-order-result',
@@ -19,11 +23,13 @@ export class OrderResultComponent implements OnInit {
   private readonly vietQrPaymentFlow = inject(VietQrPaymentFlowService);
 
   private readonly snapshot = this.vietQrPaymentFlow.currentSnapshot;
+  private readonly orderResult = this.readOrderResult();
   private readonly draft = this.checkoutDraftService.get();
 
   readonly transactionId =
     this.snapshot?.payment.paymentTransactionId ||
     this.snapshot?.latestTransaction?.gatewayOrderId ||
+    this.orderResult?.transactionId ||
     this.snapshot?.payment.orderId ||
     'AIMS-PENDING';
 
@@ -34,7 +40,11 @@ export class OrderResultComponent implements OnInit {
   }).format(new Date());
 
   ngOnInit(): void {
-    if (this.snapshot?.latestTransaction?.status !== 'SUCCESS') {
+    const hasSuccessfulVietQr =
+      this.snapshot?.latestTransaction?.status === 'SUCCESS';
+    const hasSuccessfulStoredResult = this.orderResult?.status === 'SUCCESS';
+
+    if (!hasSuccessfulVietQr && !hasSuccessfulStoredResult) {
       this.router.navigate(['/payment']);
     }
   }
@@ -46,6 +56,32 @@ export class OrderResultComponent implements OnInit {
   returnHome(): void {
     this.checkoutDraftService.clear();
     this.vietQrPaymentFlow.stop();
-    this.router.navigate(['/products']);
+    this.vietQrPaymentFlow.clearSnapshot();
+    this.clearOrderResult();
+    this.router.navigate(['/product-catalog']);
+  }
+
+  private readOrderResult(): OrderResultState | null {
+    try {
+      const raw = sessionStorage.getItem(ORDER_RESULT_STATE_KEY);
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw) as Partial<OrderResultState>;
+      if (parsed.status === 'SUCCESS' && parsed.transactionId) {
+        return parsed as OrderResultState;
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private clearOrderResult(): void {
+    try {
+      sessionStorage.removeItem(ORDER_RESULT_STATE_KEY);
+    } catch {
+      // ignore
+    }
   }
 }

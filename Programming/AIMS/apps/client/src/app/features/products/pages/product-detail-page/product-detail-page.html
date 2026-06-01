@@ -8,11 +8,9 @@
 
   <main class="detail-page__main">
     <nav class="breadcrumb" aria-label="Breadcrumb">
-      <button type="button" (click)="goToProducts()">Products</button>
-      <span>›</span>
       <button type="button" (click)="goToCatalog()">Product Catalog</button>
       @if (product(); as selectedProduct) {
-      <span>›</span>
+      <span>&gt;</span>
       <strong>{{ selectedProduct.title }}</strong>
       }
     </nav>
