@@ -22,8 +22,8 @@ export class VerifyOtpLogic {
       error: (err) => {
         const errorMsg =
           err.status === 400
-            ? 'Mã OTP không chính xác hoặc đã hết hạn'
-            : 'Lỗi hệ thống khi xác thực';
+            ? 'OTP code is incorrect or expired'
+            : 'System error during verification';
         onError(errorMsg);
       },
     });
@@ -43,7 +43,7 @@ export class VerifyOtpLogic {
         }, 1000);
       },
       error: (err) => {
-        const errorMsg = 'Lỗi hệ thống khi gửi lại mã';
+        const errorMsg = 'System error when resending code';
         onError(errorMsg);
       },
     });

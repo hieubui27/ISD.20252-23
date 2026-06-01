@@ -24,8 +24,8 @@ export class ForgotPasswordLogic {
       error: (err) => {
         const errorMsg =
           err.status === 404
-            ? 'Email không tồn tại trong hệ thống'
-            : 'Lỗi hệ thống';
+            ? 'Email does not exist in the system'
+            : 'System error';
         onError(errorMsg);
       },
     });

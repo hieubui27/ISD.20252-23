@@ -39,4 +39,20 @@ export class ProductManagerService {
       body: { ids },
     });
   }
+
+  /**
+   * Uploads an image file for a specific product.
+   *
+   * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+   * + Reason why: Data Coupling because it only receives simple data (productId, file).
+   *   Functional Cohesion because it performs a single task: sending the file to the upload endpoint.
+   */
+  uploadImage(productId: string, file: File): Observable<{ imageUrl: string }> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<{ imageUrl: string }>(
+      `${this.apiUrl}/${productId}/upload-image`,
+      formData,
+    );
+  }
 }

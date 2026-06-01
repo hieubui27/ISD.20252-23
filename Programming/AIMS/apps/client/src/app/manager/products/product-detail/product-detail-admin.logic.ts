@@ -39,11 +39,11 @@ export class ProductDetailAdminLogic {
   public confirmAdjustQuantity(newQuantityStr: string, reason: string): void {
     const newQuantity = parseInt(newQuantityStr, 10);
     if (isNaN(newQuantity) || newQuantity < 0) {
-      this.toastService.showError('Vui lòng nhập số lượng hợp lệ.');
+      this.toastService.showError('Please enter a valid quantity.');
       return;
     }
     if (!reason.trim()) {
-      this.toastService.showError('Vui lòng nhập lý do điều chỉnh.');
+      this.toastService.showError('Please enter a reason for adjustment.');
       return;
     }
 
@@ -56,11 +56,13 @@ export class ProductDetailAdminLogic {
           next: (updatedProduct) => {
             this.productSubject.next(updatedProduct);
             this.closeAdjustModal();
-            this.toastService.showSuccess('Cập nhật số lượng thành công!');
+            this.toastService.showSuccess('Quantity updated successfully!');
           },
           error: (err) => {
             console.error('Error updating quantity', err);
-            this.toastService.showError('Có lỗi xảy ra khi cập nhật số lượng.');
+            this.toastService.showError(
+              'An error occurred while updating quantity.',
+            );
           },
         });
     }
@@ -87,10 +89,10 @@ export class ProductDetailAdminLogic {
         next: (res: any) => {
           if (res && res.status === 'DEACTIVATED') {
             this.toastService.showError(
-              'Sản phẩm không thể xóa do còn tồn kho. Đã chuyển sang trạng thái Ngưng Hoạt Động.',
+              'Product cannot be deleted as it has stock. Status changed to Inactive.',
             );
           } else {
-            this.toastService.showSuccess('Đã xóa sản phẩm thành công');
+            this.toastService.showSuccess('Product deleted successfully');
           }
           this.navigateToCatalog();
         },
@@ -98,7 +100,8 @@ export class ProductDetailAdminLogic {
           console.error(err);
           const msg = Array.isArray(err.error?.message)
             ? err.error.message[0]
-            : err.error?.message || 'Có lỗi xảy ra khi xóa sản phẩm';
+            : err.error?.message ||
+              'An error occurred while deleting the product';
           this.toastService.showError(msg);
         },
       });

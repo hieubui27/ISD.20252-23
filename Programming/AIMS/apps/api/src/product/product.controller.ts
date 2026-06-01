@@ -7,12 +7,17 @@ import {
   Param,
   Post,
   Put,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { GetProductsListUseCase } from './application/use-cases/get-products-list.use-case';
 import { GetProductDetailUseCase } from './application/use-cases/get-product-detail.use-case';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 /**
  * Module: ProductController
@@ -34,6 +39,7 @@ export class ProductController {
     private readonly productService: ProductService,
     private readonly getProductsListUseCase: GetProductsListUseCase,
     private readonly getProductDetailUseCase: GetProductDetailUseCase,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   @Post()
@@ -54,6 +60,29 @@ export class ProductController {
   @Put(':id')
   update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
     return this.productService.update(id, updateProductDto);
+  }
+
+  /**
+   * Upload an image for a product.
+   * Flow: Receive file → Upload to Cloudinary → Update image_url in DB → Return URL.
+   *
+   * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+   * + Reason why: Data Coupling because it only passes simple data between services.
+   *   Functional Cohesion because this endpoint performs one task: uploading a product image.
+   */
+  @Post(':id/upload-image')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImage(@Param('id') id: string, @UploadedFile() file: any) {
+    if (!file) {
+      throw new BadRequestException('Image file not found in request');
+    }
+
+    const uploadResult = await this.cloudinaryService.uploadImage(file);
+    const imageUrl = uploadResult.secure_url;
+
+    await this.productService.updateImageUrl(id, imageUrl);
+
+    return { imageUrl };
   }
 
   @Delete('bulk')

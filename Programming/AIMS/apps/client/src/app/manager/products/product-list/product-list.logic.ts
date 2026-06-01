@@ -66,12 +66,12 @@ export class ProductListLogic {
 
           if (deactivatedCount > 0) {
             this.toastService.showError(
-              `${deactivatedCount} sản phẩm không thể xóa cứng do còn tồn kho hoặc dữ liệu liên kết. Đã chuyển sang trạng thái Ngưng Hoạt Động.`,
+              `${deactivatedCount} products could not be permanently deleted due to existing stock or linked data. Status changed to Inactive.`,
             );
           }
           if (deletedCount > 0) {
             this.toastService.showSuccess(
-              `Đã xóa vĩnh viễn ${deletedCount} sản phẩm.`,
+              `Permanently deleted ${deletedCount} products.`,
             );
           }
 
@@ -82,7 +82,7 @@ export class ProductListLogic {
           console.error('Error deleting products', err);
           const msg = Array.isArray(err.error?.message)
             ? err.error.message[0]
-            : err.error?.message || 'Lỗi khi xóa sản phẩm';
+            : err.error?.message || 'Error deleting products';
           this.toastService.showError(msg);
           this.loadingSubject.next(false);
         },

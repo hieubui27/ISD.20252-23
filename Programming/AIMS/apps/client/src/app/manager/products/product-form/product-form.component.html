@@ -43,8 +43,14 @@
         </div>
 
         <!-- Media Assets -->
-        <div class="section-card">
+        <div class="section-card media-section">
           <h3 class="section-title">Media Assets</h3>
+
+          <!-- Upload loading overlay -->
+          <div class="upload-overlay" *ngIf="(logic.uploadingImage$ | async)">
+            <div class="upload-spinner"></div>
+            <p class="upload-status-text">Uploading image...</p>
+          </div>
           
           <div class="image-grid" *ngIf="(logic.imageUrls$ | async)?.length">
             <div class="image-item" *ngFor="let img of (logic.imageUrls$ | async); let i = index">
@@ -58,12 +64,12 @@
           </div>
 
           <div class="upload-area" (click)="fileInput.click()">
-            <input type="file" #fileInput hidden accept="image/*" (change)="logic.onFileSelected($event)" />
+            <input type="file" #fileInput hidden accept="image/jpeg,image/png,image/webp,image/gif" (change)="logic.onFileSelected($event)" />
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
               <path d="M6 1v10M1 6h10" stroke="#414752" stroke-width="2" transform="scale(2) translate(4,4)" />
             </svg>
             <p class="upload-text">Click to add more images</p>
-            <p class="upload-hint">PNG, JPG up to 10MB</p>
+            <p class="upload-hint">PNG, JPG, WebP, GIF — max 10MB</p>
           </div>
         </div>
 

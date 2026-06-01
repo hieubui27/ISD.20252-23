@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { ProductController } from './product.controller';
 import { PrismaModule } from '../prisma/prisma.module';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { GetProductDetailUseCase } from './application/use-cases/get-product-detail.use-case';
 import { GetProductsListUseCase } from './application/use-cases/get-products-list.use-case';
 import { PrismaProductRepository } from './infrastructure/repositories/prisma-product.repository';
@@ -23,7 +24,7 @@ import { PRODUCT_QUERY_REPOSITORY } from './domain/repositories/product-query.re
  * Keep module wiring declarative and avoid putting business or database logic here.
  */
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, CloudinaryModule],
   controllers: [ProductController],
   providers: [
     ProductService,
