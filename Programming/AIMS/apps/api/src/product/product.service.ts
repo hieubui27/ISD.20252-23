@@ -21,11 +21,6 @@ import { NewspaperHandler } from './product-handler/newspaper.handler';
 @Injectable()
 export class ProductService {
   private readonly handlers: IProductHandler[];
-  private dailyDeletes = 0;
-
-  resetDailyQuota() {
-    this.dailyDeletes = 0;
-  }
 
   constructor(private readonly prisma: PrismaService) {
     this.handlers = [
@@ -106,8 +101,23 @@ export class ProductService {
     return { success: true };
   }
 
-  async deleteProduct(id: string) {
-    if (this.dailyDeletes >= 20) {
+  async deleteProduct(id: string, userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: BigInt(userId) },
+    });
+    if (!user) throw new BadRequestException('User not found');
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0); // Normalize to UTC midnight
+
+    let currentDeletes = user.dailyDeletes;
+    const lastDate = user.lastDeleteDate;
+
+    if (!lastDate || lastDate.getTime() !== today.getTime()) {
+      currentDeletes = 0;
+    }
+
+    if (currentDeletes >= 20) {
       throw new HttpException(
         'Exceeded daily product deletion limit (20)',
         429,
@@ -115,25 +125,31 @@ export class ProductService {
     }
 
     const product = await this.findOne(id);
+    let finalStatus = '';
 
     if (product.quantity === 0) {
       try {
         await this.remove(id);
-        this.dailyDeletes++;
-        return { status: 'DELETED' };
+        finalStatus = 'DELETED';
       } catch (error) {
         await this.update(id, { status: 'DEACTIVATED' } as any);
-        this.dailyDeletes++;
-        return { status: 'DEACTIVATED' };
+        finalStatus = 'DEACTIVATED';
       }
     } else {
       await this.update(id, { status: 'DEACTIVATED' } as any);
-      this.dailyDeletes++;
-      return { status: 'DEACTIVATED' };
+      finalStatus = 'DEACTIVATED';
     }
+
+    // Update user quota
+    await this.prisma.user.update({
+      where: { id: BigInt(userId) },
+      data: { dailyDeletes: currentDeletes + 1, lastDeleteDate: today },
+    });
+
+    return { status: finalStatus };
   }
 
-  async deleteBulk(ids: string[]) {
+  async deleteBulk(ids: string[], userId: string) {
     if (!ids || ids.length > 10) {
       throw new BadRequestException(
         'Maximum 10 products can be deleted at once',
@@ -141,7 +157,7 @@ export class ProductService {
     }
     const results = [];
     for (const id of ids) {
-      results.push(await this.deleteProduct(id));
+      results.push(await this.deleteProduct(id, userId));
     }
     return results;
   }

@@ -25,7 +25,7 @@
       <div class="image-card">
         <img [src]="product.imageUrl || 'assets/default-product.png'" alt="Product" class="product-img" />
       </div>
-      <div class="actions-group">
+      <div class="actions-group" *ngIf="authService.hasRole('Product Manager')">
         <app-aims-button variant="secondary" (pressed)="logic.openAdjustModal()" [fullWidth]="true">
           Adjust Quantity
         </app-aims-button>

@@ -7,6 +7,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import { PrismaService } from './prisma/prisma.service';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 const cookieParser = require('cookie-parser');
 const express = require('express');
 
@@ -25,6 +26,7 @@ async function bootstrap() {
 
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.useGlobalFilters(new AllExceptionsFilter());
   app.enableCors({ origin: 'http://localhost:4200', credentials: true });
 
   const globalPrefix = 'api';

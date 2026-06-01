@@ -18,9 +18,22 @@ export class LoginLogic {
         onSuccess();
         console.log('dang nhap thanh cong');
 
-        setTimeout(() => {
-          this.router.navigate(['/dashboard']);
-        }, 1500);
+        this.authService.fetchMe().subscribe({
+          next: () => {
+            setTimeout(() => {
+              if (this.authService.hasRole('Product Manager')) {
+                this.router.navigate(['/manager/products']);
+              } else {
+                this.router.navigate(['/products']);
+              }
+            }, 1500);
+          },
+          error: () => {
+            setTimeout(() => {
+              this.router.navigate(['/products']);
+            }, 1500);
+          },
+        });
       },
       error: (err) => {
         console.log('dang nhap that bai');

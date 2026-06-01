@@ -5,6 +5,8 @@ import { AimsButtonComponent } from '../../../shared/ui/aims-button/aims-button'
 import { AimsIconComponent } from '../../../shared/ui/aims-icon/aims-icon';
 import { AimsPaginationComponent } from '../../../shared/ui/aims-pagination/aims-pagination';
 
+import { AuthService } from '../../../auth/auth.service';
+
 @Component({
   selector: 'app-product-list',
   standalone: true,
@@ -19,6 +21,7 @@ import { AimsPaginationComponent } from '../../../shared/ui/aims-pagination/aims
 })
 export class ProductListComponent implements OnInit {
   public logic = inject(ProductListLogic);
+  public authService = inject(AuthService);
   public products$ = this.logic.products$;
 
   ngOnInit(): void {
