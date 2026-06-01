@@ -65,6 +65,16 @@ export class AuthService {
       );
   }
 
+  logout(): Observable<any> {
+    return this.http.post(
+      `${this.baseUrl}/logout`,
+      {},
+      {
+        withCredentials: true,
+      },
+    );
+  }
+
   forgotPassword(email: string): Observable<any> {
     return this.http.post(`${this.baseUrl}/request-reset-password`, { email });
   }

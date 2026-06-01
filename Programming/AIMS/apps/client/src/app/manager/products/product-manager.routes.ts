@@ -29,4 +29,11 @@ export const productManagerRoutes: Route[] = [
         (m) => m.ProductDetailAdminComponent,
       ),
   },
+  {
+    path: 'history',
+    loadComponent: () =>
+      import('./product-history/product-history.component').then(
+        (m) => m.ProductHistoryComponent,
+      ),
+  },
 ];

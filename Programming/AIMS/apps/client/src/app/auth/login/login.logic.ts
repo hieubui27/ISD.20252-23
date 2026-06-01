@@ -2,11 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth.service';
 import { delay } from 'rxjs/operators';
+import { AuthContext } from '../../core/contexts/auth.context';
 
 @Injectable({ providedIn: 'root' })
 export class LoginLogic {
   private authService = inject(AuthService);
   private router = inject(Router);
+  private authContext = inject(AuthContext);
 
   public executeLogin(
     payload: any,
@@ -15,6 +17,7 @@ export class LoginLogic {
   ): void {
     this.authService.login(payload).subscribe({
       next: () => {
+        this.authContext.setLoggedIn();
         onSuccess();
         console.log('dang nhap thanh cong');
 

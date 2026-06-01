@@ -55,4 +55,8 @@ export class ProductManagerService {
       formData,
     );
   }
+
+  getAllLogs(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/logs`);
+  }
 }
