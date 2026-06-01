@@ -10,6 +10,7 @@ import {
   UploadedFile,
   UseInterceptors,
   BadRequestException,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ProductService } from './product.service';
@@ -98,14 +99,16 @@ export class ProductController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Product Manager')
   @Delete('bulk')
-  async deleteBulk(@Body('ids') ids: string[]) {
-    return this.productService.deleteBulk(ids);
+  async deleteBulk(@Body('ids') ids: string[], @Req() req: any) {
+    const userId = req.user.userId;
+    return this.productService.deleteBulk(ids, userId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Product Manager')
   @Delete(':id')
-  async deleteProduct(@Param('id') id: string) {
-    return this.productService.deleteProduct(id);
+  async deleteProduct(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user.userId;
+    return this.productService.deleteProduct(id, userId);
   }
 }
