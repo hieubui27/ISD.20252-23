@@ -1,19 +1,20 @@
-import { CreateProductDto, ProductType } from '../dto/create-product.dto';
+import { ProductType } from '../dto/create-product.dto';
+import { CreateDvdDto } from '../dto/create-product.dto';
 import { IProductHandler } from './product-handler.interface';
 
 /**
  * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
  * + Reason why: Data Coupling because it interacts with the system using simple parameters (DTOs and transaction objects). Functional Cohesion because all its logic pertains exclusively to handling the creation of DVD-specific products.
  */
-export class DvdHandler implements IProductHandler {
+export class DvdHandler implements IProductHandler<CreateDvdDto, any> {
   supports(type: ProductType): boolean {
     return type === ProductType.DVD;
   }
-  async create(
-    tx: any,
-    productId: bigint,
-    data: CreateProductDto,
-  ): Promise<void> {
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  validate(data: CreateDvdDto): void {}
+
+  async create(tx: any, productId: bigint, data: CreateDvdDto): Promise<void> {
     await tx.discProduct.create({
       data: {
         id: productId,
@@ -31,5 +32,9 @@ export class DvdHandler implements IProductHandler {
         },
       },
     });
+  }
+
+  async update(tx: any, productId: bigint, data: any): Promise<void> {
+    // Update logic for DVD if needed
   }
 }
