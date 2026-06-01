@@ -1,8 +1,12 @@
 import { Injectable, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { BehaviorSubject, Subscription } from 'rxjs';
 import * as QRCode from 'qrcode';
-import { OrderSummary, PaymentMethod } from '../../services/payment.service';
+import {
+  OrderSummary,
+  PaymentMethod,
+  PaymentService,
+} from '../../services/payment.service';
 import { InvoicePreview } from '../../place-order/models/place-order.models';
 import {
   CheckoutDraft,
@@ -25,6 +29,8 @@ export interface PaymentPageState {
   isVietQrSuccess: boolean;
   selectedMethod: PaymentMethod;
   paypalRedirectUrl: string;
+  paypalApproved: boolean;
+  paypalConfirmed: boolean;
 }
 
 const EMPTY_ORDER: OrderSummary = {
@@ -45,7 +51,11 @@ const INITIAL_STATE: PaymentPageState = {
   isVietQrSuccess: false,
   selectedMethod: 'VIETQR',
   paypalRedirectUrl: '',
+  paypalApproved: false,
+  paypalConfirmed: false,
 };
+
+const PAYPAL_SESSION_KEY = 'aims_paypal_payment';
 
 @Injectable()
 /**
@@ -64,7 +74,9 @@ export class PaymentPageFacade {
   private readonly vietQrPaymentFlow = inject(VietQrPaymentFlowService);
   private readonly checkoutDraftService = inject(CheckoutDraftService);
   private readonly placeOrderApi = inject(PlaceOrderApiService);
+  private readonly paymentService = inject(PaymentService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   private readonly stateSubject = new BehaviorSubject<PaymentPageState>({
     ...INITIAL_STATE,
@@ -75,19 +87,39 @@ export class PaymentPageFacade {
   private snapshotSubscription?: Subscription;
   private checkoutDraft: CheckoutDraft | null = null;
   private currentSnapshot: VietQrPaymentSnapshot | null = null;
+  private paypalPaymentOrderId: string | null = null;
+  private paypalPaymentInvoiceId: string | null = null;
 
   initialize(): void {
     this.checkoutDraft = this.checkoutDraftService.get();
+    const paypalToken = this.route.snapshot.queryParamMap.get('token');
 
-    if (!this.checkoutDraftService.hasValidItems(this.checkoutDraft)) {
+    if (this.checkoutDraftService.hasValidItems(this.checkoutDraft)) {
+      this.applyCheckoutDraft(this.checkoutDraft);
+      this.loadInvoicePreview(this.checkoutDraft);
+    }
+
+    // 3. Xử lý PayPal return
+    if (paypalToken) {
+      this.handlePaypalReturn(paypalToken);
+      return;
+    }
+
+    // 1. Kiểm tra giỏ hàng có hợp lệ không
+    // Nếu đang return từ PayPal, ta có thể không cần block nếu giỏ hàng lỡ bị xóa (vì order đã ở backend)
+    // Nhưng nếu không phải PayPal return mà giỏ hàng trống thì phải redirect
+    if (
+      !paypalToken &&
+      !this.checkoutDraftService.hasValidItems(this.checkoutDraft)
+    ) {
       this.checkoutDraftService.clear();
       this.router.navigate(['/products']);
       return;
     }
 
-    this.applyCheckoutDraft(this.checkoutDraft);
-    this.loadInvoicePreview(this.checkoutDraft);
+    // 2. Apply CheckoutDraft để UI hiển thị thông tin giỏ hàng/tổng tiền thay vì 0 VND
 
+    // Detect VietQR return:
     const existingSnapshot = this.vietQrPaymentFlow.currentSnapshot;
     if (existingSnapshot) {
       this.vietQrPaymentFlow.resume(existingSnapshot);
@@ -119,6 +151,8 @@ export class PaymentPageFacade {
       qrImageUrl: '',
       isVietQrSuccess: false,
       paypalRedirectUrl: '',
+      paypalApproved: false,
+      paypalConfirmed: false,
     });
 
     this.startPaymentFlow();
@@ -181,11 +215,20 @@ export class PaymentPageFacade {
       })
       .subscribe({
         next: (result) => {
+          this.paypalPaymentOrderId = result.orderId;
+          this.paypalPaymentInvoiceId = result.invoiceId;
+
+          // Persist orderId/invoiceId in sessionStorage so they survive
+          // the full-page redirect to PayPal and back.
+          this.savePaypalSession(result.orderId, result.invoiceId);
+
           this.patchState({
             isLoading: false,
             paypalRedirectUrl: result.paymentUrl || '',
             statusMessage: result.paymentUrl
-              ? ''
+              ? this.stateSubject.value.paypalApproved
+                ? 'PayPal payment approved. Click "Confirm Payment" to complete your purchase.'
+                : ''
               : 'PayPal payment created. Awaiting redirect URL.',
           });
         },
@@ -213,9 +256,22 @@ export class PaymentPageFacade {
     }
 
     if (this.stateSubject.value.selectedMethod === 'PAYPAL') {
+      // If PayPal payment has been approved (user returned from PayPal), capture the payment
+      if (this.stateSubject.value.paypalApproved) {
+        this.capturePaypalPayment();
+        return;
+      }
+
+      // If PayPal payment has been confirmed, navigate to result
+      if (this.stateSubject.value.paypalConfirmed) {
+        this.router.navigate(['/order-result']);
+        return;
+      }
+
+      // Otherwise, redirect user to PayPal
       const paypalUrl = this.stateSubject.value.paypalRedirectUrl;
       if (paypalUrl) {
-        window.open(paypalUrl, '_blank');
+        window.location.href = paypalUrl;
       } else {
         this.patchState({
           statusMessage: 'PayPal redirect URL is not available yet.',
@@ -242,6 +298,93 @@ export class PaymentPageFacade {
 
   goToProducts(): void {
     this.router.navigate(['/products']);
+  }
+
+  private handlePaypalReturn(paypalToken: string): void {
+    // Restore orderId/invoiceId from sessionStorage (saved before PayPal redirect)
+    const saved = this.loadPaypalSession();
+    if (saved) {
+      this.paypalPaymentOrderId = saved.orderId;
+      this.paypalPaymentInvoiceId = saved.invoiceId;
+    }
+
+    this.patchState({
+      selectedMethod: 'PAYPAL',
+      paypalApproved: true,
+      paypalConfirmed: false,
+      statusMessage:
+        'PayPal payment approved. Click "Confirm Payment" to complete your purchase.',
+      errorMessage: '',
+    });
+
+    // Nếu bị mất session data (vd: user mở link ở tab khác ẩn danh hoặc localStorage bị clear),
+    // KHÔNG được gọi lại startPaypalPayment() lúc này. Vì nếu checkoutDraft rỗng, gọi start sẽ
+    // đẩy items: [] xuống backend -> backend gọi PayPal tạo payment amount: 0 -> lỗi 500.
+    if (!this.paypalPaymentOrderId) {
+      this.patchState({
+        paypalApproved: false,
+        errorMessage:
+          'Your payment session has expired or could not be found. Please return to products and try again.',
+        statusMessage: '',
+      });
+    }
+  }
+
+  /**
+   * Captures the PayPal payment by calling the confirm API.
+   * This is the step that actually charges the customer's PayPal account
+   * and triggers stock decrement on the server side.
+   */
+  private capturePaypalPayment(): void {
+    if (!this.paypalPaymentOrderId || !this.paypalPaymentInvoiceId) {
+      this.patchState({
+        errorMessage: 'Payment information is missing. Please try again.',
+      });
+      return;
+    }
+
+    this.patchState({
+      isLoading: true,
+      errorMessage: '',
+      statusMessage: 'Confirming your PayPal payment...',
+    });
+
+    this.paymentService
+      .confirmTransaction({
+        orderId: this.paypalPaymentOrderId,
+        invoiceId: this.paypalPaymentInvoiceId,
+        transactionId: '',
+        transactionContent: 'PayPal capture',
+        transactionDateTime: new Date().toISOString(),
+      })
+      .subscribe({
+        next: (result) => {
+          this.patchState({
+            isLoading: false,
+            paypalConfirmed: true,
+            paypalApproved: false,
+            statusMessage: 'Payment confirmed successfully! Redirecting...',
+            errorMessage: '',
+          });
+          // Clear checkout draft and PayPal session since payment is completed
+          this.checkoutDraftService.clear();
+          this.clearPaypalSession();
+          // Navigate to order result after short delay
+          setTimeout(() => {
+            this.router.navigate(['/order-result']);
+          }, 1500);
+        },
+        error: (err) => {
+          console.error('PayPal capture error:', err);
+          this.patchState({
+            isLoading: false,
+            errorMessage:
+              err.error?.message ||
+              err.message ||
+              'Failed to confirm PayPal payment. Please try again.',
+          });
+        },
+      });
   }
 
   private listenForVietQrUpdates(): void {
@@ -390,5 +533,38 @@ export class PaymentPageFacade {
       ...this.stateSubject.value,
       ...patch,
     });
+  }
+
+  // ── PayPal session persistence (survives full-page redirect) ──
+
+  private savePaypalSession(orderId: string, invoiceId: string): void {
+    try {
+      sessionStorage.setItem(
+        PAYPAL_SESSION_KEY,
+        JSON.stringify({ orderId, invoiceId }),
+      );
+    } catch {
+      // sessionStorage may be unavailable in some environments
+    }
+  }
+
+  private loadPaypalSession(): { orderId: string; invoiceId: string } | null {
+    try {
+      const raw = sessionStorage.getItem(PAYPAL_SESSION_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed?.orderId && parsed?.invoiceId) return parsed;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private clearPaypalSession(): void {
+    try {
+      sessionStorage.removeItem(PAYPAL_SESSION_KEY);
+    } catch {
+      // ignore
+    }
   }
 }

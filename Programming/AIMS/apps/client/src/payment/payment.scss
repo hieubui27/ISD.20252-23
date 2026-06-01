@@ -352,6 +352,25 @@
   }
 }
 
+.paypal-card__info--approved {
+  background: #e6f4ed;
+  border: 1px solid #0a8754;
+  color: #1a1c1c;
+
+  strong {
+    color: #0a8754;
+    font-family: 'Inter-Bold', Helvetica, sans-serif;
+  }
+}
+
+.paypal-card__info--confirmed {
+  background: #d4edda;
+  border: 1px solid #0a8754;
+  color: #0a8754;
+  font-family: 'Inter-SemiBold', Helvetica, sans-serif;
+  font-weight: 600;
+}
+
 .paypal-card__pay-btn {
   display: inline-flex;
   align-items: center;

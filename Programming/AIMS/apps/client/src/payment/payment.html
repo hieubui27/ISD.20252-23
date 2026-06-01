@@ -123,17 +123,28 @@
             </div>
 
             <div class="paypal-card" *ngIf="state.selectedMethod === 'PAYPAL'">
-              <div class="paypal-card__info">
+              <div class="paypal-card__info" *ngIf="!state.paypalApproved && !state.paypalConfirmed">
                 <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2a1 1 0 110 2 1 1 0 010-2zm1.5 9h-3a.5.5 0 010-1H7V7.5h-.5a.5.5 0 010-1H8a.5.5 0 01.5.5V11h.5a.5.5 0 110 1h.5z" fill="#414752"/>
                 </svg>
                 <span>You will be redirected to PayPal to complete your payment securely.</span>
               </div>
+              <div class="paypal-card__info paypal-card__info--approved" *ngIf="state.paypalApproved">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm3.3 5.3l-4 4a.5.5 0 01-.7 0l-2-2a.5.5 0 11.7-.7L7 9.3l3.6-3.6a.5.5 0 01.7.7z" fill="#0a8754"/>
+                </svg>
+                <span>PayPal payment approved! Click <strong>"Confirm Payment"</strong> below to finalize your purchase.</span>
+              </div>
+              <div class="paypal-card__info paypal-card__info--confirmed" *ngIf="state.paypalConfirmed">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm3.3 5.3l-4 4a.5.5 0 01-.7 0l-2-2a.5.5 0 11.7-.7L7 9.3l3.6-3.6a.5.5 0 01.7.7z" fill="#0a8754"/>
+                </svg>
+                <span>Payment confirmed successfully! Redirecting to your order summary...</span>
+              </div>
               <a
-                *ngIf="state.paypalRedirectUrl"
+                *ngIf="state.paypalRedirectUrl && !state.paypalApproved && !state.paypalConfirmed"
                 [href]="state.paypalRedirectUrl"
-                target="_blank"
-                rel="noopener noreferrer"
+                target="_self"
                 class="paypal-card__pay-btn"
               >
                 <svg viewBox="0 0 100 26" fill="none" aria-hidden="true" class="paypal-card__btn-logo">
@@ -146,7 +157,7 @@
                 </svg>
                 Pay with PayPal
               </a>
-              <div *ngIf="state.isLoading" class="paypal-card__loading">
+              <div *ngIf="state.isLoading && !state.paypalApproved" class="paypal-card__loading">
                 <span class="paypal-card__spinner"></span>
                 Preparing PayPal checkout…
               </div>
@@ -179,10 +190,21 @@
               {{ state.isLoading ? 'Creating QR...' : 'Confirm Order' }}
             </ng-container>
             <ng-container *ngIf="state.selectedMethod === 'PAYPAL'">
-              {{ state.isLoading ? 'Preparing PayPal...' : 'Pay with PayPal' }}
+              <ng-container *ngIf="state.paypalApproved">
+                {{ state.isLoading ? 'Confirming Payment...' : 'Confirm Payment' }}
+              </ng-container>
+              <ng-container *ngIf="state.paypalConfirmed">
+                View Order
+              </ng-container>
+              <ng-container *ngIf="!state.paypalApproved && !state.paypalConfirmed">
+                {{ state.isLoading ? 'Preparing PayPal...' : 'Pay with PayPal' }}
+              </ng-container>
             </ng-container>
-            <svg *ngIf="!state.isLoading && !state.isVietQrSuccess" viewBox="0 0 14 12" fill="none" aria-hidden="true">
+            <svg *ngIf="!state.isLoading && !state.isVietQrSuccess && !state.paypalConfirmed" viewBox="0 0 14 12" fill="none" aria-hidden="true">
               <path d="M1 6H13M8 1L13 6L8 11" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <svg *ngIf="state.paypalApproved && !state.isLoading" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="width: 16px; height: 16px;">
+              <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm3.3 5.3l-4 4a.5.5 0 01-.7 0l-2-2a.5.5 0 11.7-.7L7 9.3l3.6-3.6a.5.5 0 01.7.7z" fill="white"/>
             </svg>
           </app-aims-button>
         </section>

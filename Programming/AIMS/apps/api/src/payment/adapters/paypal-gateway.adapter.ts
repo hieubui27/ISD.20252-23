@@ -40,7 +40,7 @@ export class PaypalGatewayAdapter implements PaymentGateway {
     const order = await this.paypalService.createOrder(usdAmount);
     const approvalLinks = (order?.links || []) as PaypalApprovalLink[];
     const approveLink =
-      approvalLinks.find((link) => link.rel === 'approve')?.href || '';
+      approvalLinks.find((link) => link.rel === 'payer-action')?.href || '';
 
     return {
       paymentUrl: approveLink,
