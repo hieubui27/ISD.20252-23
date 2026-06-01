@@ -39,6 +39,8 @@ export class PaypalService {
     }
   }
 
+  // Thêm thư viện để tạo UUID nếu cần (ví dụ: import { v4 as uuidv4 } from 'uuid';)
+
   async createOrder(amount: number) {
     const accessToken = await this.getAccessToken();
     try {
@@ -50,13 +52,22 @@ export class PaypalService {
             {
               amount: {
                 currency_code: 'USD',
-                value: amount.toFixed(2),
+                value: amount.toFixed(2), // Format chuẩn 2 chữ số thập phân
               },
             },
           ],
+          payment_source: {
+            paypal: {
+              experience_context: {
+                return_url: 'http://localhost:4200/payment',
+                cancel_url: 'http://localhost:4200/payment',
+                user_action: 'PAY_NOW', // Hiển thị nút "Pay Now" thay vì "Continue"
+              },
+            },
+          },
           application_context: {
-            return_url: 'http://localhost:4200/',
-            cancel_url: 'http://localhost:4200/',
+            return_url: 'http://localhost:4200/payment',
+            cancel_url: 'http://localhost:4200/payment',
             user_action: 'PAY_NOW',
           },
         },
@@ -64,12 +75,23 @@ export class PaypalService {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
+            Prefer: 'return=representation', // Yêu cầu trả về chi tiết object order
           },
         },
       );
+
+      console.log(
+        '[PayPal] createOrder response links:',
+        JSON.stringify(response.data.links, null, 2),
+      );
       return response.data;
-    } catch (err) {
-      throw new InternalServerErrorException('Failed to create PayPal order');
+    } catch (err: any) {
+      // Log lỗi chi tiết từ PayPal để dễ debug
+      console.error(
+        '[PayPal] Create Order Error:',
+        err.response?.data || err.message,
+      );
+      throw new BadRequestException('Failed to create PayPal order');
     }
   }
 
@@ -78,16 +100,23 @@ export class PaypalService {
     try {
       const response = await axios.post(
         `${this.baseUrl}/v2/checkout/orders/${orderId}/capture`,
-        {},
+        {}, // Capture payload thường rỗng trừ khi bạn truyền payment_source
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
+            Prefer: 'return=representation',
+            // Nên sinh ra một uuid hoặc dùng chính orderId để tránh bị capture đúp nếu retry
+            // 'PayPal-Request-Id': orderId
           },
         },
       );
       return response.data;
-    } catch (err) {
+    } catch (err: any) {
+      console.error(
+        '[PayPal] Capture Payment Error:',
+        err.response?.data || err.message,
+      );
       throw new BadRequestException('Failed to capture PayPal payment');
     }
   }
