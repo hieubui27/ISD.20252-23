@@ -10,7 +10,8 @@ import {
   take,
 } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
-import { ToastService } from '../..//shared/ui/toast/toast.service';
+import { ToastService } from '../../shared/ui/toast/toast.service';
+import { AuthContext } from '../contexts/auth.context';
 
 let isRefreshing = false;
 const refreshTokenSubject = new BehaviorSubject<any>(null);
@@ -19,6 +20,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   const toastService = inject(ToastService);
+  const authContext = inject(AuthContext);
 
   // Clone the request to add withCredentials globally
   const authReq = req.clone({
@@ -46,6 +48,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             catchError((err) => {
               isRefreshing = false;
               authService.logoutLocal(); // clear state
+              authContext.setLoggedOut(); // clear context flag
               router.navigate(['/auth/login']);
               return throwError(() => err);
             }),
@@ -58,6 +61,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             switchMap(() => next(authReq)),
           );
         }
+      }
+
+      if (error.status === 401) {
+        // Direct 401 from other unhandled or failed refresh requests
+        authContext.setLoggedOut();
       }
 
       if (error.status === 403) {
