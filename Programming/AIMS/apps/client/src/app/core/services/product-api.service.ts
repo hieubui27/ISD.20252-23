@@ -74,6 +74,7 @@ export class ProductApiService {
         type: this.normalizeProductType(rawProduct['type'] ?? rawProduct['category']),
         currentPrice: this.toNumber(rawProduct['currentPrice']),
         imageUrl: this.normalizeImageUrl(rawProduct['imageUrl']),
+        stockQuantity,
         status: this.normalizeStatus(rawProduct['status'], stockQuantity),
       };
     });
