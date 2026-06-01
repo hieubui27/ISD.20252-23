@@ -79,26 +79,57 @@ export class PaymentService {
         status: PaymentStatus.PENDING,
       },
     });
-    const gatewayOrderId = buildGatewayOrderId(transaction.id);
+    const localGatewayOrderId = buildGatewayOrderId(transaction.id);
 
-    await this.prisma.paymentTransaction.update({
-      where: { id: transaction.id },
-      data: { gatewayOrderId },
-    });
-
-    const gatewayResult = await gateway.createPayment({
-      gatewayOrderId,
-      amount: dto.amount,
-      description: `AIMS ${gatewayOrderId}`,
-      customerEmail: dto.customerEmail,
-      invoiceId: dto.invoiceId,
-    });
-
-    if (gatewayResult.providerData) {
+    if (paymentMethod === PaymentMethod.VIETQR) {
       await this.prisma.paymentTransaction.update({
         where: { id: transaction.id },
-        data: this.buildProviderDataUpdate(paymentMethod, gatewayResult),
+        data: { gatewayOrderId: localGatewayOrderId },
       });
+    }
+
+    let gatewayResult: Awaited<ReturnType<typeof gateway.createPayment>>;
+    try {
+      gatewayResult = await gateway.createPayment({
+        gatewayOrderId: localGatewayOrderId,
+        amount: dto.amount,
+        description: `AIMS ${localGatewayOrderId}`,
+        customerEmail: dto.customerEmail,
+        invoiceId: dto.invoiceId,
+      });
+    } catch (err) {
+      await this.prisma.paymentTransaction.update({
+        where: { id: transaction.id },
+        data: { status: PaymentStatus.FAILED },
+      });
+      throw err;
+    }
+
+    if (gatewayResult.providerData) {
+      const providerUpdate = this.buildProviderDataUpdate(
+        paymentMethod,
+        gatewayResult,
+      );
+
+      if (
+        paymentMethod === PaymentMethod.PAYPAL &&
+        !providerUpdate.gatewayOrderId
+      ) {
+        await this.prisma.paymentTransaction.update({
+          where: { id: transaction.id },
+          data: { status: PaymentStatus.FAILED },
+        });
+        throw new BadRequestException(
+          'PayPal order id was not returned by PayPal',
+        );
+      }
+
+      if (Object.keys(providerUpdate).length > 0) {
+        await this.prisma.paymentTransaction.update({
+          where: { id: transaction.id },
+          data: providerUpdate,
+        });
+      }
     }
 
     return {
@@ -195,8 +226,9 @@ export class PaymentService {
     const gateway = this.gatewayFactory.getGateway(
       transaction.paymentMethod as PaymentMethod,
     );
+    const transactionRef = this.resolveGatewayTransactionRef(transaction);
     const confirmResult = await gateway.confirmPayment(
-      transaction.gatewayOrderId || transaction.id,
+      transactionRef,
     );
 
     const transactionId =
@@ -442,6 +474,31 @@ export class PaymentService {
     }
 
     return {};
+  }
+
+  private resolveGatewayTransactionRef(transaction: {
+    id: string;
+    paymentMethod: string;
+    gatewayOrderId: string | null;
+  }): string {
+    if (transaction.paymentMethod !== PaymentMethod.PAYPAL) {
+      return transaction.gatewayOrderId || transaction.id;
+    }
+
+    if (!transaction.gatewayOrderId) {
+      throw new BadRequestException(
+        'PayPal order id is missing. Please create a new PayPal payment.',
+      );
+    }
+
+    const localGatewayOrderId = buildGatewayOrderId(transaction.id);
+    if (transaction.gatewayOrderId === localGatewayOrderId) {
+      throw new BadRequestException(
+        'PayPal order id is invalid. Please create a new PayPal payment.',
+      );
+    }
+
+    return transaction.gatewayOrderId;
   }
 
   private async findDuplicateCallback(callback: TransactionSyncDto) {
