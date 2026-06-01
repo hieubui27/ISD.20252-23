@@ -162,11 +162,17 @@ export class PaymentService {
   async confirmTransaction(
     dto: ConfirmTransactionDto,
   ): Promise<PaymentResultDto> {
+    const where: Record<string, unknown> = {
+      orderId: dto.orderId,
+      invoiceId: this.parseInvoiceId(dto.invoiceId),
+    };
+
+    if (dto.paymentMethod) {
+      where.paymentMethod = dto.paymentMethod;
+    }
+
     const transaction = await this.prisma.paymentTransaction.findFirst({
-      where: {
-        orderId: dto.orderId,
-        invoiceId: this.parseInvoiceId(dto.invoiceId),
-      },
+      where,
       orderBy: { createdAt: 'desc' },
     });
 

@@ -6,7 +6,10 @@ import {
   IsString,
   Min,
 } from 'class-validator';
-import { PaymentStatus } from '../constants/payment.constants';
+import {
+  PaymentMethod,
+  PaymentStatus,
+} from '../constants/payment.constants';
 
 /**
  * Coupling: Data Coupling
@@ -25,6 +28,10 @@ export class ConfirmTransactionDto {
 
   @IsString()
   invoiceId: string;
+
+  @IsEnum(PaymentMethod)
+  @IsOptional()
+  paymentMethod?: PaymentMethod;
 
   @IsString()
   @IsOptional()

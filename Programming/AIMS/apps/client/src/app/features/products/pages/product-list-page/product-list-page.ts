@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ProductApiService } from '../../../../core/services/product-api.service';
 import { AimsFooterComponent } from '../../../../shared/layout/aims-footer/aims-footer';
 import { AimsHeaderComponent } from '../../../../shared/layout/aims-header/aims-header';
@@ -87,9 +87,14 @@ export class ProductListPageComponent implements OnInit {
   private readonly productApi = inject(ProductApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly cartCount = inject(CartStoreService).count;
 
   ngOnInit(): void {
+    if (this.redirectPaypalReturnToPayment()) {
+      return;
+    }
+
     this.productApi
       .getProducts()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -106,7 +111,7 @@ export class ProductListPageComponent implements OnInit {
   }
 
   goToProducts(): void {
-    this.router.navigate(['/products']);
+    this.router.navigate(['/product-catalog']);
   }
 
   goToCatalog(): void {
@@ -143,5 +148,23 @@ export class ProductListPageComponent implements OnInit {
   resetFilters(): void {
     this.selectedTypes.set(new Set());
     this.sortBy.set('recommended');
+  }
+
+  private redirectPaypalReturnToPayment(): boolean {
+    const token = this.route.snapshot.queryParamMap.get('token');
+    const payerId = this.route.snapshot.queryParamMap.get('PayerID');
+
+    if (!token) {
+      return false;
+    }
+
+    this.router.navigate(['/payment'], {
+      queryParams: {
+        token,
+        ...(payerId ? { PayerID: payerId } : {}),
+      },
+      replaceUrl: true,
+    });
+    return true;
   }
 }

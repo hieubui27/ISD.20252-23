@@ -95,7 +95,7 @@ export class ProductDetailPageComponent implements OnInit {
   }
 
   goToProducts(): void {
-    this.router.navigate(['/products']);
+    this.router.navigate(['/product-catalog']);
   }
 
   goToCatalog(): void {

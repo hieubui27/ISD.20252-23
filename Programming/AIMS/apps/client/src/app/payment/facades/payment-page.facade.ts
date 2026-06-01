@@ -14,6 +14,10 @@ import {
 } from '../../place-order/services/checkout-draft.service';
 import { PlaceOrderApiService } from '../../place-order/services/place-order-api.service';
 import {
+  ORDER_RESULT_STATE_KEY,
+  OrderResultState,
+} from '../../place-order/order-result/order-result-state';
+import {
   VietQrPaymentInput,
   VietQrPaymentSnapshot,
 } from '../models/vietqr-payment.models';
@@ -113,7 +117,7 @@ export class PaymentPageFacade {
       !this.checkoutDraftService.hasValidItems(this.checkoutDraft)
     ) {
       this.checkoutDraftService.clear();
-      this.router.navigate(['/products']);
+      this.router.navigate(['/product-catalog']);
       return;
     }
 
@@ -280,15 +284,7 @@ export class PaymentPageFacade {
       return;
     }
 
-    if (this.stateSubject.value.isVietQrSuccess) {
-      this.router.navigate(['/order-result']);
-      return;
-    }
-
-    this.patchState({
-      statusMessage:
-        'Please complete your payment before confirming the order.',
-    });
+    this.confirmVietQrPayment();
   }
 
   cancelOrder(): void {
@@ -297,7 +293,7 @@ export class PaymentPageFacade {
   }
 
   goToProducts(): void {
-    this.router.navigate(['/products']);
+    this.router.navigate(['/product-catalog']);
   }
 
   private handlePaypalReturn(paypalToken: string): void {
@@ -324,7 +320,7 @@ export class PaymentPageFacade {
       this.patchState({
         paypalApproved: false,
         errorMessage:
-          'Your payment session has expired or could not be found. Please return to products and try again.',
+          'Your payment session has expired or could not be found. Please return to the product catalog and try again.',
         statusMessage: '',
       });
     }
@@ -343,6 +339,9 @@ export class PaymentPageFacade {
       return;
     }
 
+    const paypalOrderId = this.paypalPaymentOrderId;
+    const paypalInvoiceId = this.paypalPaymentInvoiceId;
+
     this.patchState({
       isLoading: true,
       errorMessage: '',
@@ -351,14 +350,35 @@ export class PaymentPageFacade {
 
     this.paymentService
       .confirmTransaction({
-        orderId: this.paypalPaymentOrderId,
-        invoiceId: this.paypalPaymentInvoiceId,
+        orderId: paypalOrderId,
+        invoiceId: paypalInvoiceId,
+        paymentMethod: 'PAYPAL',
         transactionId: '',
         transactionContent: 'PayPal capture',
         transactionDateTime: new Date().toISOString(),
       })
       .subscribe({
         next: (result) => {
+          if (!result.success || result.status !== 'SUCCESS') {
+            this.patchState({
+              isLoading: false,
+              errorMessage:
+                result.message ||
+                'PayPal payment was not confirmed successfully.',
+              statusMessage: '',
+            });
+            return;
+          }
+
+          this.saveOrderResult({
+            paymentMethod: 'PAYPAL',
+            status: 'SUCCESS',
+            transactionId: result.transactionId || paypalOrderId,
+            orderId: paypalOrderId,
+            invoiceId: paypalInvoiceId,
+            completedAt: new Date().toISOString(),
+          });
+
           this.patchState({
             isLoading: false,
             paypalConfirmed: true,
@@ -369,10 +389,7 @@ export class PaymentPageFacade {
           // Clear checkout draft and PayPal session since payment is completed
           this.checkoutDraftService.clear();
           this.clearPaypalSession();
-          // Navigate to order result after short delay
-          setTimeout(() => {
-            this.router.navigate(['/order-result']);
-          }, 1500);
+          this.router.navigate(['/order-result']);
         },
         error: (err) => {
           console.error('PayPal capture error:', err);
@@ -382,9 +399,68 @@ export class PaymentPageFacade {
               err.error?.message ||
               err.message ||
               'Failed to confirm PayPal payment. Please try again.',
+            statusMessage: '',
           });
         },
       });
+  }
+
+  private confirmVietQrPayment(): void {
+    if (this.stateSubject.value.isVietQrSuccess) {
+      this.checkoutDraftService.clear();
+      this.router.navigate(['/order-result']);
+      return;
+    }
+
+    this.patchState({
+      isLoading: true,
+      errorMessage: '',
+      statusMessage: 'Confirming your VietQR payment...',
+    });
+
+    try {
+      this.vietQrPaymentFlow.confirmCurrentPayment().subscribe({
+        next: (snapshot) => {
+          this.applySnapshot(snapshot);
+
+          if (snapshot.latestTransaction?.status === 'SUCCESS') {
+            this.patchState({
+              isLoading: false,
+              statusMessage: 'Payment confirmed successfully! Redirecting...',
+              errorMessage: '',
+            });
+            this.checkoutDraftService.clear();
+            this.router.navigate(['/order-result']);
+            return;
+          }
+
+          this.patchState({
+            isLoading: false,
+            statusMessage:
+              'Payment has not been completed yet. Please try again after paying.',
+          });
+        },
+        error: (err) => {
+          console.error('VietQR confirmation error:', err);
+          this.patchState({
+            isLoading: false,
+            errorMessage:
+              err.error?.message ||
+              err.message ||
+              'Failed to confirm VietQR payment. Please try again.',
+            statusMessage: '',
+          });
+        },
+      });
+    } catch (err) {
+      const error = err as Error;
+      this.patchState({
+        isLoading: false,
+        errorMessage:
+          error.message || 'VietQR payment has not been created yet.',
+        statusMessage: '',
+      });
+    }
   }
 
   private listenForVietQrUpdates(): void {
@@ -565,6 +641,14 @@ export class PaymentPageFacade {
       sessionStorage.removeItem(PAYPAL_SESSION_KEY);
     } catch {
       // ignore
+    }
+  }
+
+  private saveOrderResult(state: OrderResultState): void {
+    try {
+      sessionStorage.setItem(ORDER_RESULT_STATE_KEY, JSON.stringify(state));
+    } catch {
+      // sessionStorage may be unavailable in some environments
     }
   }
 }

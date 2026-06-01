@@ -2,6 +2,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { AIMS_API_BASE_URL } from '../core/api/api.config';
 
 // ── Shared interfaces ──
 
@@ -47,6 +48,7 @@ export interface ChangePaymentMethodDto {
 export interface ConfirmTransactionDto {
   orderId: string;
   invoiceId: string;
+  paymentMethod?: PaymentMethod;
   transactionId: string;
   transactionContent: string;
   transactionDateTime: string;
@@ -87,7 +89,7 @@ export interface PaymentTransaction {
 
 @Injectable({ providedIn: 'root' })
 export class PaymentService {
-  private apiUrl = 'http://localhost:3000/api/payments';
+  private apiUrl = `${AIMS_API_BASE_URL}/payments`;
 
   private http = inject(HttpClient);
 
