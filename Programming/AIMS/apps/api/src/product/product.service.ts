@@ -14,31 +14,31 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto, ProductType } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { IProductHandler } from './product-handler/product-handler.interface';
-import { BookHandler } from './product-handler/book.handler';
-import { CdHandler } from './product-handler/cd.handler';
-import { DvdHandler } from './product-handler/dvd.handler';
-import { NewspaperHandler } from './product-handler/newspaper.handler';
+import { DailyQuotaService } from './services/daily-quota.service';
+
+export const PRODUCT_HANDLERS = 'PRODUCT_HANDLERS';
 
 /**
- * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
- * + Reason why: Data Coupling because methods accept DTOs (CreateProductDto, UpdateProductDto) and simple types as parameters. Functional Cohesion because all methods are focused on a single task: managing the lifecycle of Product entities.
+ * [SOLID Violation in Old Design]
+ * Violated Principle: SRP, OCP & DIP
+ * Code Section: ProductService
+ * Why:
+ * 1. SRP: The service handled product creation, daily quota tracking (in `deleteProduct`), DB transactions, etc.
+ * 2. OCP & DIP: The constructor hardcoded `new BookHandler()`, `new CdHandler()`, etc. Adding a new product type (e.g. Clothing) required modifying this class directly to instantiate the new handler, violating OCP. It also depended on concrete classes rather than abstractions (violating DIP).
+ * Proposed solution direction / Refactored:
+ * 1. Injected `IProductHandler[]` via DI token `PRODUCT_HANDLERS` (solves DIP and OCP).
+ * 2. Delegated quota management to `DailyQuotaService` (solves SRP).
  */
 @Injectable()
 export class ProductService {
-  private readonly handlers: IProductHandler[];
-
   constructor(
     private readonly prisma: PrismaService,
     @Inject(IProductLogServiceToken)
     private readonly productLogService: IProductLogService,
-  ) {
-    this.handlers = [
-      new BookHandler(),
-      new CdHandler(),
-      new DvdHandler(),
-      new NewspaperHandler(),
-    ];
-  }
+    @Inject(PRODUCT_HANDLERS)
+    private readonly handlers: IProductHandler[],
+    private readonly dailyQuotaService: DailyQuotaService,
+  ) {}
 
   async create(dto: CreateProductDto, userId: string) {
     const handler = this.handlers.find((h) => h.supports(dto.type));
@@ -46,6 +46,8 @@ export class ProductService {
       throw new BadRequestException(
         `Product type ${dto.type} is not supported`,
       );
+
+    handler.validate(dto); // Added validation call
 
     const productId = await this.prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
@@ -114,6 +116,14 @@ export class ProductService {
           status: dto.status,
         },
       });
+
+      const handler = this.handlers.find((h) =>
+        h.supports(dto.type as ProductType),
+      );
+      if (handler) {
+        await handler.update(tx, BigInt(id), dto);
+      }
+
       await this.productLogService.logAction(tx, id, userId, action);
       return product;
     });
@@ -129,27 +139,7 @@ export class ProductService {
   }
 
   async deleteProduct(id: string, userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: BigInt(userId) },
-    });
-    if (!user) throw new BadRequestException('User not found');
-
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0); // Normalize to UTC midnight
-
-    let currentDeletes = user.dailyDeletes;
-    const lastDate = user.lastDeleteDate;
-
-    if (!lastDate || lastDate.getTime() !== today.getTime()) {
-      currentDeletes = 0;
-    }
-
-    if (currentDeletes >= 20) {
-      throw new HttpException(
-        'Exceeded daily product deletion limit (20)',
-        429,
-      );
-    }
+    await this.dailyQuotaService.checkAndDeleteQuota(userId);
 
     const product = await this.findOne(id);
     let finalStatus = '';
@@ -177,11 +167,7 @@ export class ProductService {
       finalStatus = 'DEACTIVATED';
     }
 
-    // Update user quota
-    await this.prisma.user.update({
-      where: { id: BigInt(userId) },
-      data: { dailyDeletes: currentDeletes + 1, lastDeleteDate: today },
-    });
+    await this.dailyQuotaService.incrementQuota(userId);
 
     return { status: finalStatus };
   }
@@ -201,10 +187,6 @@ export class ProductService {
 
   /**
    * Updates the image URL for a specific product.
-   *
-   * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
-   * + Reason why: Data Coupling because it only receives simple data (id, imageUrl).
-   *   Functional Cohesion because it performs a single focused task: updating the image URL.
    */
   async updateImageUrl(id: string, imageUrl: string, userId: string) {
     const product = await this.prisma.product.findUnique({
