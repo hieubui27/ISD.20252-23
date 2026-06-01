@@ -142,6 +142,26 @@ export class ProductService {
     return results;
   }
 
+  /**
+   * Updates the image URL for a specific product.
+   *
+   * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+   * + Reason why: Data Coupling because it only receives simple data (id, imageUrl).
+   *   Functional Cohesion because it performs a single focused task: updating the image URL.
+   */
+  async updateImageUrl(id: string, imageUrl: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: BigInt(id) },
+    });
+    if (!product) throw new NotFoundException(`Không tìm thấy sản phẩm ${id}`);
+
+    const updated = await this.prisma.product.update({
+      where: { id: BigInt(id) },
+      data: { imageUrl },
+    });
+    return this.serializeBigInt(updated);
+  }
+
   private serializeBigInt(data: any) {
     return JSON.parse(
       JSON.stringify(data, (_, v) =>

@@ -184,6 +184,48 @@
       }
     }
 
+    .media-section {
+      position: relative;
+    }
+
+    .upload-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .upload-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #e8e8e8;
+      border-top-color: #005fac;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .upload-status-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: #414752;
+      margin: 0;
+    }
+
 
     .form-actions {
       display: flex;

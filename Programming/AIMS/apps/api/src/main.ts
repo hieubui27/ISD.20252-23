@@ -8,9 +8,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import { PrismaService } from './prisma/prisma.service';
 const cookieParser = require('cookie-parser');
+const express = require('express');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Increase body parser limits for large payloads
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   // Enable CORS for frontend
   app.enableCors({
