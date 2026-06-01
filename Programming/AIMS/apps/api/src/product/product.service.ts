@@ -4,7 +4,12 @@ import {
   NotFoundException,
   BadRequestException,
   HttpException,
+  Inject,
 } from '@nestjs/common';
+import {
+  IProductLogService,
+  IProductLogServiceToken,
+} from './interfaces/product-log.service.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto, ProductType } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -22,7 +27,11 @@ import { NewspaperHandler } from './product-handler/newspaper.handler';
 export class ProductService {
   private readonly handlers: IProductHandler[];
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(IProductLogServiceToken)
+    private readonly productLogService: IProductLogService,
+  ) {
     this.handlers = [
       new BookHandler(),
       new CdHandler(),
@@ -31,7 +40,7 @@ export class ProductService {
     ];
   }
 
-  async create(dto: CreateProductDto) {
+  async create(dto: CreateProductDto, userId: string) {
     const handler = this.handlers.find((h) => h.supports(dto.type));
     if (!handler)
       throw new BadRequestException(
@@ -56,6 +65,12 @@ export class ProductService {
         },
       });
       await handler.create(tx, product.id, dto);
+      await this.productLogService.logAction(
+        tx,
+        product.id.toString(),
+        userId,
+        'CREATE',
+      );
       return product.id;
     });
     return this.findOne(productId.toString());
@@ -83,21 +98,33 @@ export class ProductService {
     return this.serializeBigInt(product);
   }
 
-  async update(id: string, dto: UpdateProductDto) {
-    const updated = await this.prisma.product.update({
-      where: { id: BigInt(id) },
-      data: {
-        title: dto.title,
-        currentPrice: dto.currentPrice,
-        quantity: dto.quantity,
-        status: dto.status,
-      },
+  async update(
+    id: string,
+    dto: UpdateProductDto,
+    userId: string,
+    action = 'UPDATE',
+  ) {
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const product = await tx.product.update({
+        where: { id: BigInt(id) },
+        data: {
+          title: dto.title,
+          currentPrice: dto.currentPrice,
+          quantity: dto.quantity,
+          status: dto.status,
+        },
+      });
+      await this.productLogService.logAction(tx, id, userId, action);
+      return product;
     });
     return this.serializeBigInt(updated);
   }
 
-  async remove(id: string) {
-    await this.prisma.product.delete({ where: { id: BigInt(id) } });
+  async remove(id: string, userId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.product.delete({ where: { id: BigInt(id) } });
+      await this.productLogService.logAction(tx, id, userId, 'DELETE');
+    });
     return { success: true };
   }
 
@@ -129,14 +156,24 @@ export class ProductService {
 
     if (product.quantity === 0) {
       try {
-        await this.remove(id);
+        await this.remove(id, userId);
         finalStatus = 'DELETED';
       } catch (error) {
-        await this.update(id, { status: 'DEACTIVATED' } as any);
+        await this.update(
+          id,
+          { status: 'DEACTIVATED' } as any,
+          userId,
+          'DEACTIVATE',
+        );
         finalStatus = 'DEACTIVATED';
       }
     } else {
-      await this.update(id, { status: 'DEACTIVATED' } as any);
+      await this.update(
+        id,
+        { status: 'DEACTIVATED' } as any,
+        userId,
+        'DEACTIVATE',
+      );
       finalStatus = 'DEACTIVATED';
     }
 
@@ -169,15 +206,19 @@ export class ProductService {
    * + Reason why: Data Coupling because it only receives simple data (id, imageUrl).
    *   Functional Cohesion because it performs a single focused task: updating the image URL.
    */
-  async updateImageUrl(id: string, imageUrl: string) {
+  async updateImageUrl(id: string, imageUrl: string, userId: string) {
     const product = await this.prisma.product.findUnique({
       where: { id: BigInt(id) },
     });
     if (!product) throw new NotFoundException(`Product ${id} not found`);
 
-    const updated = await this.prisma.product.update({
-      where: { id: BigInt(id) },
-      data: { imageUrl },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const p = await tx.product.update({
+        where: { id: BigInt(id) },
+        data: { imageUrl },
+      });
+      await this.productLogService.logAction(tx, id, userId, 'UPDATE_IMAGE');
+      return p;
     });
     return this.serializeBigInt(updated);
   }
