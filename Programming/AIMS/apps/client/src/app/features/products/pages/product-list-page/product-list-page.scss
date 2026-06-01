@@ -51,10 +51,101 @@ h1 {
   padding: 7px 10px;
 }
 
-.catalog-toolbar {
+.catalog-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.filters-panel {
+  flex: 0 0 180px;
+  border-radius: $aims-radius-lg;
+  background: $aims-color-surface;
+  padding: 20px;
+
+  h2 {
+    margin: 0 0 20px;
+    color: $aims-color-text;
+    font-family: $aims-font-bold;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  section {
+    margin-bottom: 24px;
+  }
+
+  h3 {
+    margin: 0 0 12px;
+    color: $aims-color-text-muted;
+    font-family: $aims-font-semibold;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+}
+
+.filter-check {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: $aims-color-text;
+  cursor: pointer;
+  font-size: 14px;
+
+  input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  span {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #c0c7d4;
+    border-radius: 3px;
+    background: $aims-color-surface;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+
+  svg {
+    width: 11px;
+    height: 9px;
+  }
+}
+
+.filter-check--active span {
+  background: $aims-color-primary;
+  border-color: $aims-color-primary;
+}
+
+.filters-panel__reset {
+  border: 0;
+  background: transparent;
+  color: $aims-color-primary;
+  cursor: pointer;
+  padding: 0;
+  font-family: $aims-font-medium;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.catalog-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.catalog-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
   gap: 16px;
   margin-bottom: 20px;
   color: $aims-color-text-muted;
@@ -80,17 +171,36 @@ h1 {
   }
 }
 
+.catalog-toolbar__meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
 }
 
+app-status-message {
+  display: block;
+}
+
 @media (max-width: 640px) {
   .catalog-heading,
-  .catalog-toolbar {
+  .catalog-layout,
+  .catalog-toolbar,
+  .catalog-toolbar__meta {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .filters-panel,
+  .catalog-column {
+    width: 100%;
+    max-width: none;
+    flex-basis: auto;
   }
 
   .products-page__main {

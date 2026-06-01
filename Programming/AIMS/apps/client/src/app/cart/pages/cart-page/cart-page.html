@@ -1,0 +1,113 @@
+<div class="cart-page">
+  <app-aims-header
+    [cartItemCount]="cartCount()"
+    (brandClicked)="goToProducts()"
+    (browseClicked)="goToCatalog()"
+    (cartClicked)="goToCart()"
+  ></app-aims-header>
+
+  <main class="cart-page__main">
+    <header class="cart-heading">
+      <h1>Your Shopping Cart</h1>
+      <p>Review your selected items before checkout.</p>
+    </header>
+
+    @if (cartItems().length === 0) {
+    <section class="empty-cart">
+      <app-status-message tone="info">Your cart is empty.</app-status-message>
+      <app-aims-button type="button" (pressed)="goToCatalog()">Continue Shopping</app-aims-button>
+    </section>
+    } @else {
+    <section class="cart-layout">
+      <section class="cart-lines" aria-label="Cart items">
+        <div class="cart-table-heading" aria-hidden="true">
+          <span>Product</span>
+          <span>Price</span>
+          <span>Qty</span>
+          <span>Subtotal</span>
+        </div>
+
+        @if (preview(); as cartPreview) {
+        @for (item of cartPreview.items; track item.productId) {
+        <article class="cart-line">
+          <div class="cart-line__product">
+            <div class="cart-line__image">
+              @if (hasImagePreview(item)) {
+              <img
+                [src]="item.imageUrl"
+                [alt]="item.title"
+                (error)="markImageFailed(item)"
+              />
+              } @else {
+              <span>{{ item.type || 'MEDIA' }}</span>
+              }
+            </div>
+
+            <div>
+              <span class="cart-line__type">{{ item.type || 'Media' }}</span>
+              <h2>{{ item.title }}</h2>
+              <button type="button" class="cart-line__remove" (click)="remove(item)">
+                Remove
+              </button>
+            </div>
+          </div>
+
+          <strong>{{ formatPrice(item.unitPrice) }}</strong>
+
+          <div class="quantity-control" aria-label="Quantity">
+            <button type="button" (click)="decrease(item)">-</button>
+            <span>{{ item.quantity }}</span>
+            <button type="button" (click)="increase(item)">+</button>
+          </div>
+
+          <strong>{{ formatPrice(item.lineTotal) }}</strong>
+        </article>
+        }
+        }
+
+        <button type="button" class="continue-link" (click)="goToCatalog()">
+          ← Continue Shopping
+        </button>
+      </section>
+
+      <aside class="order-summary">
+        <h2>Order Summary</h2>
+
+        <div class="order-summary__rows">
+          <div>
+            <span>Items ({{ preview().totalQuantity || cartCount() }}):</span>
+            <strong>{{ formatPrice(subtotal()) }}</strong>
+          </div>
+          <div>
+            <span>Discount:</span>
+            <strong>0 VND</strong>
+          </div>
+        </div>
+
+        <div class="order-summary__subtotal">
+          <div>
+            <p>Subtotal</p>
+            <span>(excluding<br />VAT)</span>
+          </div>
+          <strong>{{ formatPrice(subtotal()) }}</strong>
+        </div>
+
+        <app-aims-button
+          type="button"
+          size="lg"
+          [fullWidth]="true"
+          [disabled]="preview().items.length === 0"
+          (pressed)="placeOrder()"
+        >
+          <span>Place Order</span>
+          <svg viewBox="0 0 13 13" fill="none" aria-hidden="true">
+            <path d="M6.5 1L12 6.5L6.5 12M1 6.5H12" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </app-aims-button>
+      </aside>
+    </section>
+    }
+  </main>
+
+  <app-aims-footer></app-aims-footer>
+</div>

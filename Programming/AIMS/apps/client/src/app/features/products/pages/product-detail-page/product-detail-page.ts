@@ -11,6 +11,7 @@ import { AimsHeaderComponent } from '../../../../shared/layout/aims-header/aims-
 import { StatusMessageComponent } from '../../../../shared/ui/status-message/status-message';
 import { ProductDetailComponent } from '../../components/product-detail/product-detail';
 import { ProductDetail } from '../../models/product.model';
+import { CartStoreService } from '../../../../cart/services/cart-store.service';
 
 /**
  * Module: ProductDetailPageComponent
@@ -49,6 +50,7 @@ export class ProductDetailPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly productApi = inject(ProductApiService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly cartCount = inject(CartStoreService).count;
 
   ngOnInit(): void {
     this.route.paramMap
@@ -98,5 +100,9 @@ export class ProductDetailPageComponent implements OnInit {
 
   goToCatalog(): void {
     this.router.navigate(['/product-catalog']);
+  }
+
+  goToCart(): void {
+    this.router.navigate(['/cart']);
   }
 }
