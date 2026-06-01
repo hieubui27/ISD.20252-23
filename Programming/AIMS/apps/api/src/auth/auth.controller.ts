@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   Res,
   Req,
@@ -57,6 +58,13 @@ export class AuthController {
   ) {
     const refreshToken = req.cookies['refresh_token'];
     return this.authService.refreshToken(refreshToken, res);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async getMe(@Req() req: any) {
+    // req.user is populated by JwtStrategy
+    return req.user;
   }
 
   @Post('request-reset-password')

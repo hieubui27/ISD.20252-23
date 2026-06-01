@@ -18,6 +18,10 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { GetProductsListUseCase } from './application/use-cases/get-products-list.use-case';
 import { GetProductDetailUseCase } from './application/use-cases/get-product-detail.use-case';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 
 /**
  * Module: ProductController
@@ -42,6 +46,8 @@ export class ProductController {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
   @Post()
   create(@Body() createProductDto: CreateProductDto) {
     return this.productService.create(createProductDto);
@@ -57,6 +63,8 @@ export class ProductController {
     return this.getProductDetailUseCase.execute(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
   @Put(':id')
   update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
     return this.productService.update(id, updateProductDto);
@@ -70,6 +78,8 @@ export class ProductController {
    * + Reason why: Data Coupling because it only passes simple data between services.
    *   Functional Cohesion because this endpoint performs one task: uploading a product image.
    */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
   @Post(':id/upload-image')
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(@Param('id') id: string, @UploadedFile() file: any) {
@@ -85,11 +95,15 @@ export class ProductController {
     return { imageUrl };
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
   @Delete('bulk')
   async deleteBulk(@Body('ids') ids: string[]) {
     return this.productService.deleteBulk(ids);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
   @Delete(':id')
   async deleteProduct(@Param('id') id: string) {
     return this.productService.deleteProduct(id);

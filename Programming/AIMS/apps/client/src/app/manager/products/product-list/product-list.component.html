@@ -21,7 +21,7 @@
       <p class="subtitle">Catalog</p>
       <h1 class="title">Product Overview</h1>
     </div>
-    <div style="display: flex; gap: 12px;">
+    <div style="display: flex; gap: 12px;" *ngIf="authService.hasRole('Product Manager')">
       <app-aims-button variant="danger" *ngIf="logic.selectedIds.size > 0" (pressed)="logic.deleteSelected()">
         Delete Selected
       </app-aims-button>
@@ -70,7 +70,7 @@
             <span class="status-badge" [ngClass]="product.status.toLowerCase()">{{ product.status }}</span>
           </td>
           <td class="actions-cell" (click)="$event.stopPropagation()">
-            <button class="action-btn" (click)="logic.navigateToEditProduct(product.id)">Edit</button>
+            <button class="action-btn" *ngIf="authService.hasRole('Product Manager')" (click)="logic.navigateToEditProduct(product.id)">Edit</button>
           </td>
         </tr>
         
