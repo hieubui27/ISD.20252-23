@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PaypalService } from '../../paypal/paypal.service';
 import { PaymentMethod } from '../constants/payment.constants';
 import {
@@ -40,7 +40,15 @@ export class PaypalGatewayAdapter implements PaymentGateway {
     const order = await this.paypalService.createOrder(usdAmount);
     const approvalLinks = (order?.links || []) as PaypalApprovalLink[];
     const approveLink =
-      approvalLinks.find((link) => link.rel === 'payer-action')?.href || '';
+      approvalLinks.find((link) =>
+        ['approve', 'payer-action'].includes(link.rel),
+      )?.href || '';
+
+    if (!order?.id || !approveLink) {
+      throw new BadRequestException(
+        'PayPal order response is missing approval data',
+      );
+    }
 
     return {
       paymentUrl: approveLink,
