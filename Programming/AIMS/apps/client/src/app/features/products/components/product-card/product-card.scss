@@ -2,7 +2,7 @@
 
 .product-card {
   display: grid;
-  grid-template-rows: 160px 1fr;
+  grid-template-rows: 160px 132px;
   min-height: 318px;
   overflow: hidden;
   color: $aims-color-text;
@@ -45,9 +45,9 @@
 }
 
 .product-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-rows: 40px 1fr 24px;
+  gap: 10px;
   padding: 12px;
 }
 
@@ -70,7 +70,8 @@
 h2 {
   display: -webkit-box;
   min-height: 38px;
-  margin: 0 0 2px;
+  max-height: 38px;
+  margin: 0;
   overflow: hidden;
   color: $aims-color-text;
   font-family: $aims-font-bold;
@@ -82,28 +83,34 @@ h2 {
 }
 
 .product-footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
   align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
+  min-height: 24px;
 }
 
 .price {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: $aims-color-text;
   font-family: $aims-font-bold;
   font-size: 15px;
   font-weight: 700;
+  line-height: 18px;
 }
 
 .status {
-  max-width: 100%;
+  max-width: none;
   padding: 3px 7px;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
   color: $aims-color-success;
-  font-size: 11px;
+  font-family: $aims-font-bold;
+  font-size: 10px;
   font-weight: 700;
+  line-height: 14px;
   background: rgba(26, 97, 0, 0.09);
   border-radius: $aims-radius-sm;
   text-transform: uppercase;

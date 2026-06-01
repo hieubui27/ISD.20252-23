@@ -12,6 +12,7 @@ import {
 } from '../../place-order/services/checkout-draft.service';
 import { Product, ProductSelection } from '../models/product.model';
 import { ProductApiService } from '../services/product-api.service';
+import { CartStoreService } from '../../cart/services/cart-store.service';
 
 @Component({
   selector: 'app-product-selection',
@@ -32,6 +33,7 @@ export class ProductSelectionComponent implements OnInit {
   products: Product[] = [];
   totalProducts = 0;
   selectedItems = new Map<string, ProductSelection>();
+  failedImageIds = new Set<string>();
   isLoading = false;
   isCreatingPayment = false;
   errorMessage = '';
@@ -40,6 +42,7 @@ export class ProductSelectionComponent implements OnInit {
   private readonly checkoutDraft = inject(CheckoutDraftService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
+  readonly cartCount = inject(CartStoreService).count;
 
   ngOnInit(): void {
     this.checkoutDraft.clear();
@@ -52,6 +55,7 @@ export class ProductSelectionComponent implements OnInit {
 
     this.productApi.findAll().subscribe({
       next: (products) => {
+        this.failedImageIds.clear();
         this.products = products;
         this.totalProducts = products.length;
         this.isLoading = false;
@@ -97,6 +101,20 @@ export class ProductSelectionComponent implements OnInit {
     return this.selectedItems.get(product.id)?.quantity || 0;
   }
 
+  hasImagePreview(product: Product): boolean {
+    const imageUrl = product.imageUrl?.trim();
+
+    return Boolean(
+      imageUrl &&
+        imageUrl.toUpperCase() !== 'N/A' &&
+        !this.failedImageIds.has(product.id),
+    );
+  }
+
+  markImageFailed(product: Product): void {
+    this.failedImageIds.add(product.id);
+  }
+
   get selectedList(): ProductSelection[] {
     return Array.from(this.selectedItems.values());
   }
@@ -133,6 +151,10 @@ export class ProductSelectionComponent implements OnInit {
 
   goToProducts(): void {
     this.router.navigate(['/products']);
+  }
+
+  goToCart(): void {
+    this.router.navigate(['/cart']);
   }
 
   formatPrice(value: number | string): string {

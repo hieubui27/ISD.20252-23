@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { ProductApiService } from '../../../../core/services/product-api.service';
@@ -7,14 +14,17 @@ import { AimsFooterComponent } from '../../../../shared/layout/aims-footer/aims-
 import { AimsHeaderComponent } from '../../../../shared/layout/aims-header/aims-header';
 import { StatusMessageComponent } from '../../../../shared/ui/status-message/status-message';
 import { ProductCardComponent } from '../../components/product-card/product-card';
-import { ProductListItem } from '../../models/product.model';
+import { ProductListItem, ProductType } from '../../models/product.model';
+import { CartStoreService } from '../../../../cart/services/cart-store.service';
+
+type ProductSortOption = 'recommended' | 'priceAsc' | 'priceDesc' | 'titleAsc';
 
 /**
  * Module: ProductListPageComponent
  * Use Case: UC235 - View Product Detail
  *
  * SOLID Review:
- * SRP: Satisfied. This page coordinates product list loading and page-level states.
+ * SRP: Satisfied. This page coordinates product list loading, browse filters, sorting, and page-level states.
  * OCP: Satisfied. Product card rendering is delegated to ProductCardComponent.
  * LSP: Not applicable. This component does not define inheritance.
  * ISP: Satisfied. It depends only on ProductApiService.getProducts().
@@ -40,10 +50,44 @@ export class ProductListPageComponent implements OnInit {
   readonly products = signal<ProductListItem[]>([]);
   readonly isLoading = signal(true);
   readonly errorMessage = signal('');
+  readonly selectedTypes = signal<Set<ProductType>>(new Set());
+  readonly sortBy = signal<ProductSortOption>('recommended');
+  readonly productTypes = computed(() =>
+    Array.from(new Set(this.products().map((product) => product.type))).sort(),
+  );
+  readonly filteredProducts = computed(() => {
+    const selectedTypes = this.selectedTypes();
+    const sortBy = this.sortBy();
+
+    const filteredProducts = this.products().filter(
+      (product) => selectedTypes.size === 0 || selectedTypes.has(product.type),
+    );
+
+    if (sortBy === 'priceAsc') {
+      return [...filteredProducts].sort(
+        (left, right) => left.currentPrice - right.currentPrice,
+      );
+    }
+
+    if (sortBy === 'priceDesc') {
+      return [...filteredProducts].sort(
+        (left, right) => right.currentPrice - left.currentPrice,
+      );
+    }
+
+    if (sortBy === 'titleAsc') {
+      return [...filteredProducts].sort((left, right) =>
+        left.title.localeCompare(right.title),
+      );
+    }
+
+    return filteredProducts;
+  });
 
   private readonly productApi = inject(ProductApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
+  readonly cartCount = inject(CartStoreService).count;
 
   ngOnInit(): void {
     this.productApi
@@ -67,5 +111,37 @@ export class ProductListPageComponent implements OnInit {
 
   goToCatalog(): void {
     this.router.navigate(['/product-catalog']);
+  }
+
+  goToCart(): void {
+    this.router.navigate(['/cart']);
+  }
+
+  updateSort(event: Event): void {
+    const select = event.target as HTMLSelectElement | null;
+    this.sortBy.set((select?.value as ProductSortOption) ?? 'recommended');
+  }
+
+  toggleType(type: ProductType): void {
+    this.selectedTypes.update((selectedTypes) => {
+      const nextSelectedTypes = new Set(selectedTypes);
+
+      if (nextSelectedTypes.has(type)) {
+        nextSelectedTypes.delete(type);
+      } else {
+        nextSelectedTypes.add(type);
+      }
+
+      return nextSelectedTypes;
+    });
+  }
+
+  isTypeSelected(type: ProductType): boolean {
+    return this.selectedTypes().has(type);
+  }
+
+  resetFilters(): void {
+    this.selectedTypes.set(new Set());
+    this.sortBy.set('recommended');
   }
 }

@@ -1,8 +1,9 @@
 <div class="products-page">
   <app-aims-header
+    [cartItemCount]="cartCount()"
     (brandClicked)="goToProducts()"
     (browseClicked)="goToCatalog()"
-    (cartClicked)="goToProducts()"
+    (cartClicked)="goToCart()"
   ></app-aims-header>
 
   <main class="products-page__main">
@@ -22,23 +23,69 @@
     } @else if (products().length === 0) {
     <app-status-message tone="info">No products available.</app-status-message>
     } @else {
-    <div class="catalog-toolbar">
-      <span>Showing {{ products().length }} results</span>
-      <label>
-        Sort by:
-        <select aria-label="Sort products">
-          <option>Recommended</option>
-          <option>Price: Low to High</option>
-          <option>Price: High to Low</option>
-        </select>
-      </label>
-    </div>
+    <div class="catalog-layout">
+      <aside class="filters-panel" aria-label="Product filters">
+        <h2>Filters</h2>
 
-    <section class="product-grid" aria-label="Product list">
-      @for (product of products(); track product.id) {
-      <app-product-card [product]="product" />
-      }
-    </section>
+        <section>
+          <h3>Categories</h3>
+          @for (type of productTypes(); track type) {
+          <label class="filter-check" [class.filter-check--active]="isTypeSelected(type)">
+            <input
+              type="checkbox"
+              [checked]="isTypeSelected(type)"
+              (change)="toggleType(type)"
+            />
+            <span aria-hidden="true">
+              @if (isTypeSelected(type)) {
+              <svg viewBox="0 0 11 9" fill="none">
+                <path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              }
+            </span>
+            {{ type }}
+          </label>
+          }
+        </section>
+
+        <button type="button" class="filters-panel__reset" (click)="resetFilters()">
+          Reset Filters
+        </button>
+      </aside>
+
+      <section class="catalog-column">
+        <div class="catalog-toolbar">
+          <div class="catalog-toolbar__meta">
+            <span>Showing {{ filteredProducts().length }} results</span>
+            <label>
+              Sort by:
+              <select
+                aria-label="Sort products"
+                [value]="sortBy()"
+                (change)="updateSort($event)"
+              >
+                <option value="recommended">Recommended</option>
+                <option value="priceAsc">Price: Low to High</option>
+                <option value="priceDesc">Price: High to Low</option>
+                <option value="titleAsc">Title: A to Z</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        @if (filteredProducts().length === 0) {
+        <app-status-message tone="info">
+          No products match the current filter.
+        </app-status-message>
+        } @else {
+        <section class="product-grid" aria-label="Product list">
+          @for (product of filteredProducts(); track product.id) {
+          <app-product-card [product]="product" />
+          }
+        </section>
+        }
+      </section>
+    </div>
     }
   </main>
 
