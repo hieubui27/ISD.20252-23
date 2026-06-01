@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { IProductLogService } from '../interfaces/product-log.service.interface';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../prisma/generated/client';
 
 @Injectable()
 export class ProductLogService implements IProductLogService {
