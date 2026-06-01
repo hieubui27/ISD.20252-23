@@ -23,6 +23,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { GetProductsListUseCase } from './application/use-cases/get-products-list.use-case';
 import { GetProductDetailUseCase } from './application/use-cases/get-product-detail.use-case';
 import { GetProductLogsUseCase } from './application/use-cases/get-product-logs.use-case';
+import { GetAllProductLogsUseCase } from './application/use-cases/get-all-product-logs.use-case';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 /**
@@ -46,6 +47,7 @@ export class ProductController {
     private readonly getProductsListUseCase: GetProductsListUseCase,
     private readonly getProductDetailUseCase: GetProductDetailUseCase,
     private readonly getProductLogsUseCase: GetProductLogsUseCase,
+    private readonly getAllProductLogsUseCase: GetAllProductLogsUseCase,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -60,6 +62,13 @@ export class ProductController {
   @Get()
   findAll() {
     return this.getProductsListUseCase.execute();
+  }
+
+  @Get('logs')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
+  async getAllLogs() {
+    return this.getAllProductLogsUseCase.execute();
   }
 
   @Get(':id')

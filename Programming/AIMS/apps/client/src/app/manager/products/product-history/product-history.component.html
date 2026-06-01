@@ -1,0 +1,141 @@
+<div class="top-bar">
+  <div class="search-container">
+    <div class="input-wrap">
+      <input
+        type="text"
+        placeholder="Search logs..."
+        class="search-input"
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="applyFilters()"
+      />
+      <app-aims-icon
+        name="search"
+        style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #414752"
+      ></app-aims-icon>
+    </div>
+  </div>
+  <div class="actions">
+    <app-aims-button variant="ghost" [iconOnly]="true" size="sm">
+      <app-aims-icon name="menu"></app-aims-icon>
+    </app-aims-button>
+    <div class="avatar">
+      <img src="assets/avatar.png" alt="avatar" />
+    </div>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="page-header">
+    <div class="title-group">
+      <p class="subtitle">History</p>
+      <h1 class="title">Product Activity Log</h1>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="ph-filters">
+    <div class="ph-filter-box ph-filter-box--date">
+      <label class="ph-filter-box__label">DATE RANGE</label>
+      <div class="ph-filter-box__inputs">
+        <div class="ph-input-wrap">
+          <app-aims-icon name="search" class="ph-icon-left"></app-aims-icon>
+          <input type="date" class="ph-input" [(ngModel)]="startDate" (change)="applyFilters()" />
+        </div>
+        <span class="ph-filter-box__to">to</span>
+        <div class="ph-input-wrap">
+          <app-aims-icon name="search" class="ph-icon-left"></app-aims-icon>
+          <input type="date" class="ph-input" [(ngModel)]="endDate" (change)="applyFilters()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="ph-filter-box">
+      <label class="ph-filter-box__label">ACTION TYPE</label>
+      <div class="ph-input-wrap">
+        <select class="ph-select" [(ngModel)]="filterAction" (change)="applyFilters()">
+          <option>All Actions</option>
+          <option>CREATE</option>
+          <option>UPDATE</option>
+          <option>DELETE</option>
+          <option>DEACTIVATE</option>
+          <option>UPDATE_IMAGE</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="ph-filter-box ph-filter-box--apply">
+      <button class="ph-btn-apply" (click)="applyFilters()">
+        <app-aims-icon name="check"></app-aims-icon>
+        Apply Filters
+      </button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="ph-table-wrapper">
+    <table class="ph-table">
+      <thead>
+        <tr>
+          <th>TIMESTAMP</th>
+          <th>PRODUCT ID</th>
+          <th>PRODUCT NAME</th>
+          <th>ACTION</th>
+          <th>PERFORMED BY</th>
+          <th>DETAILS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngIf="isLoading">
+          <td colspan="6" style="text-align: center; padding: 20px;">Loading...</td>
+        </tr>
+        <tr *ngIf="!isLoading && filteredLogs.length === 0">
+          <td colspan="6" style="text-align: center; padding: 20px;">No logs found.</td>
+        </tr>
+        <tr *ngFor="let log of filteredLogs" class="ph-table__row">
+          <td>
+            <div class="ph-td-text">
+              <p>{{ formatDate(log.createdDate)[0] }}</p>
+              <p>{{ formatDate(log.createdDate)[1] }}</p>
+            </div>
+          </td>
+          <td>
+            <div class="ph-td-code">
+              <p>{{ log.product?.barcode }}</p>
+            </div>
+          </td>
+          <td>
+            <div class="ph-td-strong">
+              <p>{{ log.product?.title || 'Unknown Product' }}</p>
+            </div>
+          </td>
+          <td>
+            <span class="ph-badge" [ngClass]="badgeStyle[log.action] || 'badge-default'">
+              {{ log.action }}
+            </span>
+          </td>
+          <td>
+            <div class="ph-td-text">
+              <p class="ph-td-strong">{{ log.createdBy?.userName || 'System' }}</p>
+              <p>{{ log.createdBy?.email || '' }}</p>
+            </div>
+          </td>
+          <td>
+            <div class="ph-td-text">
+              <p>{{ log.details || '-' }}</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="ph-pagination">
+      <p class="ph-pagination__info">Showing {{ filteredLogs.length }} entries</p>
+      <div class="ph-pagination__controls">
+        <button class="ph-page-btn"><app-aims-icon name="chevron-left"></app-aims-icon></button>
+        <button class="ph-page-btn ph-page-btn--active">1</button>
+        <button class="ph-page-btn"><app-aims-icon name="chevron-right"></app-aims-icon></button>
+      </div>
+    </div>
+  </div>
+</div>

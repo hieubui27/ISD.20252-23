@@ -25,4 +25,9 @@ export interface IProductLogService {
    * @param productId The ID of the product
    */
   getLogsByProductId(productId: string): Promise<any[]>;
+
+  /**
+   * Retrieves all product logs.
+   */
+  getAllLogs(): Promise<any[]>;
 }

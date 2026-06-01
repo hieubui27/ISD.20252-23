@@ -7,6 +7,7 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { GetProductDetailUseCase } from './application/use-cases/get-product-detail.use-case';
 import { GetProductsListUseCase } from './application/use-cases/get-products-list.use-case';
 import { GetProductLogsUseCase } from './application/use-cases/get-product-logs.use-case';
+import { GetAllProductLogsUseCase } from './application/use-cases/get-all-product-logs.use-case';
 import { PrismaProductRepository } from './infrastructure/repositories/prisma-product.repository';
 import { PRODUCT_QUERY_REPOSITORY } from './domain/repositories/product-query.repository.interface';
 import { IProductLogServiceToken } from './interfaces/product-log.service.interface';
@@ -34,6 +35,7 @@ import { ProductLogService } from './services/product-log.service';
     GetProductDetailUseCase,
     GetProductsListUseCase,
     GetProductLogsUseCase,
+    GetAllProductLogsUseCase,
     PrismaProductRepository,
     {
       provide: PRODUCT_QUERY_REPOSITORY,

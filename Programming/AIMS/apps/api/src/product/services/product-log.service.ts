@@ -48,4 +48,32 @@ export class ProductLogService implements IProductLogService {
       ),
     );
   }
+
+  async getAllLogs(): Promise<any[]> {
+    const logs = await this.prisma.productLog.findMany({
+      include: {
+        product: {
+          select: {
+            id: true,
+            title: true,
+            barcode: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            userName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { createdDate: 'desc' },
+    });
+
+    return JSON.parse(
+      JSON.stringify(logs, (_, v) =>
+        typeof v === 'bigint' ? v.toString() : v,
+      ),
+    );
+  }
 }
