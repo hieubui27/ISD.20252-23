@@ -1,0 +1,86 @@
+<div class="top-bar">
+  <div class="search-container">
+    <div class="input-wrap">
+      <input type="text" placeholder="Search..." class="search-input" />
+      <app-aims-icon name="search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #414752"></app-aims-icon>
+    </div>
+  </div>
+  <div class="actions">
+    <app-aims-button variant="ghost" [iconOnly]="true" size="sm">
+      <app-aims-icon name="menu"></app-aims-icon>
+    </app-aims-button>
+    <div class="avatar">
+      <img src="assets/avatar.png" alt="avatar" />
+    </div>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="page-header">
+    <div class="title-group">
+      <p class="subtitle">Catalog</p>
+      <h1 class="title">Product Overview</h1>
+    </div>
+    <div style="display: flex; gap: 12px;" *ngIf="authService.hasRole('Product Manager')">
+      <app-aims-button variant="danger" *ngIf="logic.selectedIds.size > 0" (pressed)="logic.deleteSelected()">
+        Delete Selected
+      </app-aims-button>
+      <app-aims-button variant="primary" (pressed)="logic.navigateToAddProduct()">
+        <app-aims-icon name="plus"></app-aims-icon>
+        <span>Add New Product</span>
+      </app-aims-button>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="product-table">
+      <thead>
+        <tr>
+          <th style="width: 40px">
+            <input type="checkbox" (change)="logic.toggleAll($event)" />
+          </th>
+          <th>PRODUCT</th>
+          <th>CATEGORY</th>
+          <th>PRICE (VND)</th>
+          <th>STOCK</th>
+          <th>STATUS</th>
+          <th>ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let product of (products$ | async) || []" (click)="logic.navigateToViewProduct(product.id)" style="cursor: pointer">
+          <td (click)="$event.stopPropagation()">
+            <input type="checkbox" [checked]="logic.isSelected(product.id)" (change)="logic.toggleSelection(product.id)" />
+          </td>
+          <td>
+            <div class="product-info">
+              <div class="image-wrapper">
+                <img [src]="product.imageUrl || 'assets/default-product.png'" alt="" />
+              </div>
+              <div class="text-group">
+                <span class="product-name">{{ product.title }}</span>
+                <span class="product-id">#{{ product.id }}</span>
+              </div>
+            </div>
+          </td>
+          <td>{{ product.type }}</td>
+          <td class="price">{{ product.currentPrice | number }}</td>
+          <td>{{ product.stockQuantity }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="product.status.toLowerCase()">{{ product.status }}</span>
+          </td>
+          <td class="actions-cell" (click)="$event.stopPropagation()">
+            <button class="action-btn" *ngIf="authService.hasRole('Product Manager')" (click)="logic.navigateToEditProduct(product.id)">Edit</button>
+          </td>
+        </tr>
+        
+        <!-- Empty state or loading -->
+        <tr *ngIf="(products$ | async)?.length === 0">
+          <td colspan="7" class="empty-state">No products found.</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <app-aims-pagination [currentPage]="1" [totalPages]="1"></app-aims-pagination>
+  </div>
+</div>

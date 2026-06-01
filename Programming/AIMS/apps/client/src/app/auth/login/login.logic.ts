@@ -2,11 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth.service';
 import { delay } from 'rxjs/operators';
+import { AuthContext } from '../../core/contexts/auth.context';
 
 @Injectable({ providedIn: 'root' })
 export class LoginLogic {
   private authService = inject(AuthService);
   private router = inject(Router);
+  private authContext = inject(AuthContext);
 
   public executeLogin(
     payload: any,
@@ -15,17 +17,31 @@ export class LoginLogic {
   ): void {
     this.authService.login(payload).subscribe({
       next: () => {
+        this.authContext.setLoggedIn();
         onSuccess();
         console.log('dang nhap thanh cong');
 
-        setTimeout(() => {
-          this.router.navigate(['/dashboard']);
-        }, 1500);
+        this.authService.fetchMe().subscribe({
+          next: () => {
+            setTimeout(() => {
+              if (this.authService.hasRole('Product Manager')) {
+                this.router.navigate(['/manager/products']);
+              } else {
+                this.router.navigate(['/products']);
+              }
+            }, 1500);
+          },
+          error: () => {
+            setTimeout(() => {
+              this.router.navigate(['/products']);
+            }, 1500);
+          },
+        });
       },
       error: (err) => {
         console.log('dang nhap that bai');
         const errorMsg =
-          err.status === 401 ? 'Sai tài khoản hoặc mật khẩu' : 'Lỗi hệ thống';
+          err.status === 401 ? 'Invalid username or password' : 'System error';
         onError(errorMsg);
       },
     });

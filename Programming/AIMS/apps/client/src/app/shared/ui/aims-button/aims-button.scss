@@ -74,6 +74,16 @@
   color: $aims-color-text;
 }
 
+.aims-button--danger {
+  background: transparent;
+  color: $aims-color-danger;
+  border: 1px solid $aims-color-danger;
+  &:hover {
+    background: $aims-color-danger;
+    color: #ffffff;
+  }
+}
+
 .aims-button--full {
   width: 100%;
 }
@@ -88,4 +98,29 @@
   min-height: 54px;
   padding: 16px 20px;
   font-size: 16px;
+}
+
+.aims-button--icon-only {
+  padding: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  
+  &.aims-button--sm {
+    width: 36px;
+    height: 36px;
+  }
+  
+  &.aims-button--lg {
+    width: 54px;
+    height: 54px;
+  }
+
+  .aims-button__content {
+    svg {
+      width: 18px;
+      height: 18px;
+      flex-basis: 18px;
+    }
+  }
 }

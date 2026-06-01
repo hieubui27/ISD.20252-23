@@ -1,0 +1,173 @@
+.manager-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+.sidebar {
+  width: 256px;
+  background-color: #f3f3f3;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding: 32px 0;
+
+  .sidebar-header {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: flex-start;
+    padding: 0 16px 8px;
+    width: 100%;
+
+    .logo {
+      font-weight: 900;
+      color: #1a1c1c;
+      font-size: 24px;
+      letter-spacing: -1.2px;
+      line-height: 32px;
+    }
+
+    .title {
+      font-weight: bold;
+      color: #1a1c1c;
+      font-size: 18px;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      line-height: 28px;
+    }
+
+    .subtitle {
+      font-weight: 500;
+      color: #414752;
+      font-size: 12px;
+      line-height: 16px;
+    }
+  }
+
+  .sidebar-menu {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 8px;
+    width: 100%;
+
+    .menu-item {
+      position: relative;
+      width: 100%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 12px 32px;
+      gap: 12px;
+      text-decoration: none;
+      color: #414752;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.4);
+      }
+
+      span {
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 20px;
+      }
+
+      &.product-menu, &.order-menu {
+        padding: 0 0 0 16px;
+        &:hover {
+          background-color: transparent;
+        }
+
+        .menu-inner {
+          display: flex;
+          align-items: center;
+          padding: 12px 16px;
+          gap: 12px;
+          width: 240px;
+          border-top-left-radius: 12px;
+          border-bottom-left-radius: 12px;
+
+          &:hover {
+            background-color: rgba(255, 255, 255, 0.6);
+          }
+        }
+      }
+
+      &.active {
+        color: #005fac;
+
+        &.product-menu .menu-inner, &.order-menu .menu-inner {
+          background-color: #ffffff;
+        }
+        
+        span {
+          font-weight: 600;
+          color: #005fac;
+        }
+      }
+    }
+  }
+
+  .sidebar-upload {
+    width: 100%;
+    padding: 8px 24px 0;
+
+    .upload-btn {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      border-radius: 6px;
+      width: 100%;
+      cursor: pointer;
+      border: none;
+      background-image: linear-gradient(166.817deg, rgb(0, 95, 172) 0%, rgb(0, 120, 215) 100%);
+      color: white;
+
+      span {
+        font-weight: 600;
+        font-size: 14px;
+        line-height: 20px;
+      }
+    }
+  }
+
+  .sidebar-footer {
+    padding: 16px 16px 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .footer-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      gap: 12px;
+      cursor: pointer;
+      border-radius: 8px;
+      text-decoration: none;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.4);
+      }
+
+      span {
+        font-weight: 500;
+        color: #414752;
+        font-size: 14px;
+        line-height: 20px;
+      }
+    }
+  }
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}

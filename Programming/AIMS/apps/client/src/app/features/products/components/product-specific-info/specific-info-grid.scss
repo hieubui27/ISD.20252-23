@@ -17,17 +17,21 @@
 
 .specific-grid dt {
   color: $aims-color-text-muted;
-  font-family: $aims-font-bold;
-  font-size: 13px;
-  font-weight: 800;
+  font-family: $aims-font-semibold;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
 }
 
 .specific-grid dd {
   margin: 4px 0 0;
   overflow-wrap: anywhere;
   color: $aims-color-text;
-  font-family: $aims-font-bold;
-  font-weight: 700;
+  font-family: $aims-font-semibold;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
 }
 
 @media (max-width: 720px) {

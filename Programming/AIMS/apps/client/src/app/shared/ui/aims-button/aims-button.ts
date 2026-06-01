@@ -1,7 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, HostBinding, Input, Output } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  HostBinding,
+  Input,
+  Output,
+} from '@angular/core';
 
-export type AimsButtonVariant = 'primary' | 'ghost' | 'secondary';
+export type AimsButtonVariant = 'primary' | 'ghost' | 'secondary' | 'danger';
 export type AimsButtonSize = 'sm' | 'md' | 'lg';
 
 @Component({
@@ -17,6 +23,7 @@ export class AimsButtonComponent {
   @Input() disabled = false;
   @Input() loading = false;
   @Input() fullWidth = false;
+  @Input() iconOnly = false;
   @Input() size: AimsButtonSize = 'md';
 
   @Output() pressed = new EventEmitter<void>();

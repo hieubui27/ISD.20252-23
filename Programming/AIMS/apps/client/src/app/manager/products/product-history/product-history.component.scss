@@ -1,0 +1,368 @@
+// variables based on the react template
+$bg-main: #f9f9f9;
+$bg-white: #ffffff;
+$border-color: #f3f3f3;
+$text-dark: #1a1c1c;
+$text-gray: #414752;
+$text-light: #6b7280;
+$primary: #005fac;
+$primary-light: #f0f7ff;
+$input-bg: #e8e8e8;
+
+// Badge colors
+$badge-create-bg: #d4e3ff;
+$badge-create-text: #004884;
+$badge-update-bg: #e8e8e8;
+$badge-update-text: #414752;
+$badge-delete-bg: #ffdad6;
+$badge-delete-text: #ba1a1a;
+$badge-deactivate-bg: #fff8e1;
+$badge-deactivate-text: #e65100;
+$badge-info-bg: #e3f2fd;
+$badge-info-text: #0d47a1;
+
+.top-bar {
+  background-color: #ffffff;
+  border-bottom: 1px solid #f3f3f3;
+  padding: 12px 32px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+
+  .search-container {
+    flex: 1;
+    position: relative;
+    max-width: 320px;
+
+    .search-input {
+      width: 100%;
+      padding: 8px 12px 8px 36px;
+      background-color: #f3f3f3;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      border: 1px solid transparent;
+
+      &:focus {
+        border-color: #005fac;
+      }
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+  }
+
+  .actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #e8e8e8;
+      overflow: hidden;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+  }
+}
+
+.page-content {
+  padding: 32px;
+  background-color: $bg-main;
+  flex: 1;
+  overflow: auto;
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 24px;
+
+    .title-group {
+      .subtitle {
+        font-size: 11px;
+        font-weight: 600;
+        color: #414752;
+        letter-spacing: 0.55px;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+      .title {
+        font-size: 28px;
+        font-weight: 800;
+        color: #1a1c1c;
+        letter-spacing: -0.7px;
+        margin: 0;
+      }
+    }
+  }
+}
+
+.ph-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ph-filter-box {
+  background-color: $bg-white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0px 4px 20px 0px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(192, 199, 212, 0.1);
+
+  &--date {
+    grid-column: span 2 / span 2;
+  }
+
+  &--apply {
+    display: flex;
+    align-items: flex-end;
+  }
+
+  &__label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: $text-gray;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  &__inputs {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__to {
+    font-size: 14px;
+    color: $text-gray;
+  }
+}
+
+.ph-input-wrap {
+  position: relative;
+  flex: 1;
+
+  .ph-icon-left {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $text-gray;
+  }
+}
+
+.ph-input, .ph-select {
+  width: 100%;
+  padding: 10px 12px;
+  background-color: $input-bg;
+  border-radius: 4px;
+  font-size: 14px;
+  color: $text-dark;
+  border: none;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.ph-input {
+  padding-left: 40px;
+  color: $text-light;
+}
+
+.ph-btn-apply {
+  width: 100%;
+  padding: 10px;
+  background-color: $bg-main;
+  border: 1px solid rgba(0, 95, 172, 0.2);
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $primary;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: $primary-light;
+  }
+}
+
+.ph-table-wrapper {
+  background-color: $bg-white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0px 4px 20px 0px rgba(0, 0, 0, 0.04);
+}
+
+.ph-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead {
+    background-color: $border-color;
+
+    th {
+      padding: 20px 24px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      color: $text-gray;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid $border-color;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: $bg-main;
+      }
+    }
+
+    td {
+      padding: 20px 24px;
+    }
+  }
+}
+
+.ph-td-text {
+  font-size: 14px;
+  color: $text-gray;
+  line-height: 20px;
+  margin: 0;
+
+  p { margin: 0; }
+}
+
+.ph-td-code {
+  font-size: 14px;
+  color: $text-gray;
+  line-height: 20px;
+  font-family: monospace;
+  margin: 0;
+
+  p { margin: 0; }
+}
+
+.ph-td-strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-dark;
+  line-height: 20px;
+  margin: 0;
+
+  p { margin: 0; }
+}
+
+.ph-badge {
+  display: inline-flex;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.55px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.badge-create {
+  background-color: $badge-create-bg;
+  color: $badge-create-text;
+}
+
+.badge-update {
+  background-color: $badge-update-bg;
+  color: $badge-update-text;
+}
+
+.badge-delete {
+  background-color: $badge-delete-bg;
+  color: $badge-delete-text;
+}
+
+.badge-deactivate {
+  background-color: $badge-deactivate-bg;
+  color: $badge-deactivate-text;
+}
+
+.badge-info {
+  background-color: $badge-info-bg;
+  color: $badge-info-text;
+}
+
+.badge-default {
+  background-color: $badge-update-bg;
+  color: $badge-update-text;
+}
+
+.ph-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background-color: $bg-main;
+
+  &__info {
+    font-size: 12px;
+    color: $text-gray;
+    margin: 0;
+  }
+
+  &__controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.ph-page-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: none;
+  background-color: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: $text-gray;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #e8e8e8;
+  }
+
+  &--active {
+    background-color: $primary;
+    color: $bg-white;
+    font-weight: 700;
+
+    &:hover {
+      background-color: $primary;
+    }
+  }
+}

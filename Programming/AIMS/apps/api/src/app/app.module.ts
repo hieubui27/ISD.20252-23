@@ -10,7 +10,7 @@ import { PlaceOrderModule } from '../place-order/place-order.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({ isGlobal: true }),
     ProductModule,
     PaymentModule,
     AuthModule,

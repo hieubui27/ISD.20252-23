@@ -1,8 +1,9 @@
 <div class="detail-page">
   <app-aims-header
+    [cartItemCount]="cartCount()"
     (brandClicked)="goToProducts()"
     (browseClicked)="goToCatalog()"
-    (cartClicked)="goToProducts()"
+    (cartClicked)="goToCart()"
   ></app-aims-header>
 
   <main class="detail-page__main">

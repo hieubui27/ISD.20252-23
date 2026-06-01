@@ -1,0 +1,272 @@
+<div class="top-bar">
+  <h2 class="top-bar-title">{{ (isEditMode$ | async) ? 'Edit Product' : 'Add Product' }}</h2>
+</div>
+
+<div class="page-content">
+  <app-aims-button variant="ghost" (pressed)="logic.navigateToCatalog()">
+    <app-aims-icon name="chevron-left"></app-aims-icon>
+    <span>Back to Catalog</span>
+  </app-aims-button>
+
+  <div class="page-header">
+    <p class="subtitle">Catalog</p>
+    <h1 class="title">{{ (isEditMode$ | async) ? 'Edit Product' : 'Add New Product' }}</h1>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="logic.saveProduct()" class="form-layout">
+    <div class="grid-layout">
+      <!-- Left Column -->
+      <div class="main-col">
+        <!-- General Info -->
+        <div class="section-card">
+          <h3 class="section-title">General Info</h3>
+          
+          <div class="form-group">
+            <label class="form-label">Product Title</label>
+            <input type="text" formControlName="title" placeholder="Enter product title..." class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Category / Type</label>
+            <select formControlName="type" class="form-input">
+              <option value="BOOK">Book</option>
+              <option value="NEWSPAPER">Newspaper</option>
+              <option value="CD">CD</option>
+              <option value="DVD">DVD</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea rows="4" formControlName="description" placeholder="Enter product description..." class="form-input textarea"></textarea>
+          </div>
+        </div>
+
+        <!-- Media Assets -->
+        <div class="section-card media-section">
+          <h3 class="section-title">Media Assets</h3>
+
+          <!-- Upload loading overlay -->
+          <div class="upload-overlay" *ngIf="(logic.uploadingImage$ | async)">
+            <div class="upload-spinner"></div>
+            <p class="upload-status-text">Uploading image...</p>
+          </div>
+          
+          <div class="image-grid" *ngIf="(logic.imageUrls$ | async)?.length">
+            <div class="image-item" *ngFor="let img of (logic.imageUrls$ | async); let i = index">
+              <img [src]="img" alt="Product Image" />
+              <button type="button" class="remove-btn" (click)="logic.removeImage(i)">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 1l12 12m0-12L1 13" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="upload-area" (click)="fileInput.click()">
+            <input type="file" #fileInput hidden accept="image/jpeg,image/png,image/webp,image/gif" (change)="logic.onFileSelected($event)" />
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <path d="M6 1v10M1 6h10" stroke="#414752" stroke-width="2" transform="scale(2) translate(4,4)" />
+            </svg>
+            <p class="upload-text">Click to add more images</p>
+            <p class="upload-hint">PNG, JPG, WebP, GIF — max 10MB</p>
+          </div>
+        </div>
+
+        <!-- Specifications -->
+        <div class="section-card">
+          <h3 class="section-title">Specifications</h3>
+          <div class="grid-2-cols">
+            <div class="form-group">
+              <label class="form-label">Barcode</label>
+              <input type="text" formControlName="barcode" placeholder="e.g. 893..." class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Weight (kg)</label>
+              <input type="number" formControlName="weight" placeholder="0" class="form-input" />
+            </div>
+          </div>
+          
+          <div formGroupName="specificInfo">
+            <!-- BOOK Fields -->
+            <div class="grid-2-cols" *ngIf="form.get('type')?.value === 'BOOK'">
+              <div class="form-group">
+                <label class="form-label">Authors (comma-separated)</label>
+                <input type="text" formControlName="authors" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cover Type</label>
+                <input type="text" formControlName="coverType" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Publisher</label>
+                <input type="text" formControlName="publisher" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Publication Date</label>
+                <input type="date" formControlName="publicationDate" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Number of Pages</label>
+                <input type="number" formControlName="numberOfPages" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Language</label>
+                <input type="text" formControlName="language" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Genre</label>
+                <input type="text" formControlName="genre" class="form-input" />
+              </div>
+            </div>
+
+            <!-- NEWSPAPER Fields -->
+            <div class="grid-2-cols" *ngIf="form.get('type')?.value === 'NEWSPAPER'">
+              <div class="form-group">
+                <label class="form-label">Editor In Chief</label>
+                <input type="text" formControlName="editorInChief" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Publisher</label>
+                <input type="text" formControlName="publisher" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Publication Date</label>
+                <input type="date" formControlName="publicationDate" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Issue Number</label>
+                <input type="text" formControlName="issueNumber" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Release Frequency</label>
+                <input type="text" formControlName="releaseFrequency" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">ISSN</label>
+                <input type="text" formControlName="issn" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Language</label>
+                <input type="text" formControlName="language" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Sections (comma-separated)</label>
+                <input type="text" formControlName="sections" class="form-input" />
+              </div>
+            </div>
+
+            <!-- CD Fields -->
+            <div class="grid-2-cols" *ngIf="form.get('type')?.value === 'CD'">
+              <div class="form-group">
+                <label class="form-label">Artists (comma-separated)</label>
+                <input type="text" formControlName="artists" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Record Label</label>
+                <input type="text" formControlName="recordLabel" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Track List (comma-separated)</label>
+                <input type="text" formControlName="trackList" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Genre</label>
+                <input type="text" formControlName="genre" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Release Date</label>
+                <input type="date" formControlName="releaseDate" class="form-input" />
+              </div>
+            </div>
+
+            <!-- DVD Fields -->
+            <div class="grid-2-cols" *ngIf="form.get('type')?.value === 'DVD'">
+              <div class="form-group">
+                <label class="form-label">Disc Type</label>
+                <input type="text" formControlName="discType" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Director</label>
+                <input type="text" formControlName="director" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Runtime (mins)</label>
+                <input type="number" formControlName="runtime" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Studio</label>
+                <input type="text" formControlName="studio" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Language</label>
+                <input type="text" formControlName="language" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Subtitles (comma-separated)</label>
+                <input type="text" formControlName="subtitles" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Release Date</label>
+                <input type="date" formControlName="releaseDate" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Genre</label>
+                <input type="text" formControlName="genre" class="form-input" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pricing -->
+        <div class="section-card">
+          <h3 class="section-title">Pricing</h3>
+          <div class="grid-2-cols">
+            <div class="form-group">
+              <label class="form-label">Regular Price (VND)</label>
+              <input type="number" formControlName="currentPrice" placeholder="0" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Original Value (VND)</label>
+              <input type="number" formControlName="originalValue" placeholder="0" class="form-input" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Inventory -->
+        <div class="section-card">
+          <h3 class="section-title">Inventory</h3>
+          <div class="form-group">
+            <label class="form-label">Stock Quantity</label>
+            <input type="number" formControlName="stockQuantity" placeholder="0" class="form-input" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="sidebar-col">
+        <div class="section-card">
+          <h3 class="section-title">Organization</h3>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select formControlName="status" class="form-input">
+              <option value="ACTIVE">Active</option>
+              <option value="DRAFT">Draft</option>
+              <option value="UNAVAILABLE">Unavailable</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <app-aims-button type="submit" variant="primary" [disabled]="form.invalid || (logic.loading$ | async) === true">
+        {{ (isEditMode$ | async) ? 'Save Changes' : 'Save Product' }}
+      </app-aims-button>
+      <app-aims-button variant="secondary" (pressed)="logic.navigateToCatalog()">
+        Cancel
+      </app-aims-button>
+    </div>
+  </form>
+</div>

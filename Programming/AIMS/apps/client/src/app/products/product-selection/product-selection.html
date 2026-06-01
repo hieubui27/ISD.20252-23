@@ -1,8 +1,9 @@
 <div class="product-page">
   <app-aims-header
-    [cartItemCount]="selectedList.length"
+    [cartItemCount]="cartCount()"
     (brandClicked)="goToProducts()"
     (browseClicked)="goToProducts()"
+    (cartClicked)="goToCart()"
   ></app-aims-header>
 
   <main class="product-page__main">
@@ -38,7 +39,7 @@
           </div>
         </section>
 
-        <button type="button" class="filters-panel__reset">Reset Filters</button>
+        <app-aims-button variant="ghost" [fullWidth]="true">Reset Filters</app-aims-button>
       </aside>
 
       <section class="catalog-column">
@@ -48,7 +49,8 @@
         </div>
 
         <div class="catalog-toolbar">
-          <span>Showing {{ totalProducts || products.length }} results</span>
+          <span *ngIf="isLoading">Loading products...</span>
+          <span *ngIf="!isLoading">Showing {{ totalProducts || products.length }} results</span>
           <label>
             Sort by:
             <select>
@@ -61,14 +63,23 @@
         </div>
 
         <div class="product-grid">
+          <app-status-message *ngIf="isLoading" tone="info">
+            Loading products from backend...
+          </app-status-message>
+
           <article class="product-card" *ngFor="let product of products">
             <div class="product-card__media">
-              <img *ngIf="product.imageUrl" [src]="product.imageUrl" [alt]="product.title" />
-              <div *ngIf="!product.imageUrl" class="product-card__placeholder">
+              <img
+                *ngIf="hasImagePreview(product)"
+                [src]="product.imageUrl"
+                [alt]="product.title"
+                (error)="markImageFailed(product)"
+              />
+              <div *ngIf="!hasImagePreview(product)" class="product-card__placeholder">
                 <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-                  <rect x="12" y="7" width="24" height="34" rx="3" stroke="#005fac" stroke-width="2" />
-                  <circle cx="24" cy="24" r="7" stroke="#005fac" stroke-width="2" />
-                  <circle cx="24" cy="24" r="2" fill="#005fac" />
+                  <rect x="12" y="7" width="24" height="34" rx="3" stroke="currentColor" stroke-width="2" />
+                  <circle cx="24" cy="24" r="7" stroke="currentColor" stroke-width="2" />
+                  <circle cx="24" cy="24" r="2" fill="currentColor" />
                 </svg>
               </div>
               <span>{{ product.category || 'MEDIA' }}</span>
@@ -140,9 +151,7 @@
           (pressed)="proceedToPayment()"
         >
           <span>Place Order</span>
-          <svg viewBox="0 0 13 13" fill="none" aria-hidden="true">
-            <path d="M6.5 1L12 6.5L6.5 12M1 6.5H12" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <app-aims-icon name="arrow-right"></app-aims-icon>
         </app-aims-button>
       </aside>
     </div>

@@ -21,8 +21,8 @@ export class ResetPasswordLogic {
       error: (err) => {
         const errorMsg =
           err.status === 400
-            ? 'Thông tin không hợp lệ'
-            : 'Lỗi hệ thống khi đổi mật khẩu';
+            ? 'Invalid information'
+            : 'System error during password reset';
         onError(errorMsg);
       },
     });

@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AimsFooterComponent } from '../../shared/layout/aims-footer/aims-footer';
 import { AimsHeaderComponent } from '../../shared/layout/aims-header/aims-header';
 import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
+import { AimsIconComponent } from '../../shared/ui/aims-icon/aims-icon';
 import { StatusMessageComponent } from '../../shared/ui/status-message/status-message';
 import {
   CheckoutDraft,
@@ -11,6 +12,7 @@ import {
 } from '../../place-order/services/checkout-draft.service';
 import { Product, ProductSelection } from '../models/product.model';
 import { ProductApiService } from '../services/product-api.service';
+import { CartStoreService } from '../../cart/services/cart-store.service';
 
 @Component({
   selector: 'app-product-selection',
@@ -22,6 +24,7 @@ import { ProductApiService } from '../services/product-api.service';
     AimsHeaderComponent,
     RouterLink,
     StatusMessageComponent,
+    AimsIconComponent,
   ],
   templateUrl: './product-selection.html',
   styleUrl: './product-selection.scss',
@@ -30,6 +33,7 @@ export class ProductSelectionComponent implements OnInit {
   products: Product[] = [];
   totalProducts = 0;
   selectedItems = new Map<string, ProductSelection>();
+  failedImageIds = new Set<string>();
   isLoading = false;
   isCreatingPayment = false;
   errorMessage = '';
@@ -38,6 +42,7 @@ export class ProductSelectionComponent implements OnInit {
   private readonly checkoutDraft = inject(CheckoutDraftService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
+  readonly cartCount = inject(CartStoreService).count;
 
   ngOnInit(): void {
     this.checkoutDraft.clear();
@@ -50,6 +55,7 @@ export class ProductSelectionComponent implements OnInit {
 
     this.productApi.findAll().subscribe({
       next: (products) => {
+        this.failedImageIds.clear();
         this.products = products;
         this.totalProducts = products.length;
         this.isLoading = false;
@@ -72,7 +78,10 @@ export class ProductSelectionComponent implements OnInit {
   }
 
   updateQuantity(product: Product, quantity: number): void {
-    const normalizedQuantity = Math.max(0, Math.min(quantity, product.quantity));
+    const normalizedQuantity = Math.max(
+      0,
+      Math.min(quantity, product.quantity),
+    );
 
     if (normalizedQuantity === 0) {
       this.selectedItems.delete(product.id);
@@ -90,6 +99,20 @@ export class ProductSelectionComponent implements OnInit {
 
   getQuantity(product: Product): number {
     return this.selectedItems.get(product.id)?.quantity || 0;
+  }
+
+  hasImagePreview(product: Product): boolean {
+    const imageUrl = product.imageUrl?.trim();
+
+    return Boolean(
+      imageUrl &&
+        imageUrl.toUpperCase() !== 'N/A' &&
+        !this.failedImageIds.has(product.id),
+    );
+  }
+
+  markImageFailed(product: Product): void {
+    this.failedImageIds.add(product.id);
   }
 
   get selectedList(): ProductSelection[] {
@@ -130,6 +153,10 @@ export class ProductSelectionComponent implements OnInit {
     this.router.navigate(['/products']);
   }
 
+  goToCart(): void {
+    this.router.navigate(['/cart']);
+  }
+
   formatPrice(value: number | string): string {
     return `${this.toNumber(value).toLocaleString('vi-VN')} VND`;
   }
@@ -148,5 +175,4 @@ export class ProductSelectionComponent implements OnInit {
   private toNumber(value: number | string): number {
     return Number(value);
   }
-
 }

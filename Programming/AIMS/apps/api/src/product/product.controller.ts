@@ -1,4 +1,3 @@
-// apps/api/src/product/product.controller.ts
 import {
   Body,
   Controller,
@@ -7,12 +6,25 @@ import {
   Param,
   Post,
   Put,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { GetProductsListUseCase } from './application/use-cases/get-products-list.use-case';
 import { GetProductDetailUseCase } from './application/use-cases/get-product-detail.use-case';
+import { GetProductLogsUseCase } from './application/use-cases/get-product-logs.use-case';
+import { GetAllProductLogsUseCase } from './application/use-cases/get-all-product-logs.use-case';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 /**
  * Module: ProductController
@@ -34,11 +46,17 @@ export class ProductController {
     private readonly productService: ProductService,
     private readonly getProductsListUseCase: GetProductsListUseCase,
     private readonly getProductDetailUseCase: GetProductDetailUseCase,
+    private readonly getProductLogsUseCase: GetProductLogsUseCase,
+    private readonly getAllProductLogsUseCase: GetAllProductLogsUseCase,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
   @Post()
-  create(@Body() createProductDto: CreateProductDto) {
-    return this.productService.create(createProductDto);
+  @UseGuards(JwtAuthGuard)
+  create(@Body() createProductDto: CreateProductDto, @CurrentUser() user: any) {
+    return this.productService.create(createProductDto, user.userId);
   }
 
   @Get()
@@ -46,23 +64,80 @@ export class ProductController {
     return this.getProductsListUseCase.execute();
   }
 
+  @Get('logs')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
+  async getAllLogs() {
+    return this.getAllProductLogsUseCase.execute();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.getProductDetailUseCase.execute(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productService.update(id, updateProductDto);
+  @UseGuards(JwtAuthGuard)
+  update(
+    @Param('id') id: string,
+    @Body() updateProductDto: UpdateProductDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.productService.update(id, updateProductDto, user.userId);
   }
 
+  /**
+   * Upload an image for a product.
+   * Flow: Receive file → Upload to Cloudinary → Update image_url in DB → Return URL.
+   *
+   * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+   * + Reason why: Data Coupling because it only passes simple data between services.
+   *   Functional Cohesion because this endpoint performs one task: uploading a product image.
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
+  @Post(':id/upload-image')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImage(
+    @Param('id') id: string,
+    @UploadedFile() file: any,
+    @CurrentUser() user: any,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Image file not found in request');
+    }
+
+    const uploadResult = await this.cloudinaryService.uploadImage(file);
+    const imageUrl = uploadResult.secure_url;
+
+    await this.productService.updateImageUrl(id, imageUrl, user.userId);
+
+    return { imageUrl };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
   @Delete('bulk')
-  async deleteBulk(@Body('ids') ids: string[]) {
-    return this.productService.deleteBulk(ids);
+  async deleteBulk(@Body('ids') ids: string[], @Req() req: any) {
+    const userId = req.user.userId;
+    return this.productService.deleteBulk(ids, userId);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
   @Delete(':id')
-  async deleteProduct(@Param('id') id: string) {
-    return this.productService.deleteProduct(id);
+  async deleteProduct(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user.userId;
+    return this.productService.deleteProduct(id, userId);
+  }
+
+  @Get(':id/logs')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
+  async getLogs(@Param('id') id: string) {
+    return this.getProductLogsUseCase.execute(id);
   }
 }

@@ -34,6 +34,8 @@ model User {
   productLogs        ProductLog[]
   otp                Int?
   otpExpiration      DateTime?    @map("otp_expiration") @db.Timestamp(6)
+  dailyDeletes       Int          @default(0) @map("daily_deletes")
+  lastDeleteDate     DateTime?    @map("last_delete_date") @db.Date
 
   @@map("users")
 }

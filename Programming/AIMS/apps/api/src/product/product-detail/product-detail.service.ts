@@ -200,7 +200,7 @@ export class ProductDetailService {
 
     const product = await this.productRepository.findProductById(productId);
     if (!product) {
-      throw new NotFoundException(`Không tìm thấy sản phẩm ${productId}`);
+      throw new NotFoundException(`Product ${productId} not found`);
     }
 
     const media = this.mediaRepository

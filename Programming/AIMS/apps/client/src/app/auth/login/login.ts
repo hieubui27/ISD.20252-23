@@ -8,10 +8,17 @@ import {
 } from '@angular/forms';
 import { AuthPageBase } from '../auth-page.base';
 import { LoginLogic } from './login.logic';
+import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
+import { AimsIconComponent } from '../../shared/ui/aims-icon/aims-icon';
 
 @Component({
   selector: 'app-login',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    AimsButtonComponent,
+    AimsIconComponent,
+  ],
   templateUrl: './login.html',
   styleUrl: './login.scss',
   standalone: true,
@@ -54,7 +61,7 @@ export class Login extends AuthPageBase {
     this.loginLogic.executeLogin(
       this.loginForm.value,
       () => {
-        this.setSuccess('Thành công!');
+        this.setSuccess('Success!');
         this.cdr.detectChanges(); // Ép cập nhật UI thành công
       },
       (msg) => {

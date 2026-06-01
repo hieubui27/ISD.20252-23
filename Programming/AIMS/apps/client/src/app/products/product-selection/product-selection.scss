@@ -181,6 +181,9 @@
 
 .product-card {
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 356px;
   transition: box-shadow 160ms ease;
 
   &:hover {
@@ -190,6 +193,7 @@
 
 .product-card__media {
   position: relative;
+  flex: 0 0 160px;
   height: 160px;
   background: #f3f3f3;
   overflow: hidden;
@@ -223,6 +227,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #005fac;
   background: #f3f3f3;
 
   svg {
@@ -232,30 +237,44 @@
 }
 
 .product-card__body {
+  display: grid;
+  flex: 1;
+  grid-template-rows: 40px 36px 20px 18px 34px;
+  gap: 8px;
   padding: 12px;
 
   h2 {
-    margin: 0 0 4px;
+    display: -webkit-box;
+    min-height: 38px;
+    max-height: 38px;
+    margin: 0;
+    overflow: hidden;
     color: #1a1c1c;
     font-family: 'Inter-Bold', Helvetica, sans-serif;
     font-size: 15px;
     font-weight: 700;
     line-height: 19px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   p {
-    margin: 0 0 12px;
+    display: -webkit-box;
+    margin: 0;
     min-height: 32px;
     max-height: 32px;
     overflow: hidden;
     color: #414752;
     font-size: 12px;
     line-height: 16px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   > strong {
     display: block;
-    margin-bottom: 8px;
+    align-self: end;
+    margin: 0;
     color: #1a1c1c;
     font-family: 'Inter-Bold', Helvetica, sans-serif;
     font-size: 15px;
@@ -266,8 +285,9 @@
 
 .product-card__detail-link {
   display: inline-flex;
+  align-self: start;
   width: fit-content;
-  margin-bottom: 12px;
+  margin: 0;
   color: #005fac;
   font-family: 'Inter-Medium', Helvetica, sans-serif;
   font-size: 13px;
@@ -318,6 +338,10 @@
   text-align: center;
   color: #414752;
   font-size: 18px;
+}
+
+.product-grid app-status-message {
+  grid-column: 1 / -1;
 }
 
 .order-summary {
