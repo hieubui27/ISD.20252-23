@@ -81,10 +81,12 @@ export class AuthController {
   ) {
     const { message, token } = await this.authService.verifyOtp(verifyOtpDto);
     if (token) {
+      const isProduction = process.env.NODE_ENV === 'production';
       res.cookie('verify_otp_token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'strict',
+        domain: isProduction ? '.aims.io.vn' : undefined,
         maxAge: 10 * 60 * 1000, // 10 minute
       });
       return { message, token };
