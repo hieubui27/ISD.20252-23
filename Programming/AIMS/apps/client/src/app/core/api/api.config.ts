@@ -3,7 +3,7 @@ const RENDER_API_BASE_URL = 'https://api.aims.io.vn/api';
 
 
 export const AIMS_API_BASE_URL =
-  typeof window !== 'undefined' &&
-  ['localhost', '127.0.0.1'].includes(window.location.hostname)
-    ? LOCAL_API_BASE_URL
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1'
+    ? '/api'
     : RENDER_API_BASE_URL;
