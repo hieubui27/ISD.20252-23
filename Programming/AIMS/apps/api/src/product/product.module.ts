@@ -12,6 +12,12 @@ import { PrismaProductRepository } from './infrastructure/repositories/prisma-pr
 import { PRODUCT_QUERY_REPOSITORY } from './domain/repositories/product-query.repository.interface';
 import { IProductLogServiceToken } from './interfaces/product-log.service.interface';
 import { ProductLogService } from './services/product-log.service';
+import { PRODUCT_HANDLERS } from './product.service';
+import { BookHandler } from './product-handler/book.handler';
+import { CdHandler } from './product-handler/cd.handler';
+import { DvdHandler } from './product-handler/dvd.handler';
+import { NewspaperHandler } from './product-handler/newspaper.handler';
+import { DailyQuotaService } from './services/daily-quota.service';
 
 /**
  * Module: ProductModule
@@ -44,6 +50,16 @@ import { ProductLogService } from './services/product-log.service';
     {
       provide: IProductLogServiceToken,
       useClass: ProductLogService,
+    },
+    DailyQuotaService,
+    BookHandler,
+    CdHandler,
+    DvdHandler,
+    NewspaperHandler,
+    {
+      provide: PRODUCT_HANDLERS,
+      useFactory: (...handlers: any[]) => handlers,
+      inject: [BookHandler, CdHandler, DvdHandler, NewspaperHandler],
     },
   ],
 })

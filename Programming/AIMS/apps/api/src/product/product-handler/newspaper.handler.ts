@@ -1,18 +1,26 @@
-import { CreateProductDto, ProductType } from '../dto/create-product.dto';
+import { ProductType } from '../dto/create-product.dto';
+import { CreateNewspaperDto } from '../dto/create-product.dto';
 import { IProductHandler } from './product-handler.interface';
 
 /**
  * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
  * + Reason why: Data Coupling because it interacts with the system using simple parameters (DTOs and transaction objects). Functional Cohesion because all its logic pertains exclusively to handling the creation of Newspaper-specific products.
  */
-export class NewspaperHandler implements IProductHandler {
+export class NewspaperHandler implements IProductHandler<
+  CreateNewspaperDto,
+  any
+> {
   supports(type: ProductType): boolean {
     return type === ProductType.NEWSPAPER;
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  validate(data: CreateNewspaperDto): void {}
+
   async create(
     tx: any,
     productId: bigint,
-    data: CreateProductDto,
+    data: CreateNewspaperDto,
   ): Promise<void> {
     await tx.printableProduct.create({
       data: {
@@ -31,5 +39,9 @@ export class NewspaperHandler implements IProductHandler {
         },
       },
     });
+  }
+
+  async update(tx: any, productId: bigint, data: any): Promise<void> {
+    // Update logic for Newspaper if needed
   }
 }

@@ -20,14 +20,17 @@ async function bootstrap() {
 
   // Enable CORS for frontend
   app.enableCors({
-    origin: ['http://localhost:4200'],
+    origin: [
+      'http://localhost:4200',
+      'https://aims.io.vn',
+      'https://www.aims.io.vn',
+    ],
     credentials: true,
   });
 
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.useGlobalFilters(new AllExceptionsFilter());
-  app.enableCors({ origin: 'http://localhost:4200', credentials: true });
 
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);

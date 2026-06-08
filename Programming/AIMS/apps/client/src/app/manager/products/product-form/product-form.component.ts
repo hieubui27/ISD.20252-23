@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { ProductFormLogic } from './product-form.logic';
+import { ProductFormFactory } from './product-form.factory';
 import { AimsButtonComponent } from '../../../shared/ui/aims-button/aims-button';
 import { AimsIconComponent } from '../../../shared/ui/aims-icon/aims-icon';
 
@@ -21,6 +22,7 @@ import { AimsIconComponent } from '../../../shared/ui/aims-icon/aims-icon';
 })
 export class ProductFormComponent implements OnInit {
   public logic = inject(ProductFormLogic);
+  public formFactory = inject(ProductFormFactory);
   private route = inject(ActivatedRoute);
 
   public isEditMode$ = this.logic.isEditMode$;
