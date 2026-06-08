@@ -8,17 +8,26 @@ export class ProductLogService implements IProductLogService {
   constructor(private readonly prisma: PrismaService) {}
 
   async logAction(
-    tx: Omit<
-      Prisma.TransactionClient,
-      '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
-    >,
+    tx:
+      | Omit<
+          Prisma.TransactionClient,
+          | '$connect'
+          | '$disconnect'
+          | '$on'
+          | '$transaction'
+          | '$use'
+          | '$extends'
+        >
+      | undefined,
     productId: string,
     userId: string,
     action: string,
   ): Promise<void> {
     if (!userId) return;
 
-    await tx.productLog.create({
+    const client = tx || this.prisma;
+
+    await client.productLog.create({
       data: {
         action,
         productId: BigInt(productId),
