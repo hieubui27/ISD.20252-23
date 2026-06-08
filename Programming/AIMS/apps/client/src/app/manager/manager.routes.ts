@@ -17,6 +17,13 @@ export const managerRoutes: Route[] = [
             (m) => m.productManagerRoutes,
           ),
       },
+      {
+        path: 'orders',
+        loadChildren: () =>
+          import('./orders/order-manager.routes').then(
+            (m) => m.orderManagerRoutes,
+          ), // TS Server should pick this up
+      },
       { path: '', redirectTo: 'products', pathMatch: 'full' },
     ],
   },

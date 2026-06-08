@@ -1,0 +1,145 @@
+<div class="page-container" *ngIf="!loading && order">
+  <div class="top-bar">
+    <h2>Order Detail</h2>
+  </div>
+
+  <div class="content-wrapper">
+    <a routerLink="/manager/orders" class="back-link">&larr; Back to Orders</a>
+
+    <div class="header-section">
+      <div class="title-area">
+        <p class="subtitle">Orders</p>
+        <h1 class="title">Order #{{ order.orderId }}</h1>
+      </div>
+      <div class="actions" *ngIf="order.status === 'PENDING_PAYMENT' || order.status === 'PENDING_PROCESSING'">
+        <button class="btn-approve" (click)="approveOrder()" [disabled]="isProcessing">
+          <span *ngIf="isProcessing" class="spinner"></span>
+          {{ isProcessing ? 'Processing...' : 'Approve Order' }}
+        </button>
+        <button class="btn-reject" (click)="rejectOrder()" [disabled]="isProcessing">
+          <span *ngIf="isProcessing" class="spinner"></span>
+          {{ isProcessing ? 'Processing...' : 'Reject' }}
+        </button>
+      </div>
+      <div class="actions" *ngIf="order.status !== 'PENDING_PAYMENT' && order.status !== 'PENDING_PROCESSING'">
+        <span class="status-badge" [ngClass]="order.status.toLowerCase().replace(' ', '-')">{{ order.status }}</span>
+      </div>
+    </div>
+
+    <div class="grid-layout">
+      <!-- Left Column -->
+      <div class="main-column">
+        <!-- Customer Info -->
+        <div class="card">
+          <h3 class="card-title">Customer Information</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Name</label>
+              <p>{{ order.customerName }}</p>
+            </div>
+            <div class="info-item">
+              <label>Email</label>
+              <p>{{ order.email }}</p>
+            </div>
+            <div class="info-item">
+              <label>Phone</label>
+              <p>{{ order.phoneNumber }}</p>
+            </div>
+            <div class="info-item">
+              <label>Address</label>
+              <p>{{ order.streetAddress }}, {{ order.province }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Items -->
+        <div class="card p-0">
+          <div class="card-header">
+            <h3 class="card-title mb-0">Order Items</h3>
+          </div>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of order.orderProducts">
+                <td>
+                  <div class="product-info">
+                    <img [src]="item.product.imageUrl || 'assets/placeholder.png'" alt="Product" class="product-img">
+                    <span class="product-name">{{ item.product.title || 'Unknown Product' }}</span>
+                  </div>
+                </td>
+                <td class="text-gray">{{ item.quantity }}</td>
+                <td class="text-gray">{{ item.price | number }}</td>
+                <td class="font-semibold">{{ (item.price * item.quantity) | number }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="side-column">
+        <!-- Order Summary -->
+        <div class="card">
+          <h3 class="card-title">Order Summary</h3>
+          <div class="summary-list">
+            <div class="summary-item">
+              <span>Subtotal</span>
+              <span>{{ order.subtotal | number }} VND</span>
+            </div>
+            <div class="summary-item">
+              <span>Shipping</span>
+              <span>{{ order.deliveryFee | number }} VND</span>
+            </div>
+            <div class="summary-item">
+              <span>Tax (10%)</span>
+              <span>{{ (order.invoice.vatSubtotal || 0) - order.subtotal | number }} VND</span>
+            </div>
+            <div class="summary-total">
+              <span>Total</span>
+              <span class="total-amount">{{ order.invoice.totalAmount || 0 | number }} VND</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Timeline -->
+        <div class="card">
+          <h3 class="card-title">Activity Timeline</h3>
+          <div class="timeline">
+            <div class="timeline-item done">
+              <div class="timeline-indicator"></div>
+              <div class="timeline-content">
+                <p class="step-title">Order Placed</p>
+                <p class="step-time">{{ order.createdAt | date:'medium' }}</p>
+              </div>
+            </div>
+            <div class="timeline-item" *ngFor="let tx of order.paymentTransactions" [ngClass]="{'done': tx.status === 'SUCCESS'}">
+              <div class="timeline-indicator"></div>
+              <div class="timeline-content">
+                <p class="step-title">Payment {{ tx.status }}</p>
+                <p class="step-time">{{ tx.transactionDateTime | date:'medium' }}</p>
+              </div>
+            </div>
+            <div *ngIf="order.status === 'Approved' || order.status === 'Rejected'" class="timeline-item done">
+              <div class="timeline-indicator" [style.border-color]="order.status === 'Rejected' ? '#ba1a1a' : '#1a6100'" [style.background-color]="order.status === 'Rejected' ? '#ba1a1a' : '#1a6100'"></div>
+              <div class="timeline-content">
+                <p class="step-title" [style.color]="order.status === 'Rejected' ? '#ba1a1a' : '#1a1c1c'">Order {{ order.status }}</p>
+                <p class="step-time">{{ order.updatedAt | date:'medium' }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="loading" class="loading-state">
+  <p>Loading order details...</p>
+</div>
