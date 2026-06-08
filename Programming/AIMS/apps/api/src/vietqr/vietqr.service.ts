@@ -26,6 +26,17 @@ export interface VietqrCallbackResponse {
   object: { reftransactionid: string } | null;
 }
 
+interface VietqrGenerateQRCodeConfig {
+  bankCode: string;
+  bankAccount: string;
+  userBankName: string;
+  qrType: string;
+  transType: string;
+  terminalCode?: string;
+  subTerminalCode?: string;
+  serviceCode?: string;
+}
+
 /**
  * Coupling: Data Coupling
  * Cohesion: Functional Cohesion
@@ -199,19 +210,78 @@ export class VietqrService {
   private buildGenerateQRCodeRequest(
     request: VietqrRequestDto,
   ): VietqrGenerateQRCodeRequest {
-    // TODO(VIETQR_API_INTEGRATION): Verify bank fields, QR type, transType, and note mapping against the active VietQR environment.
+    const config = this.getGenerateQRCodeConfig();
+    const content = normalizeVietqrContent(request.description);
+    const note = request.description?.trim() || content;
+
     return {
-      bankCode: this.getRequiredEnv('VIETQR_BANK_CODE'),
-      bankAccount: this.getRequiredEnv('VIETQR_BANK_ACCOUNT'),
-      userBankName: this.getRequiredEnv('VIETQR_USER_BANK_NAME'),
-      content: normalizeVietqrContent(request.description),
-      qrType: process.env.VIETQR_QR_TYPE || '0',
+      bankCode: config.bankCode,
+      bankAccount: config.bankAccount,
+      userBankName: config.userBankName,
+      content,
+      qrType: config.qrType,
       amount: request.amount,
       orderId: request.orderId,
-      transType: process.env.VIETQR_TRANS_TYPE || 'C',
+      transType: config.transType,
+      terminalCode: config.terminalCode,
+      subTerminalCode: config.subTerminalCode,
+      serviceCode: config.serviceCode,
       urlLink: request.returnUrl || process.env.VIETQR_RETURN_URL,
-      note: request.description,
+      note,
     };
+  }
+
+  private getGenerateQRCodeConfig(): VietqrGenerateQRCodeConfig {
+    const bankCode = this.getRequiredEnv('VIETQR_BANK_CODE').trim();
+    const bankAccount = this.getRequiredEnv('VIETQR_BANK_ACCOUNT').trim();
+    const userBankName = this.getRequiredEnv('VIETQR_USER_BANK_NAME').trim();
+    const qrType = (process.env.VIETQR_QR_TYPE || '0').trim();
+    const transType = (process.env.VIETQR_TRANS_TYPE || 'C').trim();
+
+    this.validateVietqrBankFields(bankCode, bankAccount, userBankName);
+    this.validateQrType(qrType);
+    this.validateTransType(transType);
+
+    return {
+      bankCode,
+      bankAccount,
+      userBankName,
+      qrType,
+      transType,
+      terminalCode: this.getOptionalTrimmedEnv('VIETQR_TERMINAL_CODE'),
+      subTerminalCode: this.getOptionalTrimmedEnv('VIETQR_SUB_TERMINAL_CODE'),
+      serviceCode: this.getOptionalTrimmedEnv('VIETQR_SERVICE_CODE'),
+    };
+  }
+
+  private validateVietqrBankFields(
+    bankCode: string,
+    bankAccount: string,
+    userBankName: string,
+  ): void {
+    if (!/^[A-Za-z0-9]{2,20}$/.test(bankCode)) {
+      throw new BadRequestException('VIETQR_BANK_CODE is invalid');
+    }
+
+    if (!/^[A-Za-z0-9._-]{4,40}$/.test(bankAccount)) {
+      throw new BadRequestException('VIETQR_BANK_ACCOUNT is invalid');
+    }
+
+    if (!userBankName || userBankName.length > 100) {
+      throw new BadRequestException('VIETQR_USER_BANK_NAME is invalid');
+    }
+  }
+
+  private validateQrType(qrType: string): void {
+    if (!/^\d{1,2}$/.test(qrType)) {
+      throw new BadRequestException('VIETQR_QR_TYPE is invalid');
+    }
+  }
+
+  private validateTransType(transType: string): void {
+    if (!['C', 'D'].includes(transType)) {
+      throw new BadRequestException('VIETQR_TRANS_TYPE is invalid');
+    }
   }
 
   private isCachedTokenValid(): boolean {
@@ -234,6 +304,11 @@ export class VietqrService {
     }
 
     return value;
+  }
+
+  private getOptionalTrimmedEnv(name: string): string | undefined {
+    const value = process.env[name]?.trim();
+    return value || undefined;
   }
 
   private isAuthError(error: unknown): boolean {

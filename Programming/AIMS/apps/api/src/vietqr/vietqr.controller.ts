@@ -1,7 +1,6 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { PaymentService } from '../payment/payment.service';
 import { TransactionSyncDto } from './dto/transaction-sync.dto';
-import { VietqrRequestDto } from './dto/vietqr-request.dto';
 import { VietqrTestCallbackDto } from './dto/vietqr-test-callback.dto';
 import { VietqrCallbackAuthGuard } from './guards/vietqr-callback-auth.guard';
 import { VietqrService } from './vietqr.service';
@@ -56,11 +55,6 @@ export class VietqrController {
         error?.message || 'Transaction sync failed',
       );
     }
-  }
-
-  @Post('payments/vietqr/qrcode')
-  generateQrCode(@Body() vietqrRequestDto: VietqrRequestDto) {
-    return this.vietqrService.generateQrCode(vietqrRequestDto);
   }
 
   @Post('payments/vietqr/test-callback')

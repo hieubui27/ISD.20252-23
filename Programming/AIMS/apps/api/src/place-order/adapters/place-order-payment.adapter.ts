@@ -63,20 +63,10 @@ type PrismaClientLike = {
  *   - Order status DB update
  *   - Order confirmation email sent to the customer
  *
- * FakePlaceOrderPaymentAdapter (payment/adapters/fake-place-order-payment.adapter.ts)
- * implements the same interface but does none of these things (it only logs).
- * The two implementations are NOT substitutable for one another: swapping
- * the real adapter for the fake in production leaves orders unpaid and
- * customers without confirmation emails. This breaks the LSP guarantee that
- * any implementation of PlaceOrderPaymentPort can be substituted without
- * changing the correctness of the program.
- *
  * Improvement direction:
  *   - Strengthen the interface contract by documenting the expected post-conditions
  *     of markPaidAndPendingProcessing (order marked as paid, stock decremented).
- *   - Extract the notification side-effect out of the interface boundary so that
- *     both real and fake implementations can satisfy the core contract without
- *     having to replicate the notification logic.
+ *   - Extract the notification side-effect out of the interface boundary.
  * ============================================================
  */
 @Injectable()

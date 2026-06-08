@@ -4,8 +4,6 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AIMS_API_BASE_URL } from '../core/api/api.config';
 
-// ── Shared interfaces ──
-
 export interface OrderItem {
   id: string;
   name: string;
@@ -29,22 +27,6 @@ export type PaymentStatus =
   | 'FAILED'
   | 'REFUND_REQUIRED';
 
-export interface RequestPaymentDto {
-  orderId: string;
-  invoiceId: string;
-  paymentMethod: PaymentMethod;
-  amount: number;
-  customerEmail: string;
-}
-
-export interface ChangePaymentMethodDto {
-  orderId: string;
-  invoiceId: string;
-  fromMethod: PaymentMethod;
-  toMethod: PaymentMethod;
-  customerEmail?: string;
-}
-
 export interface ConfirmTransactionDto {
   orderId: string;
   invoiceId: string;
@@ -66,34 +48,10 @@ export interface PaymentResultDto {
   message: string;
 }
 
-export interface PaymentTransaction {
-  id: string;
-  orderId: string;
-  invoiceId: string;
-  paymentMethod: string;
-  provider: string;
-  amount: number;
-  status: string;
-  transactionId?: string;
-  transactionContent?: string;
-  transactionDateTime?: string;
-  gatewayOrderId?: string;
-  qrCode?: string;
-  qrContent?: string;
-  qrDataUrl?: string;
-  qrLink?: string;
-  expiredAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 @Injectable({ providedIn: 'root' })
 export class PaymentService {
-  private apiUrl = `${AIMS_API_BASE_URL}/payments`;
-
-  private http = inject(HttpClient);
-
-  // ── Utility ──
+  private readonly apiUrl = `${AIMS_API_BASE_URL}/payments`;
+  private readonly http = inject(HttpClient);
 
   calculateTotal(
     subtotal: number,
@@ -103,36 +61,7 @@ export class PaymentService {
     return subtotal + subtotal * vatRate + shippingFee;
   }
 
-  // ── POST /api/payments/request ──
-
-  requestPayment(dto: RequestPaymentDto): Observable<PaymentResultDto> {
-    return this.http.post<PaymentResultDto>(`${this.apiUrl}/request`, dto);
-  }
-
-  // ── POST /api/payments/change-method ──
-
-  changePaymentMethod(
-    dto: ChangePaymentMethodDto,
-  ): Observable<PaymentResultDto> {
-    return this.http.post<PaymentResultDto>(
-      `${this.apiUrl}/change-method`,
-      dto,
-    );
-  }
-
-  // ── POST /api/payments/confirm ──
-
   confirmTransaction(dto: ConfirmTransactionDto): Observable<PaymentResultDto> {
     return this.http.post<PaymentResultDto>(`${this.apiUrl}/confirm`, dto);
-  }
-
-  // ── GET /api/payments/transactions/order/:orderId ──
-
-  getPaymentTransactionByOrderId(
-    orderId: string,
-  ): Observable<PaymentTransaction> {
-    return this.http.get<PaymentTransaction>(
-      `${this.apiUrl}/transactions/order/${orderId}`,
-    );
   }
 }
