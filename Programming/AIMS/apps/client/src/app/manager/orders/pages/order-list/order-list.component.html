@@ -1,0 +1,67 @@
+<div class="page-container">
+  <div class="top-bar">
+    <h2>Order Management</h2>
+  </div>
+
+  <div class="content-wrapper">
+    <div class="header">
+      <div class="title-area">
+        <p class="subtitle">Orders</p>
+        <h1 class="title">Order Approval</h1>
+      </div>
+      <div class="search-area">
+        <input type="text" placeholder="Search orders..." [(ngModel)]="params.search" (keyup.enter)="onSearch()" class="search-input">
+        <button (click)="onSearch()" class="search-btn">Search</button>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="data-table" *ngIf="!loading; else loadingTemplate">
+        <thead>
+          <tr>
+            <th>ORDER ID</th>
+            <th>CUSTOMER</th>
+            <th>DATE</th>
+            <th>ITEMS</th>
+            <th>TOTAL (VND)</th>
+            <th>STATUS</th>
+            <th>ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let order of orders">
+            <td class="font-semibold">#{{ order.orderId }}</td>
+            <td>{{ order.customerName }}</td>
+            <td>{{ order.createdAt | date:'yyyy-MM-dd' }}</td>
+            <td>{{ order.itemsCount }}</td>
+            <td class="font-medium">{{ order.invoice?.totalAmount || 0 | number }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="order.status.toLowerCase().replace(' ', '-')">
+                {{ order.status }}
+              </span>
+            </td>
+            <td>
+              <a [routerLink]="['/manager/orders', order.id]" class="action-link">View Details</a>
+            </td>
+          </tr>
+          <tr *ngIf="orders.length === 0">
+            <td colspan="7" class="empty-state">No orders found</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ng-template #loadingTemplate>
+        <div class="loading-state">Loading orders...</div>
+      </ng-template>
+
+      <div class="pagination" *ngIf="totalPages > 0">
+        <p class="info">Showing page {{ params.page }} of {{ totalPages }}</p>
+        <div class="controls">
+          <button [disabled]="params.page === 1" (click)="onPageChange(params.page! - 1)">&lt;</button>
+          <span class="current-page">{{ params.page }}</span>
+          <button [disabled]="params.page === totalPages" (click)="onPageChange(params.page! + 1)">&gt;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

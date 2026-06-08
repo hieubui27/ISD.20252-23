@@ -7,6 +7,7 @@ import { AuthModule } from '../auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { MailModule } from '../mail/mail.module';
 import { PlaceOrderModule } from '../place-order/place-order.module';
+import { OrderManagerModule } from '../order-manager/order-manager.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PlaceOrderModule } from '../place-order/place-order.module';
     AuthModule,
     MailModule,
     PlaceOrderModule,
+    OrderManagerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
