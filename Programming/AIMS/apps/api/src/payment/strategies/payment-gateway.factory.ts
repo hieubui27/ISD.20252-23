@@ -27,7 +27,4 @@ export class PaymentGatewayFactory {
     return gateway;
   }
 
-  getSupportedMethods(): PaymentMethod[] {
-    return Array.from(this.gatewayMap.keys());
-  }
 }

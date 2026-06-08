@@ -42,7 +42,6 @@ async function bootstrap() {
     'product',
     'orders',
     'invoice',
-    'transaction',
     'authors',
     'roles',
     'users',

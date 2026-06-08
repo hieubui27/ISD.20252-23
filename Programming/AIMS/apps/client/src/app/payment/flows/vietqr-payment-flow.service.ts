@@ -85,7 +85,20 @@ export class VietQrPaymentFlowService
       throw new Error('VietQR payment has not been created yet.');
     }
 
-    return this.requestSandboxCallback(snapshot);
+    return this.paymentStatusApi.getLatestByOrderId(snapshot.payment.orderId).pipe(
+      tap((latestTransaction) => {
+        this.setSnapshot({
+          ...snapshot,
+          latestTransaction,
+        });
+      }),
+      switchMap((latestTransaction) =>
+        this.requestSandboxCallback({
+          ...snapshot,
+          latestTransaction,
+        }),
+      ),
+    );
   }
 
   stop(): void {
@@ -144,11 +157,7 @@ export class VietQrPaymentFlowService
   ): Observable<VietQrPaymentSnapshot> {
     const orderId = snapshot.payment.orderId;
     const latestTransaction = snapshot.latestTransaction;
-    const content =
-      latestTransaction?.qrContent ||
-      (latestTransaction?.gatewayOrderId
-        ? `AIMS ${latestTransaction.gatewayOrderId}`
-        : `AIMS ${this.buildGatewayOrderId(snapshot.payment.paymentTransactionId)}`);
+    const content = latestTransaction?.qrContent;
 
     if (!content) {
       throw new Error('VietQR callback content is missing.');
@@ -182,10 +191,6 @@ export class VietQrPaymentFlowService
       status === 'FAILED' ||
       status === 'REFUND_REQUIRED'
     );
-  }
-
-  private buildGatewayOrderId(transactionId: string): string {
-    return transactionId.replace(/-/g, '').slice(0, 13).toUpperCase();
   }
 
   private setSnapshot(snapshot: VietQrPaymentSnapshot): void {

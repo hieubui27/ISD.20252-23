@@ -10,7 +10,6 @@ import {
   PaymentProvider,
   PaymentStatus,
 } from './constants/payment.constants';
-import { ChangePaymentMethodDto } from './dto/change-payment-method.dto';
 import { ConfirmTransactionDto } from './dto/confirm-transaction.dto';
 import { PaymentResultDto } from './dto/payment-result.dto';
 import { RequestPaymentDto } from './dto/request-payment.dto';
@@ -141,53 +140,6 @@ export class PaymentService {
       transactionId: transaction.id,
       message: `${paymentMethod} payment request created`,
     };
-  }
-
-  async changePaymentMethod(
-    dto: ChangePaymentMethodDto,
-  ): Promise<PaymentResultDto> {
-    this.gatewayFactory.getGateway(dto.fromMethod);
-    this.gatewayFactory.getGateway(dto.toMethod);
-
-    if (dto.fromMethod === dto.toMethod) {
-      throw new BadRequestException('Payment method is unchanged');
-    }
-
-    const existing = await this.prisma.paymentTransaction.findFirst({
-      where: {
-        orderId: dto.orderId,
-        invoiceId: this.parseInvoiceId(dto.invoiceId),
-        paymentMethod: dto.fromMethod,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Payment transaction not found');
-    }
-
-    if (existing.status === PaymentStatus.PENDING) {
-      ensureCanMarkFailed(existing.status);
-      await this.prisma.paymentTransaction.update({
-        where: { id: existing.id },
-        data: { status: PaymentStatus.FAILED },
-      });
-    }
-
-    const paymentContext = await this.placeOrderPaymentPort.getPaymentContext({
-      orderId: dto.orderId,
-      invoiceId: dto.invoiceId,
-      amount: existing.amount,
-      customerEmail: dto.customerEmail,
-    });
-
-    return this.requestPayment({
-      orderId: dto.orderId,
-      invoiceId: dto.invoiceId,
-      paymentMethod: dto.toMethod,
-      amount: paymentContext.totalAmount,
-      customerEmail: paymentContext.customerEmail,
-    });
   }
 
   async confirmTransaction(
