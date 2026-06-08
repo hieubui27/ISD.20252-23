@@ -1,4 +1,11 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { PaymentService } from '../payment/payment.service';
 import { TransactionSyncDto } from './dto/transaction-sync.dto';
 import { VietqrTestCallbackDto } from './dto/vietqr-test-callback.dto';
@@ -35,6 +42,7 @@ export class VietqrController {
   ) {}
 
   @UseGuards(VietqrCallbackAuthGuard)
+  @HttpCode(HttpStatus.OK)
   @Post('vqr/bank/api/transaction-sync')
   async syncTransaction(@Body() transactionSyncDto: TransactionSyncDto) {
     try {
@@ -57,6 +65,7 @@ export class VietqrController {
     }
   }
 
+  @HttpCode(HttpStatus.OK)
   @Post('payments/vietqr/test-callback')
   testCallback(@Body() vietqrTestCallbackDto: VietqrTestCallbackDto) {
     return this.vietqrService.testCallback(vietqrTestCallbackDto);

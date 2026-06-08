@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 
 /**
  * Coupling: Data Coupling
@@ -14,17 +14,21 @@ import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 export class VietqrTestCallbackDto {
   @IsString()
   @IsOptional()
+  orderId?: string;
+
+  @IsString()
+  @IsOptional()
   bankAccount?: string;
+
+  @IsNumber()
+  amount: number;
 
   @IsString()
   content: string;
 
-  @IsNumber()
-  @Min(1)
-  amount: number;
-
   @IsString()
-  transType: string;
+  @IsOptional()
+  transType?: string;
 
   @IsString()
   @IsOptional()

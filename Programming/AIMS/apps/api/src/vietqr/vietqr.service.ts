@@ -141,14 +141,25 @@ export class VietqrService {
   async testCallback(dto: VietqrTestCallbackDto) {
     // TODO(VIETQR_SANDBOX_TEST_ONLY): This endpoint must remain disabled in production.
     const accessToken = await this.getAccessToken();
-    return this.vietqrClient.testCallback(accessToken, {
-      bankAccount:
-        dto.bankAccount || this.getRequiredEnv('VIETQR_BANK_ACCOUNT'),
+    const request = {
+      bankAccount: dto.bankAccount || this.getRequiredEnv('VIETQR_BANK_ACCOUNT'),
       bankCode: dto.bankCode || this.getRequiredEnv('VIETQR_BANK_CODE'),
       content: dto.content,
       amount: dto.amount,
       transType: dto.transType || process.env.VIETQR_TRANS_TYPE || 'C',
-    });
+    };
+
+    try {
+      return await this.vietqrClient.testCallback(accessToken, request);
+    } catch (error) {
+      if (this.isAuthError(error)) {
+        this.clearAccessToken();
+        const refreshedToken = await this.getAccessToken();
+        return this.vietqrClient.testCallback(refreshedToken, request);
+      }
+
+      throw new BadGatewayException('VietQR test callback failed');
+    }
   }
 
   buildCallbackSuccessResponse(

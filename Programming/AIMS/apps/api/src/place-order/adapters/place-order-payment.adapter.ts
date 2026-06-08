@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { MailService } from '../../mail/mail.service';
 import { getOrderConfirmationEmailTemplate } from '../../mail/templates/order-confirmation.template';
-import { PaymentStatus } from '../../payment/constants/payment.constants';
 import {
   PaidOrderContext,
   PaymentContext,
@@ -153,16 +152,6 @@ export class PlaceOrderPaymentAdapter implements PlaceOrderPaymentPort {
             );
           }
         }
-
-        await tx.transaction.create({
-          data: {
-            amount: context.amount,
-            content: context.transactionContent || context.transactionId,
-            method: context.paymentMethod,
-            status: PaymentStatus.SUCCESS,
-            invoiceId: order.invoice.id,
-          },
-        });
 
         return tx.order.update({
           where: { orderId: context.orderId },

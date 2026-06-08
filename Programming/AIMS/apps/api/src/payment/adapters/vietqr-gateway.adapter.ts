@@ -44,7 +44,7 @@ export class VietqrGatewayAdapter implements PaymentGateway {
       paymentUrl: qrCodeData.qrLink || '',
       qrCode: qrCodeData.qrCode,
       providerData: {
-        qrContent,
+        qrContent: qrCodeData.qrContent || qrContent,
         qrDataUrl: qrCodeData.qrDataUrl,
         qrLink: qrCodeData.qrLink,
         expiredAt: qrCodeData.expiredAt,

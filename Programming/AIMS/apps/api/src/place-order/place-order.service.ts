@@ -288,16 +288,6 @@ export class PlaceOrderBeService {
           },
         });
 
-        await tx.transaction.create({
-          data: {
-            amount: invoicePreview.totalAmount,
-            content: dto.transactionContent || dto.transactionId,
-            method: dto.paymentMethod,
-            status: PAYMENT_STATUS_SUCCESS,
-            invoiceId: invoice.id,
-          },
-        });
-
         for (const item of items) {
           const decrementResult = await tx.product.updateMany({
             where: {
