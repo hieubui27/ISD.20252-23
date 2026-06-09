@@ -1,0 +1,1 @@
+export const PRODUCT_HANDLERS = 'PRODUCT_HANDLERS';

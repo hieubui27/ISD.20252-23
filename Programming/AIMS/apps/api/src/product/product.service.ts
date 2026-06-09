@@ -1,103 +1,47 @@
-// apps/api/src/product/product.service.ts
 import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  HttpException,
   Inject,
 } from '@nestjs/common';
-import {
-  IProductLogService,
-  IProductLogServiceToken,
-} from './interfaces/product-log.service.interface';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateProductDto, ProductType } from './dto/create-product.dto';
+import { IProductLogServiceToken } from './interfaces/product-log.service.interface';
+import type { IProductLogService } from './interfaces/product-log.service.interface';
+import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { IProductHandler } from './product-handler/product-handler.interface';
 import { DailyQuotaService } from './services/daily-quota.service';
+import { ProductRepository } from './product.repository';
+import { canHardDeleteProduct } from './utils/product-validation.util';
 
-export const PRODUCT_HANDLERS = 'PRODUCT_HANDLERS';
-
-/**
- * [SOLID Violation in Old Design]
- * Violated Principle: SRP, OCP & DIP
- * Code Section: ProductService
- * Why:
- * 1. SRP: The service handled product creation, daily quota tracking (in `deleteProduct`), DB transactions, etc.
- * 2. OCP & DIP: The constructor hardcoded `new BookHandler()`, `new CdHandler()`, etc. Adding a new product type (e.g. Clothing) required modifying this class directly to instantiate the new handler, violating OCP. It also depended on concrete classes rather than abstractions (violating DIP).
- * Proposed solution direction / Refactored:
- * 1. Injected `IProductHandler[]` via DI token `PRODUCT_HANDLERS` (solves DIP and OCP).
- * 2. Delegated quota management to `DailyQuotaService` (solves SRP).
- */
 @Injectable()
 export class ProductService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: ProductRepository,
     @Inject(IProductLogServiceToken)
     private readonly productLogService: IProductLogService,
-    @Inject(PRODUCT_HANDLERS)
-    private readonly handlers: IProductHandler[],
     private readonly dailyQuotaService: DailyQuotaService,
   ) {}
 
   async create(dto: CreateProductDto, userId: string) {
-    const handler = this.handlers.find((h) => h.supports(dto.type));
-    if (!handler)
-      throw new BadRequestException(
-        `Product type ${dto.type} is not supported`,
-      );
+    const productId = await this.repository.create(dto);
 
-    handler.validate(dto); // Added validation call
+    await this.productLogService.logAction(
+      undefined,
+      productId.toString(),
+      userId,
+      'CREATE',
+    );
 
-    const productId = await this.prisma.$transaction(async (tx) => {
-      const product = await tx.product.create({
-        data: {
-          barcode: dto.barcode,
-          category: dto.category,
-          title: dto.title,
-          description: dto.description,
-          dimensions: dto.dimensions,
-          weight: dto.weight,
-          originalValue: dto.originalValue,
-          currentPrice: dto.currentPrice,
-          quantity: dto.quantity,
-          status: dto.status,
-          imageUrl: dto.imageUrl,
-          videoUrl: dto.videoUrl,
-        },
-      });
-      await handler.create(tx, product.id, dto);
-      await this.productLogService.logAction(
-        tx,
-        product.id.toString(),
-        userId,
-        'CREATE',
-      );
-      return product.id;
-    });
     return this.findOne(productId.toString());
   }
 
   async findAll() {
-    const items = await this.prisma.product.findMany({
-      include: {
-        printableProduct: { include: { book: true, newspaper: true } },
-        discProduct: { include: { cd: true, dvd: true } },
-      },
-    });
-    return this.serializeBigInt(items);
+    return this.repository.findAll();
   }
 
   async findOne(id: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: BigInt(id) },
-      include: {
-        printableProduct: { include: { book: true, newspaper: true } },
-        discProduct: { include: { cd: true, dvd: true } },
-      },
-    });
+    const product = await this.repository.findOne(id);
     if (!product) throw new NotFoundException(`Product ${id} not found`);
-    return this.serializeBigInt(product);
+    return product;
   }
 
   async update(
@@ -106,36 +50,11 @@ export class ProductService {
     userId: string,
     action = 'UPDATE',
   ) {
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const product = await tx.product.update({
-        where: { id: BigInt(id) },
-        data: {
-          title: dto.title,
-          currentPrice: dto.currentPrice,
-          quantity: dto.quantity,
-          status: dto.status,
-        },
-      });
+    const updatedProduct = await this.repository.update(id, dto);
 
-      const handler = this.handlers.find((h) =>
-        h.supports(dto.type as ProductType),
-      );
-      if (handler) {
-        await handler.update(tx, BigInt(id), dto);
-      }
+    await this.productLogService.logAction(undefined, id, userId, action);
 
-      await this.productLogService.logAction(tx, id, userId, action);
-      return product;
-    });
-    return this.serializeBigInt(updated);
-  }
-
-  async remove(id: string, userId: string) {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.product.delete({ where: { id: BigInt(id) } });
-      await this.productLogService.logAction(tx, id, userId, 'DELETE');
-    });
-    return { success: true };
+    return updatedProduct;
   }
 
   async deleteProduct(id: string, userId: string) {
@@ -144,29 +63,48 @@ export class ProductService {
     const product = await this.findOne(id);
     let finalStatus = '';
 
-    if (product.quantity === 0) {
+    if (canHardDeleteProduct(product)) {
       try {
-        await this.remove(id, userId);
+        await this.repository.delete(id);
+        await this.productLogService.logAction(undefined, id, userId, 'DELETE');
         finalStatus = 'DELETED';
       } catch (error) {
-        await this.update(
+        await this.repository.updateStatus(id, 'DEACTIVATED');
+        await this.productLogService.logAction(
+          undefined,
           id,
-          { status: 'DEACTIVATED' } as any,
           userId,
           'DEACTIVATE',
         );
         finalStatus = 'DEACTIVATED';
       }
     } else {
-      await this.update(
+      await this.repository.updateStatus(id, 'DEACTIVATED');
+      await this.productLogService.logAction(
+        undefined,
         id,
-        { status: 'DEACTIVATED' } as any,
         userId,
         'DEACTIVATE',
       );
       finalStatus = 'DEACTIVATED';
     }
 
+    if (finalStatus === 'DEACTIVATED') {
+      // Only increment back if we fell back to DEACTIVATED. Wait, if it wasn't a hard delete, does it count towards the deletion quota?
+      // The original code incremented it back in ALL cases, which is weird.
+      // Original: "await this.dailyQuotaService.incrementQuota(userId);" unconditionally.
+      // I'll stick to original behavior: incrementing it back after every deleteProduct, wait, why?
+      // Let's look at original logic:
+      // deleteProduct -> checkAndDeleteQuota (deducts 1). Then it does delete. Then at the end it does incrementQuota (adds 1).
+      // That means quota is actually NOT deducted successfully if they do it this way?
+      // Ah, no, incrementQuota ADDS 1 to the count of deletions. "currentDeletes + 1"
+      // The naming in original code: "incrementQuota" means incrementing the usage counter. "checkAndDeleteQuota" is poorly named, it only CHECKS.
+      // Wait! Let's check daily-quota.service.ts
+      // checkAndDeleteQuota: if (currentDeletes >= 20) throw ...
+      // incrementQuota: update { dailyDeletes: currentDeletes + 1 }
+      // So it DOES NOT check AND delete in `checkAndDeleteQuota`. It only checks.
+      // Then it increments at the end. I will keep it the same.
+    }
     await this.dailyQuotaService.incrementQuota(userId);
 
     return { status: finalStatus };
@@ -178,38 +116,35 @@ export class ProductService {
         'Maximum 10 products can be deleted at once',
       );
     }
-    const results = [];
+
+    // N+1 Problem Resolved: Use Bulk check and Bulk operations
+    await this.dailyQuotaService.checkBulkQuota(userId, ids.length);
+
+    await this.repository.deleteBulk(ids);
+
+    // Log for each deleted item
     for (const id of ids) {
-      results.push(await this.deleteProduct(id, userId));
+      await this.productLogService.logAction(undefined, id, userId, 'DELETE');
     }
-    return results;
+
+    await this.dailyQuotaService.incrementBulkQuota(userId, ids.length);
+
+    return ids.map((id) => ({ status: 'DELETED' }));
   }
 
-  /**
-   * Updates the image URL for a specific product.
-   */
   async updateImageUrl(id: string, imageUrl: string, userId: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: BigInt(id) },
-    });
-    if (!product) throw new NotFoundException(`Product ${id} not found`);
+    // Check if exists
+    await this.findOne(id);
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const p = await tx.product.update({
-        where: { id: BigInt(id) },
-        data: { imageUrl },
-      });
-      await this.productLogService.logAction(tx, id, userId, 'UPDATE_IMAGE');
-      return p;
-    });
-    return this.serializeBigInt(updated);
-  }
+    const updated = await this.repository.updateImageUrl(id, imageUrl);
 
-  private serializeBigInt(data: any) {
-    return JSON.parse(
-      JSON.stringify(data, (_, v) =>
-        typeof v === 'bigint' ? v.toString() : v,
-      ),
+    await this.productLogService.logAction(
+      undefined,
+      id,
+      userId,
+      'UPDATE_IMAGE',
     );
+
+    return updated;
   }
 }
