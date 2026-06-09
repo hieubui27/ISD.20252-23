@@ -18,15 +18,12 @@ import {
   PLACE_ORDER_PAYMENT_PORT,
   PlaceOrderPaymentPort,
 } from './ports/place-order-payment.port';
-import {
-  ensureCanMarkFailed,
-  ensureCanMarkRefundRequired,
-  ensureCanMarkSuccess,
-} from './helpers/payment-transaction-status.helper';
+import { ensureCanMarkRefundRequired } from './helpers/payment-transaction-status.helper';
 import { TransactionSyncDto } from '../vietqr/dto/transaction-sync.dto';
 import { VietqrService } from '../vietqr/vietqr.service';
 import { buildGatewayOrderId } from '../vietqr/helpers/vietqr-normalize.helper';
 import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
+import { PaymentTransactionService } from './payment-transaction.service';
 
 /**
  * Coupling: Data Coupling
@@ -48,6 +45,7 @@ export class PaymentService {
     private readonly prisma: PrismaService,
     private readonly vietqrService: VietqrService,
     private readonly gatewayFactory: PaymentGatewayFactory,
+    private readonly paymentTransactionService: PaymentTransactionService,
     @Inject(PLACE_ORDER_PAYMENT_PORT)
     private readonly placeOrderPaymentPort: PlaceOrderPaymentPort,
   ) {}
@@ -70,67 +68,57 @@ export class PaymentService {
       throw new BadRequestException('Amount mismatch');
     }
 
-    const transaction = await this.prisma.paymentTransaction.create({
-      data: {
+    const transaction =
+      await this.paymentTransactionService.getOrCreatePendingTransaction({
         orderId: dto.orderId,
         invoiceId,
         paymentMethod,
-        provider: paymentMethod,
         amount: dto.amount,
-        status: PaymentStatus.PENDING,
-      },
-    });
+      });
     const localGatewayOrderId = buildGatewayOrderId(transaction.id);
 
     if (paymentMethod === PaymentMethod.VIETQR) {
-      await this.prisma.paymentTransaction.update({
-        where: { id: transaction.id },
-        data: { gatewayOrderId: localGatewayOrderId },
-      });
+      await this.paymentTransactionService.updateGatewayOrderId(
+        transaction.id,
+        localGatewayOrderId,
+      );
     }
 
     let gatewayResult: Awaited<ReturnType<typeof gateway.createPayment>>;
     try {
       gatewayResult = await gateway.createPayment({
-        gatewayOrderId: localGatewayOrderId,
+        gatewayOrderId:
+          paymentMethod === PaymentMethod.VIETQR
+            ? localGatewayOrderId
+            : transaction.gatewayOrderId || localGatewayOrderId,
         amount: dto.amount,
         description: `AIMS ${localGatewayOrderId}`,
         customerEmail: dto.customerEmail,
         invoiceId: dto.invoiceId,
       });
     } catch (err) {
-      await this.prisma.paymentTransaction.update({
-        where: { id: transaction.id },
-        data: { status: PaymentStatus.FAILED },
-      });
+      await this.paymentTransactionService.markFailed(transaction.id);
       throw err;
     }
 
-    if (gatewayResult.providerData) {
-      const providerUpdate = this.buildProviderDataUpdate(
-        paymentMethod,
-        gatewayResult,
+    const providerUpdate = this.buildProviderDataUpdate(
+      paymentMethod,
+      gatewayResult,
+    );
+
+    if (
+      paymentMethod === PaymentMethod.PAYPAL &&
+      !providerUpdate.gatewayOrderId
+    ) {
+      await this.paymentTransactionService.markFailed(transaction.id);
+      throw new BadRequestException('PayPal order id was not returned by PayPal');
+    }
+
+    if (Object.keys(providerUpdate).length > 0) {
+      await this.paymentTransactionService.updateProviderData(
+        transaction.id,
+        providerUpdate,
       );
-
-      if (
-        paymentMethod === PaymentMethod.PAYPAL &&
-        !providerUpdate.gatewayOrderId
-      ) {
-        await this.prisma.paymentTransaction.update({
-          where: { id: transaction.id },
-          data: { status: PaymentStatus.FAILED },
-        });
-        throw new BadRequestException(
-          'PayPal order id was not returned by PayPal',
-        );
-      }
-
-      if (Object.keys(providerUpdate).length > 0) {
-        await this.prisma.paymentTransaction.update({
-          where: { id: transaction.id },
-          data: providerUpdate,
-        });
-      }
     }
 
     return {
@@ -175,8 +163,6 @@ export class PaymentService {
       );
     }
 
-    ensureCanMarkSuccess(transaction.status);
-
     const gateway = this.gatewayFactory.getGateway(
       transaction.paymentMethod as PaymentMethod,
     );
@@ -195,15 +181,15 @@ export class PaymentService {
       ? new Date(dto.transactionDateTime)
       : new Date();
 
-    const updated = await this.prisma.paymentTransaction.update({
-      where: { id: transaction.id },
-      data: {
-        status: dto.status || PaymentStatus.SUCCESS,
-        transactionId,
-        transactionContent,
-        transactionDateTime,
-      },
-    });
+    const updated =
+      await this.paymentTransactionService.markSuccessAndCancelOtherPending({
+        transactionId: transaction.id,
+        data: {
+          transactionId,
+          transactionContent,
+          transactionDateTime,
+        },
+      });
 
     await this.placeOrderPaymentPort.markPaidAndPendingProcessing({
       orderId: updated.orderId,
@@ -274,18 +260,29 @@ export class PaymentService {
       };
     }
 
-    ensureCanMarkSuccess(transaction.status);
+    if (transaction.status !== PaymentStatus.PENDING) {
+      return {
+        status: {
+          transactionId: callback.transactionid,
+          status: transaction.status,
+          message: 'Transaction already closed',
+          paidAmount: callback.amount,
+        },
+        refTransactionId: transaction.id,
+        duplicate: true,
+      };
+    }
 
-    const updated = await this.prisma.paymentTransaction.update({
-      where: { id: transaction.id },
-      data: {
-        status: PaymentStatus.SUCCESS,
-        transactionId: callback.transactionid,
-        transactionContent: callback.content,
-        transactionDateTime: new Date(callback.transactiontime),
-        gatewayReferenceNumber: callback.referencenumber,
-      },
-    });
+    const updated =
+      await this.paymentTransactionService.markSuccessAndCancelOtherPending({
+        transactionId: transaction.id,
+        data: {
+          transactionId: callback.transactionid,
+          transactionContent: callback.content,
+          transactionDateTime: new Date(callback.transactiontime),
+          gatewayReferenceNumber: callback.referencenumber,
+        },
+      });
 
     await this.placeOrderPaymentPort.markPaidAndPendingProcessing({
       orderId: updated.orderId,
@@ -314,11 +311,7 @@ export class PaymentService {
       throw new NotFoundException('Payment transaction not found');
     }
 
-    ensureCanMarkFailed(transaction.status);
-    await this.prisma.paymentTransaction.update({
-      where: { id: transactionId },
-      data: { status: PaymentStatus.FAILED },
-    });
+    await this.paymentTransactionService.markFailed(transactionId);
   }
 
   async handleRejectedOrderRefund(orderId: string, rejectReason: string) {
@@ -356,8 +349,7 @@ export class PaymentService {
   }
 
   async getPaymentTransactionByOrderId(orderId: string) {
-    const transaction =
-      await this.findLatestPaymentTransactionByOrderId(orderId);
+    const transaction = await this.findLatestPaymentTransactionByOrderId(orderId);
 
     return transaction ? this.serializePaymentTransaction(transaction) : null;
   }
@@ -370,9 +362,15 @@ export class PaymentService {
     return BigInt(invoiceId);
   }
 
-  private findLatestPaymentTransactionByOrderId(orderId: string) {
+  private findLatestPaymentTransactionByOrderId(
+    orderId: string,
+    paymentMethod?: PaymentMethod,
+  ) {
     return this.prisma.paymentTransaction.findFirst({
-      where: { orderId },
+      where: {
+        orderId,
+        ...(paymentMethod ? { paymentMethod } : {}),
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

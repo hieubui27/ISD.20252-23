@@ -1,13 +1,17 @@
 import { Injectable, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { BehaviorSubject, Subscription } from 'rxjs';
+import { BehaviorSubject, Observable, Subscription, map } from 'rxjs';
 import * as QRCode from 'qrcode';
 import {
   OrderSummary,
+  PaymentResultDto,
   PaymentMethod,
   PaymentService,
 } from '../../services/payment.service';
-import { InvoicePreview } from '../../place-order/models/place-order.models';
+import {
+  InvoicePreview,
+  PlaceOrderPaymentResult,
+} from '../../place-order/models/place-order.models';
 import {
   CheckoutDraft,
   CheckoutDraftService,
@@ -18,6 +22,7 @@ import {
   OrderResultState,
 } from '../../place-order/order-result/order-result-state';
 import {
+  ExistingPaymentContext,
   VietQrPaymentInput,
   VietQrPaymentSnapshot,
 } from '../models/vietqr-payment.models';
@@ -61,6 +66,11 @@ const INITIAL_STATE: PaymentPageState = {
 };
 
 const PAYPAL_SESSION_KEY = 'aims_paypal_payment';
+const PENDING_PAYMENT_SESSION_KEY = 'aims.pendingPaymentSession';
+
+interface PendingPaymentSession extends ExistingPaymentContext {
+  checkoutKey: string;
+}
 
 @Injectable()
 /**
@@ -95,9 +105,16 @@ export class PaymentPageFacade {
   private currentSnapshot: VietQrPaymentSnapshot | null = null;
   private paypalPaymentOrderId: string | null = null;
   private paypalPaymentInvoiceId: string | null = null;
+  private pendingPaymentSession: PendingPaymentSession | null = null;
+  private pendingPaymentSessionPromise: Promise<PendingPaymentSession> | null =
+    null;
+  private pendingVietQrPayment: PlaceOrderPaymentResult | null = null;
 
   initialize(): void {
     this.checkoutDraft = this.checkoutDraftService.get();
+    this.pendingPaymentSession = this.loadPendingPaymentSession(
+      this.checkoutDraft,
+    );
     const paypalToken = this.route.snapshot.queryParamMap.get('token');
     const paypalCancelled =
       this.route.snapshot.queryParamMap.get('paypalCancel') === '1';
@@ -134,11 +151,18 @@ export class PaymentPageFacade {
 
     // Detect VietQR return:
     const existingSnapshot = this.vietQrPaymentFlow.currentSnapshot;
-    if (existingSnapshot) {
+    if (
+      existingSnapshot &&
+      this.pendingPaymentSession &&
+      existingSnapshot.payment.orderId === this.pendingPaymentSession.orderId
+    ) {
       this.vietQrPaymentFlow.resume(existingSnapshot);
       this.listenForVietQrUpdates();
       this.applySnapshot(existingSnapshot);
       return;
+    }
+    if (existingSnapshot) {
+      this.vietQrPaymentFlow.clearSnapshot();
     }
 
     this.startPaymentFlow();
@@ -192,12 +216,45 @@ export class PaymentPageFacade {
     this.snapshotSubscription?.unsubscribe();
     this.listenForVietQrUpdates();
 
-    this.vietQrPaymentFlow.start(this.buildVietQrPaymentInput()).subscribe({
-      next: (snapshot) => {
-        this.patchState({ isLoading: false, statusMessage: '' });
-        this.applySnapshot(snapshot);
-      },
-      error: (err) => {
+    this.ensurePendingPaymentSession()
+      .then(() => {
+        if (this.stateSubject.value.selectedMethod !== 'VIETQR') {
+          return;
+        }
+
+        if (this.pendingVietQrPayment) {
+          const snapshot: VietQrPaymentSnapshot = {
+            payment: this.pendingVietQrPayment,
+          };
+          this.vietQrPaymentFlow.resume(snapshot);
+          this.patchState({ isLoading: false, statusMessage: '' });
+          this.applySnapshot(snapshot);
+          this.pendingVietQrPayment = null;
+          return;
+        }
+
+        this.vietQrPaymentFlow.start(this.buildVietQrPaymentInput()).subscribe({
+          next: (snapshot) => {
+            if (this.stateSubject.value.selectedMethod !== 'VIETQR') {
+              return;
+            }
+
+            this.patchState({ isLoading: false, statusMessage: '' });
+            this.applySnapshot(snapshot);
+          },
+          error: (err) => {
+            console.error('VietQR payment error:', err);
+            this.patchState({
+              isLoading: false,
+              errorMessage:
+                err.error?.message ||
+                err.message ||
+                'Unable to create VietQR payment request.',
+            });
+          },
+        });
+      })
+      .catch((err) => {
         console.error('VietQR payment error:', err);
         this.patchState({
           isLoading: false,
@@ -206,12 +263,11 @@ export class PaymentPageFacade {
             err.message ||
             'Unable to create VietQR payment request.',
         });
-      },
-    });
+      });
   }
 
   private startPaypalPayment(): void {
-    if (!this.checkoutDraft) return;
+    if (!this.checkoutDraft && !this.pendingPaymentSession) return;
 
     this.patchState({
       isLoading: true,
@@ -220,42 +276,101 @@ export class PaymentPageFacade {
       paypalRedirectUrl: '',
     });
 
-    this.placeOrderApi
-      .createPayment({
-        items: this.checkoutDraftService.toPlaceOrderItems(this.checkoutDraft),
-        deliveryInfo: this.checkoutDraft.deliveryInfo,
-        paymentMethod: 'PAYPAL',
+    this.ensurePendingPaymentSession()
+      .then(() => {
+        if (this.stateSubject.value.selectedMethod !== 'PAYPAL') {
+          return;
+        }
+
+        this.createOrReusePaypalPayment().subscribe({
+          next: (result) => {
+            this.savePendingPaymentSessionFromPayment(result);
+            this.paypalPaymentOrderId = result.orderId;
+            this.paypalPaymentInvoiceId = result.invoiceId;
+
+            // Persist orderId/invoiceId in sessionStorage so they survive
+            // the full-page redirect to PayPal and back.
+            this.savePaypalSession(result.orderId, result.invoiceId);
+
+            this.patchState({
+              isLoading: false,
+              paypalRedirectUrl: result.paymentUrl || '',
+              statusMessage: result.paymentUrl
+                ? this.stateSubject.value.paypalApproved
+                  ? 'PayPal payment approved. Click "Confirm Payment" to complete your purchase.'
+                  : ''
+                : 'PayPal payment created. Awaiting redirect URL.',
+            });
+          },
+          error: (err) => {
+            console.error('PayPal payment error:', err);
+            this.patchState({
+              isLoading: false,
+              errorMessage:
+                err.error?.message ||
+                err.message ||
+                'Unable to create PayPal payment request.',
+            });
+          },
+        });
       })
-      .subscribe({
-        next: (result) => {
-          this.paypalPaymentOrderId = result.orderId;
-          this.paypalPaymentInvoiceId = result.invoiceId;
-
-          // Persist orderId/invoiceId in sessionStorage so they survive
-          // the full-page redirect to PayPal and back.
-          this.savePaypalSession(result.orderId, result.invoiceId);
-
-          this.patchState({
-            isLoading: false,
-            paypalRedirectUrl: result.paymentUrl || '',
-            statusMessage: result.paymentUrl
-              ? this.stateSubject.value.paypalApproved
-                ? 'PayPal payment approved. Click "Confirm Payment" to complete your purchase.'
-                : ''
-              : 'PayPal payment created. Awaiting redirect URL.',
-          });
-        },
-        error: (err) => {
-          console.error('PayPal payment error:', err);
-          this.patchState({
-            isLoading: false,
-            errorMessage:
-              err.error?.message ||
-              err.message ||
-              'Unable to create PayPal payment request.',
-          });
-        },
+      .catch((err) => {
+        console.error('PayPal payment error:', err);
+        this.patchState({
+          isLoading: false,
+          errorMessage:
+            err.error?.message ||
+            err.message ||
+            'Unable to create PayPal payment request.',
+        });
       });
+  }
+
+  private ensurePendingPaymentSession(): Promise<PendingPaymentSession> {
+    if (this.pendingPaymentSession) {
+      return Promise.resolve(this.pendingPaymentSession);
+    }
+
+    if (this.pendingPaymentSessionPromise) {
+      return this.pendingPaymentSessionPromise;
+    }
+
+    if (!this.checkoutDraft) {
+      return Promise.reject(
+        new Error('Checkout draft is required to create payment.'),
+      );
+    }
+
+    this.pendingPaymentSessionPromise = new Promise((resolve, reject) => {
+      this.placeOrderApi
+        .createPayment({
+          items: this.checkoutDraftService.toPlaceOrderItems(
+            this.checkoutDraft!,
+          ),
+          deliveryInfo: this.checkoutDraft!.deliveryInfo,
+          paymentMethod: 'VIETQR',
+        })
+        .subscribe({
+          next: (payment) => {
+            const session = this.savePendingPaymentSessionFromPayment(payment);
+            this.pendingVietQrPayment = payment;
+            this.pendingPaymentSessionPromise = null;
+
+            if (!session) {
+              reject(new Error('Unable to save pending payment session.'));
+              return;
+            }
+
+            resolve(session);
+          },
+          error: (err) => {
+            this.pendingPaymentSessionPromise = null;
+            reject(err);
+          },
+        });
+    });
+
+    return this.pendingPaymentSessionPromise;
   }
 
   confirmOrder(): void {
@@ -430,6 +545,7 @@ export class PaymentPageFacade {
           this.checkoutDraftService.clear();
           this.cartStore.clear();
           this.clearPaypalSession();
+          this.clearPendingPaymentSession();
           this.router.navigate(['/order-result']);
         },
         error: (err) => {
@@ -448,8 +564,11 @@ export class PaymentPageFacade {
 
   private confirmVietQrPayment(): void {
     if (this.stateSubject.value.isVietQrSuccess) {
+      this.saveVietQrOrderResult();
       this.checkoutDraftService.clear();
       this.cartStore.clear();
+      this.clearPendingPaymentSession();
+      this.vietQrPaymentFlow.clearSnapshot();
       this.router.navigate(['/order-result']);
       return;
     }
@@ -466,6 +585,7 @@ export class PaymentPageFacade {
           this.applySnapshot(snapshot);
 
           if (snapshot.latestTransaction?.status === 'SUCCESS') {
+            this.saveVietQrOrderResult(snapshot);
             this.patchState({
               isLoading: false,
               statusMessage: 'Payment confirmed successfully! Redirecting...',
@@ -473,6 +593,8 @@ export class PaymentPageFacade {
             });
             this.checkoutDraftService.clear();
             this.cartStore.clear();
+            this.clearPendingPaymentSession();
+            this.vietQrPaymentFlow.clearSnapshot();
             this.router.navigate(['/order-result']);
             return;
           }
@@ -504,6 +626,29 @@ export class PaymentPageFacade {
         statusMessage: '',
       });
     }
+  }
+
+  private saveVietQrOrderResult(snapshot?: VietQrPaymentSnapshot): void {
+    const successfulSnapshot =
+      snapshot ?? this.currentSnapshot ?? this.vietQrPaymentFlow.currentSnapshot;
+
+    if (!successfulSnapshot) return;
+
+    const transaction = successfulSnapshot.latestTransaction;
+
+    this.saveOrderResult({
+      paymentMethod: 'VIETQR',
+      status: 'SUCCESS',
+      transactionId:
+        transaction?.transactionId ||
+        transaction?.gatewayOrderId ||
+        successfulSnapshot.payment.paymentTransactionId ||
+        successfulSnapshot.payment.orderId,
+      orderId: successfulSnapshot.payment.orderId,
+      invoiceId: successfulSnapshot.payment.invoiceId,
+      completedAt:
+        transaction?.transactionDateTime || new Date().toISOString(),
+    });
   }
 
   private listenForVietQrUpdates(): void {
@@ -565,13 +710,52 @@ export class PaymentPageFacade {
   }
 
   private buildVietQrPaymentInput(): VietQrPaymentInput {
-    if (!this.checkoutDraft) {
-      throw new Error('Checkout draft is required to create VietQR payment.');
+    if (!this.pendingPaymentSession) {
+      throw new Error('Pending order is required to create VietQR payment.');
     }
 
     return {
-      items: this.checkoutDraftService.toPlaceOrderItems(this.checkoutDraft),
-      deliveryInfo: this.checkoutDraft.deliveryInfo,
+      existingPayment: this.pendingPaymentSession,
+    };
+  }
+
+  private createOrReusePaypalPayment(): Observable<PlaceOrderPaymentResult> {
+    if (!this.pendingPaymentSession) {
+      throw new Error('Pending order is required to create PayPal payment.');
+    }
+
+    return this.paymentService
+      .requestPayment({
+        orderId: this.pendingPaymentSession.orderId,
+        invoiceId: this.pendingPaymentSession.invoiceId,
+        paymentMethod: 'PAYPAL',
+        amount: this.pendingPaymentSession.totalAmount,
+        customerEmail: this.pendingPaymentSession.customerEmail,
+      })
+      .pipe(
+        map((paymentResult) =>
+          this.mapRequestPaymentResult(
+            this.pendingPaymentSession!,
+            paymentResult,
+          ),
+        ),
+      );
+  }
+
+  private mapRequestPaymentResult(
+    existingPayment: PendingPaymentSession,
+    paymentResult: PaymentResultDto,
+  ): PlaceOrderPaymentResult {
+    return {
+      orderId: existingPayment.orderId,
+      invoiceId: existingPayment.invoiceId,
+      totalAmount: existingPayment.totalAmount,
+      paymentMethod: paymentResult.paymentMethod,
+      paymentStatus: paymentResult.status,
+      paymentUrl: paymentResult.paymentUrl,
+      qrCode: paymentResult.qrCode,
+      paymentTransactionId: paymentResult.transactionId,
+      message: paymentResult.message,
     };
   }
 
@@ -685,6 +869,99 @@ export class PaymentPageFacade {
     } catch {
       // ignore
     }
+  }
+
+  private savePendingPaymentSessionFromPayment(
+    payment: PlaceOrderPaymentResult,
+  ): PendingPaymentSession | null {
+    const customerEmail =
+      this.pendingPaymentSession?.customerEmail ||
+      this.checkoutDraft?.deliveryInfo.email?.trim() ||
+      '';
+
+    if (!customerEmail) return null;
+
+    this.pendingPaymentSession = {
+      orderId: payment.orderId,
+      invoiceId: payment.invoiceId,
+      totalAmount: payment.totalAmount,
+      customerEmail,
+      checkoutKey: this.buildCheckoutKey(this.checkoutDraft),
+    };
+
+    try {
+      sessionStorage.setItem(
+        PENDING_PAYMENT_SESSION_KEY,
+        JSON.stringify(this.pendingPaymentSession),
+      );
+    } catch {
+      // sessionStorage may be unavailable in some environments
+    }
+
+    return this.pendingPaymentSession;
+  }
+
+  private loadPendingPaymentSession(
+    draft: CheckoutDraft | null,
+  ): PendingPaymentSession | null {
+    try {
+      const raw = sessionStorage.getItem(PENDING_PAYMENT_SESSION_KEY);
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw);
+      const checkoutKey = this.buildCheckoutKey(draft);
+      if (
+        parsed?.orderId &&
+        parsed?.invoiceId &&
+        Number.isFinite(parsed?.totalAmount) &&
+        parsed?.customerEmail &&
+        parsed?.checkoutKey === checkoutKey
+      ) {
+        return parsed;
+      }
+
+      this.clearPendingPaymentSession();
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private clearPendingPaymentSession(): void {
+    this.pendingPaymentSession = null;
+    this.pendingPaymentSessionPromise = null;
+    this.pendingVietQrPayment = null;
+    try {
+      sessionStorage.removeItem(PENDING_PAYMENT_SESSION_KEY);
+    } catch {
+      // ignore
+    }
+  }
+
+  private buildCheckoutKey(draft: CheckoutDraft | null): string {
+    if (!draft) return '';
+
+    const items = [...draft.items]
+      .map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+      }))
+      .sort((a, b) => a.productId - b.productId);
+
+    const deliveryInfo = draft.deliveryInfo;
+
+    return JSON.stringify({
+      items,
+      deliveryInfo: {
+        receiverName: deliveryInfo.receiverName.trim(),
+        phoneNumber: deliveryInfo.phoneNumber.trim(),
+        province: deliveryInfo.province.trim(),
+        streetAddress: deliveryInfo.streetAddress.trim(),
+        email: deliveryInfo.email.trim().toLowerCase(),
+        shippingInstructions:
+          deliveryInfo.shippingInstructions?.trim() || '',
+      },
+    });
   }
 
   private saveOrderResult(state: OrderResultState): void {

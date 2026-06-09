@@ -1,6 +1,8 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { ConfirmTransactionDto } from './dto/confirm-transaction.dto';
+import { RequestPaymentDto } from './dto/request-payment.dto';
+import { PaymentMethod } from './constants/payment.constants';
 
 /**
  * Coupling: Data Coupling
@@ -17,13 +19,24 @@ import { ConfirmTransactionDto } from './dto/confirm-transaction.dto';
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
+  @Post('request')
+  requestPayment(@Body() requestPaymentDto: RequestPaymentDto) {
+    return this.paymentService.requestPayment(requestPaymentDto);
+  }
+
   @Post('confirm')
   confirmTransaction(@Body() confirmTransactionDto: ConfirmTransactionDto) {
     return this.paymentService.confirmTransaction(confirmTransactionDto);
   }
 
   @Get('transactions/order/:orderId')
-  getPaymentTransactionByOrderId(@Param('orderId') orderId: string) {
-    return this.paymentService.getPaymentTransactionByOrderId(orderId);
+  getPaymentTransactionByOrderId(
+    @Param('orderId') orderId: string,
+    @Query('paymentMethod') paymentMethod?: PaymentMethod,
+  ) {
+    return this.paymentService.getPaymentTransactionByOrderId(
+      orderId,
+      paymentMethod,
+    );
   }
 }

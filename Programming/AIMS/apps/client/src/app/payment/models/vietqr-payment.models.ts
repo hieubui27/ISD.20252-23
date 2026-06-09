@@ -1,9 +1,5 @@
 import { PaymentStatus } from '../../services/payment.service';
-import {
-  PlaceOrderDeliveryInfo,
-  PlaceOrderPaymentResult,
-  PlaceOrderCartItem,
-} from '../../place-order/models/place-order.models';
+import { PlaceOrderPaymentResult } from '../../place-order/models/place-order.models';
 
 export interface PaymentTransactionStatus {
   id: string;
@@ -27,8 +23,14 @@ export interface PaymentTransactionStatus {
 }
 
 export interface VietQrPaymentInput {
-  items: PlaceOrderCartItem[];
-  deliveryInfo: PlaceOrderDeliveryInfo;
+  existingPayment: ExistingPaymentContext;
+}
+
+export interface ExistingPaymentContext {
+  orderId: string;
+  invoiceId: string;
+  totalAmount: number;
+  customerEmail: string;
 }
 
 export interface VietQrPaymentSnapshot {

@@ -17,7 +17,6 @@ import {
   CheckoutDraftService,
 } from '../services/checkout-draft.service';
 import { PlaceOrderApiService } from '../services/place-order-api.service';
-import { VietQrPaymentFlowService } from '../../payment/flows/vietqr-payment-flow.service';
 import { AimsFooterComponent } from '../../shared/layout/aims-footer/aims-footer';
 import { AimsHeaderComponent } from '../../shared/layout/aims-header/aims-header';
 import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
@@ -95,7 +94,6 @@ export class DeliveryComponent implements OnInit, OnDestroy {
 
   private readonly checkoutDraftService = inject(CheckoutDraftService);
   private readonly placeOrderApi = inject(PlaceOrderApiService);
-  private readonly vietQrPaymentFlow = inject(VietQrPaymentFlowService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
   private valueChangesSubscription?: Subscription;

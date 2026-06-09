@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AIMS_API_BASE_URL } from '../../core/api/api.config';
+import { PaymentMethod } from '../../services/payment.service';
 import {
   PaymentTransactionStatus,
   VietQrTestCallbackRequest,
@@ -23,9 +24,17 @@ export class PaymentStatusApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${AIMS_API_BASE_URL}/payments`;
 
-  getLatestByOrderId(orderId: string): Observable<PaymentTransactionStatus> {
+  getLatestByOrderId(
+    orderId: string,
+    paymentMethod?: PaymentMethod,
+  ): Observable<PaymentTransactionStatus> {
+    const options = paymentMethod
+      ? { params: { paymentMethod } }
+      : undefined;
+
     return this.http.get<PaymentTransactionStatus>(
       `${this.baseUrl}/transactions/order/${orderId}`,
+      options,
     );
   }
 
