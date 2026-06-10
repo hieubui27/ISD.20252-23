@@ -8,6 +8,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MailModule } from '../mail/mail.module';
 import { PlaceOrderModule } from '../place-order/place-order.module';
 import { OrderManagerModule } from '../order-manager/order-manager.module';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { OrderManagerModule } from '../order-manager/order-manager.module';
     MailModule,
     PlaceOrderModule,
     OrderManagerModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

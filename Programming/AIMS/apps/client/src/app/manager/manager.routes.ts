@@ -8,10 +8,12 @@ export const managerRoutes: Route[] = [
     path: '',
     component: ManagerLayoutComponent,
     canActivate: [authGuard, roleGuard],
-    data: { roles: ['Product Manager'] },
+    data: { roles: ['Product Manager', 'Administrator'] },
     children: [
       {
         path: 'products',
+        canActivate: [roleGuard],
+        data: { roles: ['Product Manager'] },
         loadChildren: () =>
           import('./products/product-manager.routes').then(
             (m) => m.productManagerRoutes,
@@ -19,10 +21,19 @@ export const managerRoutes: Route[] = [
       },
       {
         path: 'orders',
+        canActivate: [roleGuard],
+        data: { roles: ['Product Manager'] },
         loadChildren: () =>
           import('./orders/order-manager.routes').then(
             (m) => m.orderManagerRoutes,
           ), // TS Server should pick this up
+      },
+      {
+        path: 'admin',
+        canActivate: [roleGuard],
+        data: { roles: ['Administrator'] },
+        loadChildren: () =>
+          import('../admin/admin.routes').then((m) => m.adminRoutes),
       },
       { path: '', redirectTo: 'products', pathMatch: 'full' },
     ],
