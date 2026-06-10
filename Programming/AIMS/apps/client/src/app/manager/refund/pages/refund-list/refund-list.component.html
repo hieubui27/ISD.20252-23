@@ -1,0 +1,176 @@
+<div class="page-container">
+    <div class="top-bar">
+        <h2>Refund Management</h2>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="header">
+            <div class="title-area">
+                <p class="subtitle">Refunds</p>
+                <h1 class="title">Manage Returns</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn-create">CREATE RMA</button>
+                <button class="btn-report">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    REPORT
+                </button>
+            </div>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="search-filters">
+            <div class="search-bar">
+                <input type="text" placeholder="Search RMA or order number..." [(ngModel)]="searchQuery"
+                    (keyup.enter)="onSearch()" class="search-input">
+                <button (click)="onSearch()" class="search-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                    </svg>
+                </button>
+                <label class="exact-match">
+                    <input type="checkbox">
+                    <span>Exact match</span>
+                </label>
+            </div>
+            <div class="filter-actions">
+                <button class="filter-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="4" x2="4" y1="21" y2="14" />
+                        <line x1="4" x2="4" y1="10" y2="3" />
+                        <line x1="12" x2="12" y1="21" y2="12" />
+                        <line x1="12" x2="12" y1="8" y2="3" />
+                        <line x1="20" x2="20" y1="21" y2="16" />
+                        <line x1="20" x2="20" y1="12" y2="3" />
+                        <line x1="1" x2="7" y1="14" y2="14" />
+                        <line x1="9" x2="15" y1="8" y2="8" />
+                        <line x1="17" x2="23" y1="16" y2="16" />
+                    </svg>
+                    FILTERS
+                </button>
+                <button class="filter-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    SETTINGS
+                </button>
+            </div>
+        </div>
+
+        <!-- Status Tabs -->
+        <div class="status-tabs">
+            <button *ngFor="let tab of statuses" class="tab-btn" [class.active]="activeTab === tab"
+                (click)="onTabChange(tab)">
+                {{ tab }}
+            </button>
+        </div>
+
+        <!-- Data Table -->
+        <div class="table-container">
+            <table class="data-table" *ngIf="!loading; else loadingTemplate">
+                <thead>
+                    <tr>
+                        <th>RMA #</th>
+                        <th>ORDER</th>
+                        <th>
+                            DATE
+                            <svg class="sort-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="m16 12-4-4-4 4" />
+                            </svg>
+                        </th>
+                        <th>RESOLUTIONS</th>
+                        <th>IMAGE</th>
+                        <th>ITEMS</th>
+                        <th>CUSTOMER</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let refund of refunds" class="table-row">
+                        <td class="font-semibold rma-number">{{ refund.rmaNumber }}</td>
+                        <td>
+                            <a [routerLink]="['/manager/orders', refund.orderId]" class="order-link">#{{ refund.orderDisplayId }}</a>
+                        </td>
+                        <td class="date-cell">{{ refund.createdAt | date:'dd MMM yyyy' }}</td>
+                        <td class="resolution-cell">
+                            <span class="resolution-icon">
+                                <svg *ngIf="refund.resolution === 'Product Exchange'" width="14" height="14"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16 3h5v5" />
+                                    <path d="M8 3H3v5" />
+                                    <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" />
+                                    <path d="m15 9 6-6" />
+                                </svg>
+                                <svg *ngIf="refund.resolution === 'Refund to payment method'" width="14" height="14"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                                </svg>
+                                <svg *ngIf="refund.resolution === 'Variant exchange - Edward'" width="14" height="14"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m7.5 4.27 9 5.15" />
+                                    <path
+                                        d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                                    <path d="m3.3 7 8.7 5 8.7-5" />
+                                    <path d="M12 22V12" />
+                                </svg>
+                                <svg *ngIf="refund.resolution === 'Refund by new gift card'" width="14" height="14"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="8" width="18" height="12" rx="2" />
+                                    <path d="M19 8V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v2" />
+                                    <path d="M12 8v12" />
+                                </svg>
+                            </span>
+                            {{ refund.resolution }}
+                        </td>
+                        <td class="image-cell">
+                            <img [src]="refund.imageUrl || 'assets/placeholder.png'" alt="Product"
+                                class="product-thumb">
+                        </td>
+                        <td>{{ refund.itemsCount }} {{ refund.itemsCount === 1 ? 'Item' : 'Items' }}</td>
+                        <td>
+                            <a class="customer-link">{{ refund.customerPhone }}</a>
+                        </td>
+                        <td>
+                            <span class="status-badge" [ngClass]="getStatusClass(refund.status)">
+                                {{ refund.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr *ngIf="refunds.length === 0">
+                        <td colspan="8" class="empty-state">No refund requests found</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <ng-template #loadingTemplate>
+                <div class="loading-state">Loading refunds...</div>
+            </ng-template>
+
+            <div class="pagination" *ngIf="totalPages > 0">
+                <p class="info">Showing page {{ params.page }} of {{ totalPages }}</p>
+                <div class="controls">
+                    <button [disabled]="params.page === 1" (click)="onPageChange(params.page! - 1)">&lt;</button>
+                    <span class="current-page">{{ params.page }}</span>
+                    <button [disabled]="params.page === totalPages"
+                        (click)="onPageChange(params.page! + 1)">&gt;</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
