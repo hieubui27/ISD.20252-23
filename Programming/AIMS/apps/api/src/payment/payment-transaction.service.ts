@@ -66,11 +66,10 @@ export class PaymentTransactionService {
         throw error;
       }
 
-      const createdByConcurrentRequest =
-        await this.findByOrderAndPaymentMethod(
-          input.orderId,
-          input.paymentMethod,
-        );
+      const createdByConcurrentRequest = await this.findByOrderAndPaymentMethod(
+        input.orderId,
+        input.paymentMethod,
+      );
 
       if (!createdByConcurrentRequest) {
         throw error;
@@ -227,5 +226,19 @@ export class PaymentTransactionService {
       'SELECT pg_advisory_xact_lock(hashtext($1))',
       orderId,
     );
+  }
+
+  async cancelOtherPendingByOrder(
+    orderId: string,
+    activeTransactionId: string,
+  ) {
+    return this.prisma.paymentTransaction.updateMany({
+      where: {
+        orderId,
+        status: PaymentStatus.PENDING,
+        id: { not: activeTransactionId },
+      },
+      data: { status: PaymentStatus.FAILED },
+    });
   }
 }

@@ -75,6 +75,10 @@ export class PaymentService {
         paymentMethod,
         amount: dto.amount,
       });
+    await this.paymentTransactionService.cancelOtherPendingByOrder(
+      transaction.orderId,
+      transaction.id,
+    );
     const localGatewayOrderId = buildGatewayOrderId(transaction.id);
 
     if (paymentMethod === PaymentMethod.VIETQR) {
@@ -111,7 +115,9 @@ export class PaymentService {
       !providerUpdate.gatewayOrderId
     ) {
       await this.paymentTransactionService.markFailed(transaction.id);
-      throw new BadRequestException('PayPal order id was not returned by PayPal');
+      throw new BadRequestException(
+        'PayPal order id was not returned by PayPal',
+      );
     }
 
     if (Object.keys(providerUpdate).length > 0) {
@@ -253,19 +259,6 @@ export class PaymentService {
           transactionId: callback.transactionid,
           status: transaction.status,
           message: 'Transaction already processed',
-          paidAmount: callback.amount,
-        },
-        refTransactionId: transaction.id,
-        duplicate: true,
-      };
-    }
-
-    if (transaction.status !== PaymentStatus.PENDING) {
-      return {
-        status: {
-          transactionId: callback.transactionid,
-          status: transaction.status,
-          message: 'Transaction already closed',
           paidAmount: callback.amount,
         },
         refTransactionId: transaction.id,
