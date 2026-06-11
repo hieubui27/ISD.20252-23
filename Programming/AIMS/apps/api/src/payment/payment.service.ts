@@ -179,9 +179,7 @@ export class PaymentService {
       transaction.paymentMethod as PaymentMethod,
     );
     const transactionRef = this.resolveGatewayTransactionRef(transaction);
-    const confirmResult = await gateway.confirmPayment(
-      transactionRef,
-    );
+    const confirmResult = await gateway.confirmPayment(transactionRef);
 
     const transactionId =
       (confirmResult.providerData?.captureId as string) ||
@@ -322,15 +320,36 @@ export class PaymentService {
   }
 
   async handleRejectedOrderRefund(orderId: string, rejectReason: string) {
-    const transaction = await this.findLatestPaymentTransactionByOrderId(
-      orderId,
-    );
+    const transaction =
+      await this.findLatestPaymentTransactionByOrderId(orderId);
     if (!transaction) {
       throw new NotFoundException('Payment transaction not found');
     }
 
     ensureCanMarkRefundRequired(transaction.status);
 
+    const newStatus = await this.attemptGatewayRefund(transaction);
+    await this.prisma.paymentTransaction.update({
+      where: { id: transaction.id },
+      data: { status: newStatus },
+    });
+    return {
+      status: newStatus,
+      orderId,
+      rejectReason,
+      message:
+        newStatus === PaymentStatus.REFUNDED
+          ? 'Refund processed successfully'
+          : 'Refund required - manual processing needed',
+    };
+  }
+
+  private async attemptGatewayRefund(transaction: {
+    id: string;
+    transactionId: string | null;
+    paymentMethod: string;
+    amount: number;
+  }): Promise<PaymentStatus> {
     try {
       const gateway = this.gatewayFactory.getGateway(
         transaction.paymentMethod as PaymentMethod,
@@ -339,27 +358,18 @@ export class PaymentService {
         transaction.transactionId || transaction.id,
         transaction.amount,
       );
-    } catch {
-      // Some providers, such as VietQR, require manual refund handling.
+      return PaymentStatus.REFUNDED;
+    } catch (error) {
+      if (!(error instanceof BadRequestException)) {
+        throw error;
+      }
+      return PaymentStatus.REFUND_REQUIRED;
     }
-
-    await this.prisma.paymentTransaction.update({
-      where: { id: transaction.id },
-      data: { status: PaymentStatus.REFUND_REQUIRED },
-    });
-
-    return {
-      status: PaymentStatus.REFUND_REQUIRED,
-      orderId,
-      rejectReason,
-      message: 'Refund required - check payment method for processing details',
-    };
   }
 
   async getPaymentTransactionByOrderId(orderId: string) {
-    const transaction = await this.findLatestPaymentTransactionByOrderId(
-      orderId,
-    );
+    const transaction =
+      await this.findLatestPaymentTransactionByOrderId(orderId);
 
     return transaction ? this.serializePaymentTransaction(transaction) : null;
   }
