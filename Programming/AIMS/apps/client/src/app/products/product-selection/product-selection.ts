@@ -157,6 +157,12 @@ export class ProductSelectionComponent implements OnInit {
     this.router.navigate(['/cart']);
   }
 
+  searchProducts(query: string): void {
+    this.router.navigate(['/product-catalog'], {
+      queryParams: query ? { q: query } : {},
+    });
+  }
+
   formatPrice(value: number | string): string {
     return `${this.toNumber(value).toLocaleString('vi-VN')} VND`;
   }

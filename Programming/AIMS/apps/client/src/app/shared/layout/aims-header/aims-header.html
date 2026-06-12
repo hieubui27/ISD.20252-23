@@ -2,12 +2,21 @@
   <div class="aims-header__inner">
     <button type="button" class="aims-header__brand" (click)="handleBrandClick()">AIMS</button>
 
-    <div class="aims-header__search" *ngIf="showSearch">
-      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
-        <path d="M17 17L13.125 13.125M15.167 8.083C15.167 11.995 12.079 15.167 8.084 15.167C4.088 15.167 1 11.995 1 8.083C1 4.171 4.088 1 8.084 1C12.079 1 15.167 4.171 15.167 8.083Z" stroke="#414752" stroke-width="1.5" stroke-linecap="round" />
-      </svg>
-      <span>Search for books, CDs, DVDs...</span>
-    </div>
+    <form class="aims-header__search" *ngIf="showSearch" (submit)="$event.preventDefault(); onSearchSubmit()">
+      <button type="submit" class="aims-header__search-icon" aria-label="Search">
+        <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <path d="M17 17L13.125 13.125M15.167 8.083C15.167 11.995 12.079 15.167 8.084 15.167C4.088 15.167 1 11.995 1 8.083C1 4.171 4.088 1 8.084 1C12.079 1 15.167 4.171 15.167 8.083Z" stroke="#414752" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+      </button>
+      <input
+        type="search"
+        class="aims-header__search-input"
+        placeholder="Search for books, CDs, DVDs..."
+        aria-label="Search products"
+        [value]="searchTerm"
+        (input)="onSearchInput($any($event.target).value)"
+      />
+    </form>
 
     <nav class="aims-header__links">
       <button type="button" class="aims-header__link aims-header__link--active" (click)="handleBrowseClick()">Browse</button>

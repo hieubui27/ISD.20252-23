@@ -221,12 +221,54 @@ export class DeliveryComponent implements OnInit, OnDestroy {
           this.isCreatingPayment = false;
           console.error('Create VietQR payment failed:', err);
           this.errorMessage =
+            this.buildStockShortageMessage(err) ||
             err.error?.message ||
             err.message ||
             'Unable to create VietQR payment request.';
           this.cdr.detectChanges();
         },
       });
+  }
+
+  /**
+   * Builds a customer-friendly out-of-stock notice from the backend
+   * InvalidQuantityException payload ({ insufficientItems: [...] }).
+   * Returns null when the error is unrelated to stock.
+   */
+  private buildStockShortageMessage(err: unknown): string | null {
+    const insufficientItems = (
+      err as { error?: { insufficientItems?: unknown } } | null
+    )?.error?.insufficientItems;
+
+    if (!Array.isArray(insufficientItems) || insufficientItems.length === 0) {
+      return null;
+    }
+
+    const titlesById = new Map<number, string>(
+      (this.draft?.items ?? []).map((item) => [item.productId, item.title]),
+    );
+
+    const details = insufficientItems
+      .map((raw) => {
+        const item = raw as {
+          productId?: number;
+          requested?: number;
+          available?: number;
+        };
+        const title =
+          titlesById.get(Number(item.productId)) ??
+          `Product #${item.productId}`;
+        const available = Number(item.available) || 0;
+
+        if (available <= 0) {
+          return `"${title}" is out of stock`;
+        }
+
+        return `"${title}" only has ${available} left (you requested ${item.requested})`;
+      })
+      .join('; ');
+
+    return `Some items are no longer available: ${details}. Please reduce the quantity or remove them from your cart.`;
   }
 
   backToProducts(): void {
@@ -266,6 +308,7 @@ export class DeliveryComponent implements OnInit, OnDestroy {
           this.isLoadingPreview = false;
           console.error('Load invoice preview failed:', err);
           this.errorMessage =
+            this.buildStockShortageMessage(err) ||
             err.error?.message ||
             err.message ||
             'Unable to calculate delivery fee.';

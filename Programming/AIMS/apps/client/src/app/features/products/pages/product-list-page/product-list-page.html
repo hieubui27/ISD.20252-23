@@ -1,6 +1,9 @@
 <div class="products-page">
   <app-aims-header
     [cartItemCount]="cartCount()"
+    [searchTerm]="searchQuery()"
+    (searchChanged)="onSearch($event)"
+    (searchSubmitted)="onSearch($event)"
     (brandClicked)="goToProducts()"
     (browseClicked)="goToCatalog()"
     (cartClicked)="goToCart()"
@@ -13,14 +16,14 @@
         <p>Discover products loaded from the AIMS backend.</p>
       </div>
 
-      <span>{{ products().length }} items</span>
+      <span>{{ availableProducts().length }} items</span>
     </section>
 
     @if (isLoading()) {
     <app-status-message tone="info">Loading products...</app-status-message>
     } @else if (errorMessage()) {
     <app-status-message tone="error">{{ errorMessage() }}</app-status-message>
-    } @else if (products().length === 0) {
+    } @else if (availableProducts().length === 0) {
     <app-status-message tone="info">No products available.</app-status-message>
     } @else {
     <div class="catalog-layout">

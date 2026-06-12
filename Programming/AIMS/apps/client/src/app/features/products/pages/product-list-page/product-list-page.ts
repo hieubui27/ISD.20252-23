@@ -14,7 +14,11 @@ import { AimsFooterComponent } from '../../../../shared/layout/aims-footer/aims-
 import { AimsHeaderComponent } from '../../../../shared/layout/aims-header/aims-header';
 import { StatusMessageComponent } from '../../../../shared/ui/status-message/status-message';
 import { ProductCardComponent } from '../../components/product-card/product-card';
-import { ProductListItem, ProductType } from '../../models/product.model';
+import {
+  ProductListItem,
+  ProductType,
+  isUnavailableProductStatus,
+} from '../../models/product.model';
 import { CartStoreService } from '../../../../cart/services/cart-store.service';
 
 type ProductSortOption = 'recommended' | 'priceAsc' | 'priceDesc' | 'titleAsc';
@@ -52,16 +56,35 @@ export class ProductListPageComponent implements OnInit {
   readonly errorMessage = signal('');
   readonly selectedTypes = signal<Set<ProductType>>(new Set());
   readonly sortBy = signal<ProductSortOption>('recommended');
+  readonly searchQuery = signal('');
+  /** Only active, in-stock products are offered to customers. */
+  readonly availableProducts = computed(() =>
+    this.products().filter(
+      (product) =>
+        !isUnavailableProductStatus(product.status) &&
+        Number(product.stockQuantity) > 0,
+    ),
+  );
   readonly productTypes = computed(() =>
-    Array.from(new Set(this.products().map((product) => product.type))).sort(),
+    Array.from(
+      new Set(this.availableProducts().map((product) => product.type)),
+    ).sort(),
   );
   readonly filteredProducts = computed(() => {
     const selectedTypes = this.selectedTypes();
     const sortBy = this.sortBy();
+    const query = this.searchQuery().trim().toLowerCase();
 
-    const filteredProducts = this.products().filter(
-      (product) => selectedTypes.size === 0 || selectedTypes.has(product.type),
-    );
+    const filteredProducts = this.availableProducts().filter((product) => {
+      const matchesType =
+        selectedTypes.size === 0 || selectedTypes.has(product.type);
+      const matchesQuery =
+        query.length === 0 ||
+        product.title.toLowerCase().includes(query) ||
+        product.type.toLowerCase().includes(query);
+
+      return matchesType && matchesQuery;
+    });
 
     if (sortBy === 'priceAsc') {
       return [...filteredProducts].sort(
@@ -95,6 +118,11 @@ export class ProductListPageComponent implements OnInit {
       return;
     }
 
+    const initialQuery = this.route.snapshot.queryParamMap.get('q');
+    if (initialQuery) {
+      this.searchQuery.set(initialQuery);
+    }
+
     this.productApi
       .getProducts()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -120,6 +148,10 @@ export class ProductListPageComponent implements OnInit {
 
   goToCart(): void {
     this.router.navigate(['/cart']);
+  }
+
+  onSearch(query: string): void {
+    this.searchQuery.set(query);
   }
 
   updateSort(event: Event): void {

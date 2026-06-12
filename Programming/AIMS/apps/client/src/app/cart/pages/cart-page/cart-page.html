@@ -1,6 +1,7 @@
 <div class="cart-page">
   <app-aims-header
     [cartItemCount]="cartCount()"
+    (searchSubmitted)="searchProducts($event)"
     (brandClicked)="goToProducts()"
     (browseClicked)="goToCatalog()"
     (cartClicked)="goToCart()"
