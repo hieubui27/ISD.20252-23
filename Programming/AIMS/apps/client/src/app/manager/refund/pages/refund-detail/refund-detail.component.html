@@ -1,0 +1,172 @@
+<div class="page-container" *ngIf="!loading && refund">
+    <div class="top-bar">
+        <h2>Refund Detail</h2>
+    </div>
+
+    <div class="content-wrapper">
+        <a routerLink="/manager/refunds" class="back-link">&larr; Back to Refunds</a>
+
+        <div class="header-section">
+            <div class="title-area">
+                <p class="subtitle">Refunds</p>
+                <h1 class="title">{{ refund.rmaNumber }}</h1>
+            </div>
+            <div class="actions"
+                *ngIf="refund.status === 'Pending request' || refund.status === 'Shipment received'">
+                <button class="btn-approve" (click)="approveRefund()" [disabled]="isProcessing">
+                    <span *ngIf="isProcessing" class="spinner"></span>
+                    {{ isProcessing ? 'Processing...' : 'Approve Refund' }}
+                </button>
+                <button class="btn-reject" (click)="rejectRefund()" [disabled]="isProcessing">
+                    <span *ngIf="isProcessing" class="spinner"></span>
+                    {{ isProcessing ? 'Processing...' : 'Reject' }}
+                </button>
+            </div>
+            <div class="actions" *ngIf="refund.status === 'Approved request'">
+                <button class="btn-done" (click)="markAsDone()" [disabled]="isProcessing">
+                    <span *ngIf="isProcessing" class="spinner"></span>
+                    {{ isProcessing ? 'Processing...' : 'Mark as Done' }}
+                </button>
+            </div>
+            <div class="actions"
+                *ngIf="refund.status !== 'Pending request' && refund.status !== 'Shipment received' && refund.status !== 'Approved request'">
+                <span class="status-badge" [ngClass]="getStatusClass(refund.status)">{{ refund.status }}</span>
+            </div>
+        </div>
+
+        <div class="grid-layout">
+            <!-- Left Column -->
+            <div class="main-column">
+                <!-- Refund Info -->
+                <div class="card">
+                    <h3 class="card-title">Refund Information</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>RMA Number</label>
+                            <p>{{ refund.rmaNumber }}</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Order ID</label>
+                            <p>
+                                <a [routerLink]="['/manager/orders', refund.orderId]"
+                                    class="info-link">#{{ refund.orderDisplayId }}</a>
+                            </p>
+                        </div>
+                        <div class="info-item">
+                            <label>Resolution</label>
+                            <p>{{ refund.resolution }}</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Reason</label>
+                            <p>{{ refund.reason }}</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Refund Method</label>
+                            <p>{{ refund.refundMethod }}</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Refund Amount</label>
+                            <p class="refund-amount">{{ refund.refundAmount | number }} VND</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Info -->
+                <div class="card">
+                    <h3 class="card-title">Customer Information</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Name</label>
+                            <p>{{ refund.customerName }}</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Email</label>
+                            <p>{{ refund.email }}</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Phone</label>
+                            <p>{{ refund.customerPhone }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Refund Items -->
+                <div class="card p-0">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">Return Items</h3>
+                    </div>
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Qty</th>
+                                <th>Unit Price</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let item of refund.items">
+                                <td>
+                                    <div class="product-info">
+                                        <img [src]="item.imageUrl || 'assets/placeholder.png'" alt="Product"
+                                            class="product-img">
+                                        <span class="product-name">{{ item.productTitle || 'Unknown Product' }}</span>
+                                    </div>
+                                </td>
+                                <td class="text-gray">{{ item.quantity }}</td>
+                                <td class="text-gray">{{ item.price | number }}</td>
+                                <td class="font-semibold">{{ (item.price * item.quantity) | number }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="side-column">
+                <!-- Refund Summary -->
+                <div class="card">
+                    <h3 class="card-title">Refund Summary</h3>
+                    <div class="summary-list">
+                        <div class="summary-item">
+                            <span>Items</span>
+                            <span>{{ refund.items.length }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Resolution</span>
+                            <span>{{ refund.resolution }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Refund Method</span>
+                            <span>{{ refund.refundMethod }}</span>
+                        </div>
+                        <div class="summary-total">
+                            <span>Refund Amount</span>
+                            <span class="total-amount">{{ refund.refundAmount | number }} VND</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Timeline -->
+                <div class="card">
+                    <h3 class="card-title">Activity Timeline</h3>
+                    <div class="timeline">
+                        <div class="timeline-item" *ngFor="let event of refund.timeline"
+                            [ngClass]="{'done': true}">
+                            <div class="timeline-indicator"></div>
+                            <div class="timeline-content">
+                                <p class="step-title">{{ event.action }}</p>
+                                <p class="step-time">{{ event.date | date:'medium' }}</p>
+                                <p class="step-actor" *ngIf="event.actor">by {{ event.actor }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div *ngIf="loading" class="loading-state">
+    <p>Loading refund details...</p>
+</div>

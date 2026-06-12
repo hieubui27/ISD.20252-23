@@ -35,6 +35,13 @@ export const managerRoutes: Route[] = [
         loadChildren: () =>
           import('../admin/admin.routes').then((m) => m.adminRoutes),
       },
+      {
+        path: 'refunds',
+        loadChildren: () =>
+          import('./refund/refund-manager.routes').then(
+            (m) => m.refundManagerRoutes,
+          ),
+      },
       { path: '', redirectTo: 'products', pathMatch: 'full' },
     ],
   },
