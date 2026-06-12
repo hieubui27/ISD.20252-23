@@ -52,7 +52,7 @@ export class UsersService implements IUsersService {
         });
       }
     }
-    const loginLink = `${this.configService.get<string>('WEB_URL')}/login`;
+    const loginLink = `https://www.aims.io.vn/auth/login`;
     await this.mailService.sendInvitation({
       recipientEmail: [createUserDto.email],
       username: createUserDto.userName,

@@ -11,10 +11,17 @@ export interface IProductLogService {
    * @param action The action performed (e.g., 'CREATE', 'UPDATE', 'DELETE')
    */
   logAction(
-    tx: Omit<
-      Prisma.TransactionClient,
-      '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
-    >,
+    tx:
+      | Omit<
+          Prisma.TransactionClient,
+          | '$connect'
+          | '$disconnect'
+          | '$on'
+          | '$transaction'
+          | '$use'
+          | '$extends'
+        >
+      | undefined,
     productId: string,
     userId: string,
     action: string,

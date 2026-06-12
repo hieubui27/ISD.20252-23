@@ -26,6 +26,8 @@ export class LoginLogic {
             setTimeout(() => {
               if (this.authService.hasRole('Product Manager')) {
                 this.router.navigate(['/manager/products']);
+              } else if (this.authService.hasRole('Administrator')) {
+                this.router.navigate(['/manager/admin/users']);
               } else {
                 this.router.navigate(['/product-catalog']);
               }
