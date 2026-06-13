@@ -1,5 +1,5 @@
 import { Route } from '@angular/router';
-import { PaymentComponent } from '../payment/payment';
+import { PaymentComponent } from './payment/payment';
 import { CartPageComponent } from './cart/pages/cart-page/cart-page';
 import { ProductDetailPageComponent } from './features/products/pages/product-detail-page/product-detail-page';
 import { ProductListPageComponent } from './features/products/pages/product-list-page/product-list-page';
