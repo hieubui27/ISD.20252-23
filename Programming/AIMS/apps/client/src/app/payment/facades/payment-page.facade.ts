@@ -97,6 +97,8 @@ export class PaymentPageFacade {
   initialize(): void {
     this.checkoutDraft = this.checkoutDraftService.get();
     const paypalToken = this.route.snapshot.queryParamMap.get('token');
+    const paypalCancelled =
+      this.route.snapshot.queryParamMap.get('paypalCancel') === '1';
 
     if (this.checkoutDraftService.hasValidItems(this.checkoutDraft)) {
       this.applyCheckoutDraft(this.checkoutDraft);
@@ -104,8 +106,13 @@ export class PaymentPageFacade {
     }
 
     // 3. Xử lý PayPal return
+    if (paypalCancelled) {
+      this.handlePaypalCancelReturn();
+      return;
+    }
+
     if (paypalToken) {
-      this.handlePaypalReturn(paypalToken);
+      this.handlePaypalReturn();
       return;
     }
 
@@ -296,7 +303,7 @@ export class PaymentPageFacade {
     this.router.navigate(['/product-catalog']);
   }
 
-  private handlePaypalReturn(paypalToken: string): void {
+  private handlePaypalReturn(): void {
     // Restore orderId/invoiceId from sessionStorage (saved before PayPal redirect)
     const saved = this.loadPaypalSession();
     if (saved) {
@@ -308,8 +315,7 @@ export class PaymentPageFacade {
       selectedMethod: 'PAYPAL',
       paypalApproved: true,
       paypalConfirmed: false,
-      statusMessage:
-        'PayPal payment approved. Click "Confirm Payment" to complete your purchase.',
+      statusMessage: 'PayPal payment approved. Confirming your payment...',
       errorMessage: '',
     });
 
@@ -323,7 +329,39 @@ export class PaymentPageFacade {
           'Your payment session has expired or could not be found. Please return to the product catalog and try again.',
         statusMessage: '',
       });
+      return;
     }
+
+    this.capturePaypalPayment();
+  }
+
+  private handlePaypalCancelReturn(): void {
+    this.clearPaypalSession();
+    this.paypalPaymentOrderId = null;
+    this.paypalPaymentInvoiceId = null;
+
+    if (!this.checkoutDraftService.hasValidItems(this.checkoutDraft)) {
+      this.checkoutDraftService.clear();
+      this.router.navigate(['/product-catalog']);
+      return;
+    }
+
+    this.patchState({
+      selectedMethod: 'PAYPAL',
+      paypalApproved: false,
+      paypalConfirmed: false,
+      paypalRedirectUrl: '',
+      errorMessage: '',
+      statusMessage: 'PayPal payment was cancelled. Creating a new payment...',
+    });
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { paypalCancel: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    this.startPaypalPayment();
   }
 
   /**

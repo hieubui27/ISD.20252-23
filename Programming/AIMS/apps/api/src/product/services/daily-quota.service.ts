@@ -1,7 +1,6 @@
 import { Injectable, HttpException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { isTodayUTC } from '../../common/utils/date.util';
-import { User } from '@prisma/client'; // Assuming standard prisma client
 
 @Injectable()
 export class DailyQuotaService {
