@@ -31,7 +31,7 @@ export class PaypalService {
 
     try {
       const response = await axios.post(
-        `${this.apiBaseUrl}/v1/oauth2/token`,
+        `${this.baseUrl}/v1/oauth2/token`,
         'grant_type=client_credentials',
         {
           auth: { username: this.clientId!, password: this.secret! },
@@ -40,10 +40,6 @@ export class PaypalService {
       );
       return response.data.access_token;
     } catch (err: any) {
-      console.error(
-        '[PayPal] Access Token Error:',
-        err.response?.data || err.message,
-      );
       throw new UnauthorizedException(
         `Failed to retrieve PayPal access token: ${this.formatPaypalError(err)}`,
       );
@@ -58,7 +54,7 @@ export class PaypalService {
     const accessToken = await this.getAccessToken();
     try {
       const response = await axios.post(
-        `${this.apiBaseUrl}/v2/checkout/orders`,
+        `${this.baseUrl}/v2/checkout/orders`,
         {
           intent: 'CAPTURE',
           purchase_units: [
@@ -71,7 +67,7 @@ export class PaypalService {
           ],
           application_context: {
             return_url: this.returnUrl,
-            cancel_url: this.cancelUrl,
+            cancel_url: this.buildCancelUrl(),
             user_action: 'PAY_NOW',
             shipping_preference: 'NO_SHIPPING',
           },
@@ -85,24 +81,8 @@ export class PaypalService {
         },
       );
 
-      console.log(
-        '[PayPal] createOrder response:',
-        JSON.stringify(
-          {
-            id: response.data.id,
-            status: response.data.status,
-            links: response.data.links,
-          },
-          null,
-          2,
-        ),
-      );
       return response.data;
     } catch (err: any) {
-      console.error(
-        '[PayPal] Create Order Error:',
-        err.response?.data || err.message,
-      );
       throw new BadRequestException(
         `Failed to create PayPal order: ${this.formatPaypalError(err)}`,
       );
@@ -113,7 +93,7 @@ export class PaypalService {
     const accessToken = await this.getAccessToken();
     try {
       const response = await axios.post(
-        `${this.apiBaseUrl}/v2/checkout/orders/${orderId}/capture`,
+        `${this.baseUrl}/v2/checkout/orders/${orderId}/capture`,
         {},
         {
           headers: {
@@ -126,10 +106,6 @@ export class PaypalService {
       );
       return response.data;
     } catch (err: any) {
-      console.error(
-        '[PayPal] Capture Payment Error:',
-        err.response?.data || err.message,
-      );
       throw new BadRequestException(
         `Failed to capture PayPal payment: ${this.formatPaypalError(err)}`,
       );
@@ -140,7 +116,7 @@ export class PaypalService {
     const accessToken = await this.getAccessToken();
     try {
       const response = await axios.post(
-        `${this.apiBaseUrl}/v2/payments/captures/${captureId}/refund`,
+        `${this.baseUrl}/v2/payments/captures/${captureId}/refund`,
         {},
         {
           headers: {
@@ -151,18 +127,15 @@ export class PaypalService {
       );
       return response.data;
     } catch (err: any) {
-      console.error(
-        '[PayPal] Refund Payment Error:',
-        err.response?.data || err.message,
-      );
       throw new BadRequestException(
         `Failed to refund PayPal payment: ${this.formatPaypalError(err)}`,
       );
     }
   }
 
-  private get apiBaseUrl(): string {
-    return this.baseUrl?.replace(/\/+$/, '') || '';
+  private buildCancelUrl(): string {
+    const separator = this.cancelUrl.includes('?') ? '&' : '?';
+    return `${this.cancelUrl}${separator}paypalCancel=1`;
   }
 
   private ensureConfigured(): void {

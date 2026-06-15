@@ -53,6 +53,8 @@ export class PaymentService {
   ) {}
 
   async requestPayment(dto: RequestPaymentDto): Promise<PaymentResultDto> {
+    await this.expireStalePaypalTransactions();
+
     const paymentMethod = dto.paymentMethod || PaymentMethod.VIETQR;
     const gateway = this.gatewayFactory.getGateway(paymentMethod);
     const invoiceId = this.parseInvoiceId(dto.invoiceId);
@@ -179,9 +181,7 @@ export class PaymentService {
       transaction.paymentMethod as PaymentMethod,
     );
     const transactionRef = this.resolveGatewayTransactionRef(transaction);
-    const confirmResult = await gateway.confirmPayment(
-      transactionRef,
-    );
+    const confirmResult = await gateway.confirmPayment(transactionRef);
 
     const transactionId =
       (confirmResult.providerData?.captureId as string) ||
@@ -322,9 +322,8 @@ export class PaymentService {
   }
 
   async handleRejectedOrderRefund(orderId: string, rejectReason: string) {
-    const transaction = await this.findLatestPaymentTransactionByOrderId(
-      orderId,
-    );
+    const transaction =
+      await this.findLatestPaymentTransactionByOrderId(orderId);
     if (!transaction) {
       throw new NotFoundException('Payment transaction not found');
     }
@@ -357,9 +356,8 @@ export class PaymentService {
   }
 
   async getPaymentTransactionByOrderId(orderId: string) {
-    const transaction = await this.findLatestPaymentTransactionByOrderId(
-      orderId,
-    );
+    const transaction =
+      await this.findLatestPaymentTransactionByOrderId(orderId);
 
     return transaction ? this.serializePaymentTransaction(transaction) : null;
   }
@@ -493,5 +491,24 @@ export class PaymentService {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  private async expireStalePaypalTransactions(): Promise<number> {
+    const expiredBefore = new Date(Date.now() - 3 * 60 * 60 * 1000);
+
+    const result = await this.prisma.paymentTransaction.updateMany({
+      where: {
+        paymentMethod: PaymentMethod.PAYPAL,
+        status: PaymentStatus.PENDING,
+        createdAt: {
+          lt: expiredBefore,
+        },
+      },
+      data: {
+        status: PaymentStatus.FAILED,
+      },
+    });
+
+    return result.count;
   }
 }
