@@ -120,6 +120,12 @@ export class CartPageComponent {
     this.router.navigate(['/cart']);
   }
 
+  searchProducts(query: string): void {
+    this.router.navigate(['/product-catalog'], {
+      queryParams: query ? { q: query } : {},
+    });
+  }
+
   formatPrice(value: number): string {
     return `${Math.round(value).toLocaleString('vi-VN')} VND`;
   }

@@ -22,6 +22,7 @@ import {
   VietQrPaymentSnapshot,
 } from '../models/vietqr-payment.models';
 import { VietQrPaymentFlowService } from '../flows/vietqr-payment-flow.service';
+import { CartStoreService } from '../../cart/services/cart-store.service';
 
 export interface PaymentPageState {
   isLoading: boolean;
@@ -79,6 +80,7 @@ export class PaymentPageFacade {
   private readonly checkoutDraftService = inject(CheckoutDraftService);
   private readonly placeOrderApi = inject(PlaceOrderApiService);
   private readonly paymentService = inject(PaymentService);
+  private readonly cartStore = inject(CartStoreService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -424,8 +426,9 @@ export class PaymentPageFacade {
             statusMessage: 'Payment confirmed successfully! Redirecting...',
             errorMessage: '',
           });
-          // Clear checkout draft and PayPal session since payment is completed
+          // Clear checkout draft, cart and PayPal session since payment is completed
           this.checkoutDraftService.clear();
+          this.cartStore.clear();
           this.clearPaypalSession();
           this.router.navigate(['/order-result']);
         },
@@ -446,6 +449,7 @@ export class PaymentPageFacade {
   private confirmVietQrPayment(): void {
     if (this.stateSubject.value.isVietQrSuccess) {
       this.checkoutDraftService.clear();
+      this.cartStore.clear();
       this.router.navigate(['/order-result']);
       return;
     }
@@ -468,6 +472,7 @@ export class PaymentPageFacade {
               errorMessage: '',
             });
             this.checkoutDraftService.clear();
+            this.cartStore.clear();
             this.router.navigate(['/order-result']);
             return;
           }

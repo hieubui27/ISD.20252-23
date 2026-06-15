@@ -25,6 +25,12 @@ export class PrismaProductRepository implements ProductQueryRepository {
 
   async findProducts(): Promise<ProductDetailPersistenceModel[]> {
     return this.prisma.product.findMany({
+      // Only active, in-stock products are exposed to the customer catalog.
+      // Deactivated / unavailable / out-of-stock products are hidden.
+      where: {
+        status: 'ACTIVE',
+        quantity: { gt: 0 },
+      },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,

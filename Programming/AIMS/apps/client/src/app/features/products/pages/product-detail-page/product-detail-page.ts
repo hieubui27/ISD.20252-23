@@ -105,4 +105,10 @@ export class ProductDetailPageComponent implements OnInit {
   goToCart(): void {
     this.router.navigate(['/cart']);
   }
+
+  searchProducts(query: string): void {
+    this.router.navigate(['/product-catalog'], {
+      queryParams: query ? { q: query } : {},
+    });
+  }
 }
