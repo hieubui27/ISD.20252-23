@@ -15,13 +15,16 @@ export class MailService {
   emailTransport() {
     const transporter = nodemailer.createTransport({
       host: this.configService.get<string>('EMAIL_HOST'),
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false,
       auth: {
         user: this.configService.get<string>('EMAIL_USER'),
         pass: this.configService.get<string>('EMAIL_PASSWORD'),
       },
       family: 4,
+      connectionTimeout: 5000,
+      logger: true,
+      debug: true,
     });
     return transporter;
   }
