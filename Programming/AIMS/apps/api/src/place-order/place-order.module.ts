@@ -1,30 +1,21 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../prisma/prisma.module';
-import { ShippingFeeService } from '../shared/utils/shipping-fee.service';
-import { MailModule } from '../mail/mail.module';
 import { PaymentModule } from '../payment/payment.module';
+import { PlaceOrderBeService } from './application/place-order.service';
 import { PlaceOrderController } from './place-order.controller';
-import { PlaceOrderBeService } from './place-order.service';
+import { PlaceOrderDomainModule } from './place-order-domain.module';
 
 /**
- * [DIP VIOLATION] – Dependency Inversion Principle
- * ShippingFeeService is registered directly as a concrete class provider.
- * There is no abstraction token (e.g., SHIPPING_FEE_CALCULATOR), so any
- * consumer that wants to swap the shipping strategy must modify both this
- * module and PlaceOrderBeService's constructor — coupling the module
- * configuration to a specific low-level implementation.
+ * Thin composition root for the place-order use cases.
  *
- * Improvement direction:
- *   Replace the plain class registration with a token-based provider:
- *     { provide: SHIPPING_FEE_CALCULATOR, useClass: ShippingFeeService }
- *   PlaceOrderBeService injects @Inject(SHIPPING_FEE_CALCULATOR) and
- *   depends only on the IShippingFeeCalculator interface. Swapping to a
- *   VolumetricWeightShippingStrategy only requires changing useClass here.
+ * - Domain providers (repository, strategies, states, observer, services) come
+ *   from PlaceOrderDomainModule.
+ * - PaymentService comes from PaymentModule.
+ * The facade (PlaceOrderBeService) only orchestrates these injected abstractions.
  */
 @Module({
-  imports: [PrismaModule, MailModule, PaymentModule],
+  imports: [PlaceOrderDomainModule, PaymentModule],
   controllers: [PlaceOrderController],
-  providers: [PlaceOrderBeService, ShippingFeeService], // [DIP] ShippingFeeService registered as concrete, no abstraction token
+  providers: [PlaceOrderBeService],
   exports: [PlaceOrderBeService],
 })
 export class PlaceOrderModule {}

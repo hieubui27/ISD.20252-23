@@ -6,6 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { DomainError } from '../errors/domain.error';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -27,6 +28,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       } else {
         message = exceptionResponse;
       }
+    } else if (exception instanceof DomainError) {
+      status = HttpStatus.BAD_REQUEST;
+      message = exception.message;
     } else if (exception instanceof Error) {
       message = exception.message;
     }

@@ -6,7 +6,8 @@ import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
 import { PaymentTransactionService } from './payment-transaction.service';
 import { PLACE_ORDER_PAYMENT_PORT } from './ports/place-order-payment.port';
-import { PlaceOrderPaymentAdapter } from '../place-order/adapters/place-order-payment.adapter';
+import { PlaceOrderPaymentAdapter } from '../place-order/infrastructure/adapter/place-order-payment.adapter';
+import { PlaceOrderDomainModule } from '../place-order/place-order-domain.module';
 import { VietqrController } from '../vietqr/vietqr.controller';
 import { VietqrService } from '../vietqr/vietqr.service';
 import { VIETQR_CLIENT } from '../vietqr/clients/vietqr.client';
@@ -43,7 +44,7 @@ import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
    *   narrow provider-facing service/port. PaymentModule should import VietqrModule
    *   and depend on exported abstractions.
    */
-  imports: [PaypalModule, PrismaModule, MailModule],
+  imports: [PaypalModule, PrismaModule, MailModule, PlaceOrderDomainModule],
   controllers: [PaymentController, VietqrController, VietqrInboundController],
   providers: [
     PaymentService,

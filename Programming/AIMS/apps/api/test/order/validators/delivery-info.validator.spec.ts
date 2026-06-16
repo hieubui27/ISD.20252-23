@@ -1,97 +1,112 @@
-import { BadRequestException } from '@nestjs/common';
-import { DeliveryInfoValidator } from '../../../src/shared/utils/validators/delivery-info.validator';
+import {
+  AddressRule,
+  DeliveryInfoValidator,
+  PhoneNumberRule,
+  ProvinceRule,
+  ReceiverNameRule,
+  ShippingInstructionsRule,
+} from '../../../src/place-order/domain/validators/delivery-info.validator';
 
-describe('DeliveryInfoValidator', () => {
-  describe('validateReceiverName', () => {
+describe('Delivery info validation rules', () => {
+  describe('ReceiverNameRule', () => {
+    const rule = new ReceiverNameRule();
+
     // UT_PO_001
     it('should reject blank receiver name (UT_PO_001)', () => {
-      expect(() => DeliveryInfoValidator.validateReceiverName('')).toThrow(
-        BadRequestException,
-      );
-      expect(() => DeliveryInfoValidator.validateReceiverName('')).toThrow(
+      expect(rule.validate({ receiverName: '' })).toBe(
         'Receiver name is required.',
       );
     });
 
     // UT_PO_002
     it('should reject receiver name containing digits (UT_PO_002)', () => {
-      expect(() =>
-        DeliveryInfoValidator.validateReceiverName('Nguyen Van A1'),
-      ).toThrow(BadRequestException);
-      expect(() =>
-        DeliveryInfoValidator.validateReceiverName('Nguyen Van A1'),
-      ).toThrow('Receiver name must contain letters only.');
+      expect(rule.validate({ receiverName: 'Nguyen Van A1' })).toBe(
+        'Receiver name must contain letters only.',
+      );
+    });
+
+    it('should accept a valid receiver name', () => {
+      expect(rule.validate({ receiverName: 'Nguyen Van A' })).toBeNull();
     });
   });
 
-  describe('validatePhoneNumber', () => {
+  describe('PhoneNumberRule', () => {
+    const rule = new PhoneNumberRule();
+
     // UT_PO_003
     it('should accept phone number with exactly 10 digits (UT_PO_003)', () => {
-      expect(DeliveryInfoValidator.validatePhoneNumber('0981413168')).toBe(
-        true,
-      );
+      expect(rule.validate({ phoneNumber: '0981413168' })).toBeNull();
     });
 
     // UT_PO_004
     it('should accept phone number using one separator type (UT_PO_004)', () => {
-      expect(DeliveryInfoValidator.validatePhoneNumber('0981 413 168')).toBe(
-        true,
-      );
+      expect(rule.validate({ phoneNumber: '0981 413 168' })).toBeNull();
     });
 
     it('should accept phone number using dot separator', () => {
-      expect(DeliveryInfoValidator.validatePhoneNumber('0981.413.168')).toBe(
-        true,
-      );
+      expect(rule.validate({ phoneNumber: '0981.413.168' })).toBeNull();
     });
 
     // UT_PO_005
     it('should reject phone number using mixed separators (UT_PO_005)', () => {
-      expect(() =>
-        DeliveryInfoValidator.validatePhoneNumber('0981 413-168'),
-      ).toThrow(BadRequestException);
-      expect(() =>
-        DeliveryInfoValidator.validatePhoneNumber('0981 413-168'),
-      ).toThrow('Phone number must use only one separator type.');
+      expect(rule.validate({ phoneNumber: '0981 413-168' })).toBe(
+        'Phone number must use only one separator type.',
+      );
     });
 
     // UT_PO_006
     it('should reject phone number with fewer than 10 digits (UT_PO_006)', () => {
-      expect(() =>
-        DeliveryInfoValidator.validatePhoneNumber('098141316'),
-      ).toThrow(BadRequestException);
-      expect(() =>
-        DeliveryInfoValidator.validatePhoneNumber('098141316'),
-      ).toThrow('Phone number must contain exactly 10 digits.');
+      expect(rule.validate({ phoneNumber: '098141316' })).toBe(
+        'Phone number must contain exactly 10 digits.',
+      );
     });
   });
 
-  describe('validateAddress', () => {
+  describe('AddressRule', () => {
     // UT_PO_007
     it('should reject blank delivery address (UT_PO_007)', () => {
-      expect(() => DeliveryInfoValidator.validateAddress(' ')).toThrow(
-        BadRequestException,
-      );
-      expect(() => DeliveryInfoValidator.validateAddress(' ')).toThrow(
+      expect(new AddressRule().validate({ streetAddress: ' ' })).toBe(
         'Delivery address is required.',
       );
     });
   });
 
-  describe('validateProvince', () => {
+  describe('ProvinceRule', () => {
     it('should reject blank province', () => {
-      expect(() => DeliveryInfoValidator.validateProvince(' ')).toThrow(
-        BadRequestException,
-      );
-      expect(() => DeliveryInfoValidator.validateProvince(' ')).toThrow(
+      expect(new ProvinceRule().validate({ province: ' ' })).toBe(
         'Province is required.',
       );
     });
   });
 
-  describe('validate', () => {
+  describe('ShippingInstructionsRule', () => {
+    const rule = new ShippingInstructionsRule();
+
+    // UT_PO_008
+    it('should accept empty shipping instructions (UT_PO_008)', () => {
+      expect(rule.validate({ shippingInstructions: '' })).toBeNull();
+    });
+
+    // UT_PO_009
+    it('should accept shipping instructions at 200-character boundary (UT_PO_009)', () => {
+      expect(
+        rule.validate({ shippingInstructions: 'A'.repeat(200) }),
+      ).toBeNull();
+    });
+
+    // UT_PO_010
+    it('should reject shipping instructions over 200 characters (UT_PO_010)', () => {
+      expect(rule.validate({ shippingInstructions: 'A'.repeat(201) })).toBe(
+        'Shipping instructions must not exceed 200 characters.',
+      );
+    });
+  });
+
+  describe('DeliveryInfoValidator (aggregate)', () => {
+    const validator = new DeliveryInfoValidator();
+
     it('should return valid result for valid delivery information', () => {
-      const result = DeliveryInfoValidator.validate({
+      const result = validator.validate({
         receiverName: 'Nguyen Van A',
         phoneNumber: '0981413168',
         province: 'Hanoi',
@@ -101,8 +116,8 @@ describe('DeliveryInfoValidator', () => {
       expect(result).toEqual({ valid: true, errors: [] });
     });
 
-    it('should collect validation errors', () => {
-      const result = DeliveryInfoValidator.validate({
+    it('should collect validation errors in field order', () => {
+      const result = validator.validate({
         receiverName: 'Nguyen Van A1',
         phoneNumber: '0981 413-168',
         province: '',
@@ -118,30 +133,6 @@ describe('DeliveryInfoValidator', () => {
         'Delivery address is required.',
         'Shipping instructions must not exceed 200 characters.',
       ]);
-    });
-  });
-
-  describe('validateShippingInstructions', () => {
-    // UT_PO_008
-    it('should accept empty shipping instructions (UT_PO_008)', () => {
-      expect(DeliveryInfoValidator.validateShippingInstructions('')).toBe(true);
-    });
-
-    // UT_PO_009
-    it('should accept shipping instructions at 200-character boundary (UT_PO_009)', () => {
-      expect(
-        DeliveryInfoValidator.validateShippingInstructions('A'.repeat(200)),
-      ).toBe(true);
-    });
-
-    // UT_PO_010
-    it('should reject shipping instructions over 200 characters (UT_PO_010)', () => {
-      expect(() =>
-        DeliveryInfoValidator.validateShippingInstructions('A'.repeat(201)),
-      ).toThrow(BadRequestException);
-      expect(() =>
-        DeliveryInfoValidator.validateShippingInstructions('A'.repeat(201)),
-      ).toThrow('Shipping instructions must not exceed 200 characters.');
     });
   });
 });
