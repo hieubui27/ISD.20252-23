@@ -91,13 +91,13 @@ export class PlaceOrderPaymentAdapter implements PlaceOrderPaymentPort {
       ? order
       : await this.repository.applyPaidTransition(context.orderId);
 
-    this.notifyOrderConfirmed(finalOrder, context);
+    await this.notifyOrderConfirmed(finalOrder, context);
   }
 
-  private notifyOrderConfirmed(
+  private async notifyOrderConfirmed(
     order: PersistedOrderDetail,
     context: PaidOrderContext,
-  ): void {
+  ): Promise<void> {
     if (!order.email || !order.invoice) {
       return;
     }
@@ -113,7 +113,7 @@ export class PlaceOrderPaymentAdapter implements PlaceOrderPaymentPort {
       transactionDate: context.transactionDateTime || new Date(),
     };
 
-    void this.eventPublisher.publish({
+    await this.eventPublisher.publish({
       recipientEmail: order.email,
       order: successDto,
       invoice: this.invoiceCalculator.buildFromPersistedOrder(order),

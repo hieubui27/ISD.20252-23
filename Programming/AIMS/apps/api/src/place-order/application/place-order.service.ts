@@ -183,7 +183,7 @@ export class PlaceOrderBeService {
       transactionDate,
     );
 
-    void this.eventPublisher.publish({
+    await this.eventPublisher.publish({
       recipientEmail: dto.deliveryInfo.email,
       order: successDto,
       invoice,
