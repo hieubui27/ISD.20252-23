@@ -21,6 +21,7 @@ export class MailService {
         user: this.configService.get<string>('EMAIL_USER'),
         pass: this.configService.get<string>('EMAIL_PASSWORD'),
       },
+      family: 4, // Bắt buộc dùng IPv4 để tránh lỗi ENETUNREACH IPv6 trên Render
     });
     return transporter;
   }
