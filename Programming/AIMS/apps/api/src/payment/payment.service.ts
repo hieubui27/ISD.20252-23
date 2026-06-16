@@ -206,7 +206,6 @@ export class PaymentService {
       transactionContent: updated.transactionContent,
       transactionDateTime: updated.transactionDateTime,
     });
-    // TODO(NOTIFICATION_INTEGRATION): Send invoice and transaction information to the customer email after success.
 
     return {
       success: true,
@@ -286,7 +285,6 @@ export class PaymentService {
       transactionContent: updated.transactionContent,
       transactionDateTime: updated.transactionDateTime,
     });
-    // TODO(NOTIFICATION_INTEGRATION): Send invoice and transaction information to the customer email after success.
 
     return {
       status: this.vietqrService.mapCallbackToTransactionStatus(callback),
