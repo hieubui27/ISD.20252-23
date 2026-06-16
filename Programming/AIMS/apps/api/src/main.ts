@@ -8,17 +8,12 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import { PrismaService } from './prisma/prisma.service';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import * as dns from 'dns';
 const cookieParser = require('cookie-parser');
 const express = require('express');
 
 async function bootstrap() {
-  // Force IPv4 DNS resolution globally to prevent IPv6 ENETUNREACH errors on Render
-  dns.setDefaultResultOrder('ipv4first');
-
   const app = await NestFactory.create(AppModule);
 
-  // Increase body parser limits for large payloads
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
