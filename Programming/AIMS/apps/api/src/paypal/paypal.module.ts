@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { PaypalController } from './paypal.controller';
 import { PaypalService } from './paypal.service';
 
 /**
@@ -15,7 +14,6 @@ import { PaypalService } from './paypal.service';
  */
 @Module({
   providers: [PaypalService],
-  controllers: [PaypalController],
   exports: [PaypalService],
 })
 export class PaypalModule {}
