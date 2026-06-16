@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto, ProductType } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -91,7 +91,24 @@ export class ProductRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.product.delete({ where: { id: BigInt(id) } });
+    const bigId = BigInt(id);
+
+    // Check if the product is in any order
+    const orderCount = await this.prisma.orderProduct.count({
+      where: { productId: bigId },
+    });
+
+    if (orderCount > 0) {
+      const product = await this.prisma.product.findUnique({
+        where: { id: bigId },
+        select: { title: true },
+      });
+      throw new BadRequestException(
+        `Không thể xoá sản phẩm "${product?.title}" vì sản phẩm đang tồn tại trong ${orderCount} đơn hàng.`,
+      );
+    }
+
+    await this.prisma.product.delete({ where: { id: bigId } });
   }
 
   async updateStatus(id: string, status: string): Promise<any> {
@@ -104,10 +121,27 @@ export class ProductRepository {
 
   async deleteBulk(ids: string[]): Promise<void> {
     const bigIntIds = ids.map((id) => BigInt(id));
+
+    // Find products that are in orders
+    const productsInOrders = await this.prisma.orderProduct.findMany({
+      where: { productId: { in: bigIntIds } },
+      select: { productId: true },
+      distinct: ['productId'],
+    });
+
+    if (productsInOrders.length > 0) {
+      const blockedIds = productsInOrders.map((op) => op.productId);
+      const blockedProducts = await this.prisma.product.findMany({
+        where: { id: { in: blockedIds } },
+        select: { title: true },
+      });
+      const titles = blockedProducts.map((p) => `"${p.title}"`).join(', ');
+      throw new BadRequestException(
+        `Không thể xoá vì các sản phẩm sau đang tồn tại trong đơn hàng: ${titles}.`,
+      );
+    }
+
     await this.prisma.$transaction(async (tx) => {
-      // In a real scenario, you might need to delete related entities first
-      // or rely on Prisma cascade deletes if configured.
-      // Assuming cascade is configured in Prisma schema.
       await tx.product.deleteMany({
         where: { id: { in: bigIntIds } },
       });
