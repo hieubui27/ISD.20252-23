@@ -9,64 +9,18 @@ import { PaypalPaymentPageFlowService } from '../flows/paypal-payment-page-flow.
 import { VietQrPaymentPageFlowService } from '../flows/vietqr-payment-page-flow.service';
 import { PaymentOrderSummaryService } from '../services/payment-order-summary.service';
 import { PendingPaymentSessionService } from '../services/pending-payment-session.service';
-import {
-  ORDER_RESULT_STATE_KEY,
-  OrderResultState,
-} from '../../place-order/order-result/order-result-state';
-import {
-  VietQrPaymentInput,
-  VietQrPaymentSnapshot,
-} from '../models/vietqr-payment.models';
-import { VietQrPaymentFlowService } from '../flows/vietqr-payment-flow.service';
-
-export interface PaymentPageState {
-  isLoading: boolean;
-  errorMessage: string;
-  statusMessage: string;
-  order: OrderSummary;
-  cartItemCount: number;
-  qrImageUrl: string;
-  isVietQrSuccess: boolean;
-  selectedMethod: PaymentMethod;
-  paypalRedirectUrl: string;
-  paypalApproved: boolean;
-  paypalConfirmed: boolean;
-}
-
-const EMPTY_ORDER: OrderSummary = {
-  items: [],
-  subtotal: 0,
-  vatRate: 0.1,
-  shippingFee: 0,
-  total: 0,
-};
-
-const INITIAL_STATE: PaymentPageState = {
-  isLoading: false,
-  errorMessage: '',
-  statusMessage: '',
-  order: EMPTY_ORDER,
-  cartItemCount: 0,
-  qrImageUrl: '',
-  isVietQrSuccess: false,
-  selectedMethod: 'VIETQR',
-  paypalRedirectUrl: '',
-  paypalApproved: false,
-  paypalConfirmed: false,
-};
-
-const PAYPAL_SESSION_KEY = 'aims_paypal_payment';
+import { PaymentPageStateStore } from '../stores/payment-page-state.store';
 
 @Injectable()
 export class PaymentPageFacade {
   private readonly checkoutDraftService = inject(CheckoutDraftService);
-  private readonly placeOrderApi = inject(PlaceOrderApiService);
-  private readonly paymentService = inject(PaymentService);
+  private readonly orderSummary = inject(PaymentOrderSummaryService);
+  private readonly pendingPaymentSession = inject(PendingPaymentSessionService);
+  private readonly paypalPageFlow = inject(PaypalPaymentPageFlowService);
+  private readonly vietQrPageFlow = inject(VietQrPaymentPageFlowService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly stateStore = inject(PaymentPageStateStore);
-  private readonly vietQrPageFlow = inject(VietQrPaymentPageFlowService);
 
   readonly state$ = this.stateStore.state$;
 
@@ -75,6 +29,7 @@ export class PaymentPageFacade {
   initialize(): void {
     this.checkoutDraft = this.checkoutDraftService.get();
     this.pendingPaymentSession.initialize(this.checkoutDraft);
+
     const paypalToken = this.route.snapshot.queryParamMap.get('token');
     const paypalCancelled =
       this.route.snapshot.queryParamMap.get('paypalCancel') === '1';
@@ -84,9 +39,13 @@ export class PaymentPageFacade {
       this.loadInvoicePreview();
     }
 
-    // 3. Xử lý PayPal return
+    if (paypalCancelled) {
+      this.handlePaypalCancelReturn();
+      return;
+    }
+
     if (paypalToken) {
-      this.handlePaypalReturn(paypalToken);
+      this.paypalPageFlow.handleReturn();
       return;
     }
 
@@ -108,11 +67,11 @@ export class PaymentPageFacade {
   }
 
   selectPaymentMethod(method: PaymentMethod): void {
-    if (method === this.state.selectedMethod) return;
+    if (method === this.stateStore.snapshot.selectedMethod) return;
 
     this.vietQrPageFlow.resetSelectionState();
 
-    this.patchState({
+    this.stateStore.patch({
       selectedMethod: method,
       isLoading: false,
       errorMessage: '',
@@ -128,16 +87,16 @@ export class PaymentPageFacade {
   }
 
   confirmOrder(): void {
-    this.patchState({ errorMessage: '' });
+    this.stateStore.patch({ errorMessage: '' });
 
-    if (this.state.isLoading) {
-      this.patchState({
+    if (this.stateStore.snapshot.isLoading) {
+      this.stateStore.patch({
         statusMessage: 'Your payment is still being prepared. Please wait.',
       });
       return;
     }
 
-    if (this.state.selectedMethod === 'PAYPAL') {
+    if (this.stateStore.snapshot.selectedMethod === 'PAYPAL') {
       this.paypalPageFlow.confirm();
       return;
     }
@@ -154,185 +113,51 @@ export class PaymentPageFacade {
     this.router.navigate(['/product-catalog']);
   }
 
-  private handlePaypalReturn(paypalToken: string): void {
-    // Restore orderId/invoiceId from sessionStorage (saved before PayPal redirect)
-    const saved = this.loadPaypalSession();
-    if (saved) {
-      this.paypalPaymentOrderId = saved.orderId;
-      this.paypalPaymentInvoiceId = saved.invoiceId;
+  private startPaymentFlow(): void {
+    if (this.stateStore.snapshot.selectedMethod === 'VIETQR') {
+      this.vietQrPageFlow.start();
+      return;
     }
 
-    this.patchState({
-      selectedMethod: 'PAYPAL',
-      paypalApproved: true,
+    this.paypalPageFlow.start(
+      this.checkoutDraftService.hasValidItems(this.checkoutDraft),
+    );
+  }
+
+  private handlePaypalCancelReturn(): void {
+    this.paypalPageFlow.discardApprovalSession();
+
+    this.stateStore.patch({
+      selectedMethod: 'VIETQR',
+      paypalApproved: false,
       paypalConfirmed: false,
+      paypalRedirectUrl: '',
+      errorMessage: '',
       statusMessage:
-        'PayPal payment approved. Click "Confirm Payment" to complete your purchase.',
-      errorMessage: '',
+        'PayPal payment was cancelled. Creating a new VietQR payment...',
     });
 
-    // Nếu bị mất session data (vd: user mở link ở tab khác ẩn danh hoặc localStorage bị clear),
-    // KHÔNG được gọi lại startPaypalPayment() lúc này. Vì nếu checkoutDraft rỗng, gọi start sẽ
-    // đẩy items: [] xuống backend -> backend gọi PayPal tạo payment amount: 0 -> lỗi 500.
-    if (!this.paypalPaymentOrderId) {
-      this.patchState({
-        paypalApproved: false,
-        errorMessage:
-          'Your payment session has expired or could not be found. Please return to the product catalog and try again.',
-        statusMessage: '',
-      });
-    }
-  }
-
-  /**
-   * Captures the PayPal payment by calling the confirm API.
-   * This is the step that actually charges the customer's PayPal account
-   * and triggers stock decrement on the server side.
-   */
-  private capturePaypalPayment(): void {
-    if (!this.paypalPaymentOrderId || !this.paypalPaymentInvoiceId) {
-      this.patchState({
-        errorMessage: 'Payment information is missing. Please try again.',
-      });
-      return;
-    }
-
-    const paypalOrderId = this.paypalPaymentOrderId;
-    const paypalInvoiceId = this.paypalPaymentInvoiceId;
-
-    this.patchState({
-      isLoading: true,
-      errorMessage: '',
-      statusMessage: 'Confirming your PayPal payment...',
-    });
-
-    this.paymentService
-      .confirmTransaction({
-        orderId: paypalOrderId,
-        invoiceId: paypalInvoiceId,
-        paymentMethod: 'PAYPAL',
-        transactionId: '',
-        transactionContent: 'PayPal capture',
-        transactionDateTime: new Date().toISOString(),
-      })
-      .subscribe({
-        next: (result) => {
-          if (!result.success || result.status !== 'SUCCESS') {
-            this.patchState({
-              isLoading: false,
-              errorMessage:
-                result.message ||
-                'PayPal payment was not confirmed successfully.',
-              statusMessage: '',
-            });
-            return;
-          }
-
-          this.saveOrderResult({
-            paymentMethod: 'PAYPAL',
-            status: 'SUCCESS',
-            transactionId: result.transactionId || paypalOrderId,
-            orderId: paypalOrderId,
-            invoiceId: paypalInvoiceId,
-            completedAt: new Date().toISOString(),
-          });
-
-          this.patchState({
-            isLoading: false,
-            paypalConfirmed: true,
-            paypalApproved: false,
-            statusMessage: 'Payment confirmed successfully! Redirecting...',
-            errorMessage: '',
-          });
-          // Clear checkout draft and PayPal session since payment is completed
-          this.checkoutDraftService.clear();
-          this.clearPaypalSession();
-          this.router.navigate(['/order-result']);
-        },
-        error: (err) => {
-          console.error('PayPal capture error:', err);
-          this.patchState({
-            isLoading: false,
-            errorMessage:
-              err.error?.message ||
-              err.message ||
-              'Failed to confirm PayPal payment. Please try again.',
-            statusMessage: '',
-          });
-        },
-      });
-  }
-
-  private confirmVietQrPayment(): void {
-    if (this.stateSubject.value.isVietQrSuccess) {
-      this.checkoutDraftService.clear();
-      this.router.navigate(['/order-result']);
-      return;
-    }
-
-    this.patchState({
-      isLoading: true,
-      errorMessage: '',
-      statusMessage: 'Confirming your VietQR payment...',
-    });
-
-    try {
-      this.vietQrPaymentFlow.confirmCurrentPayment().subscribe({
-        next: (snapshot) => {
-          this.applySnapshot(snapshot);
-
-          if (snapshot.latestTransaction?.status === 'SUCCESS') {
-            this.patchState({
-              isLoading: false,
-              statusMessage: 'Payment confirmed successfully! Redirecting...',
-              errorMessage: '',
-            });
-            this.checkoutDraftService.clear();
-            this.router.navigate(['/order-result']);
-            return;
-          }
-
-          this.patchState({
-            isLoading: false,
-            statusMessage:
-              'Payment has not been completed yet. Please try again after paying.',
-          });
-        },
-        error: (err) => {
-          console.error('VietQR confirmation error:', err);
-          this.patchState({
-            isLoading: false,
-            errorMessage:
-              err.error?.message ||
-              err.message ||
-              'Failed to confirm VietQR payment. Please try again.',
-            statusMessage: '',
-          });
-        },
-      });
-    } catch (err) {
-      const error = err as Error;
-      this.patchState({
-        isLoading: false,
-        errorMessage:
-          error.message || 'VietQR payment has not been created yet.',
-        statusMessage: '',
-      });
-    }
-  }
-
-  private listenForVietQrUpdates(): void {
-    this.snapshotSubscription = this.vietQrPaymentFlow.snapshot$.subscribe(
-      (snapshot) => {
-        if (!snapshot) return;
-
-        this.applySnapshot(snapshot);
-        const status = snapshot.latestTransaction?.status;
-
-        if (status === 'FAILED' || status === 'REFUND_REQUIRED') {
-          this.patchState({ errorMessage: 'Payment could not be completed.' });
-        }
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        paypalCancel: null,
+        token: null,
+        PayerID: null,
       },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+
+    this.vietQrPageFlow.startFresh(
+      'PayPal payment was cancelled. Creating a new VietQR payment...',
+    );
+  }
+
+  private applyCheckoutDraft(): void {
+    if (!this.checkoutDraft) return;
+
+    this.stateStore.setOrder(
+      this.orderSummary.fromCheckoutDraft(this.checkoutDraft),
     );
   }
 
@@ -340,14 +165,10 @@ export class PaymentPageFacade {
     if (!this.checkoutDraft) return;
 
     this.orderSummary
-      .previewInvoice(this.checkoutDraft, this.state.order)
+      .previewInvoice(this.checkoutDraft, this.stateStore.snapshot.order)
       .subscribe({
         next: (order) => this.stateStore.setOrder(order),
         error: (err) => console.error('Load invoice preview failed:', err),
       });
-  }
-
-  private patchState(patch: Partial<PaymentPageState>): void {
-    this.stateStore.patch(patch);
   }
 }

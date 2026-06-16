@@ -341,8 +341,14 @@ export class PaymentService {
     };
   }
 
-  async getPaymentTransactionByOrderId(orderId: string) {
-    const transaction = await this.findLatestPaymentTransactionByOrderId(orderId);
+  async getPaymentTransactionByOrderId(
+    orderId: string,
+    paymentMethod?: PaymentMethod,
+  ) {
+    const transaction = await this.findLatestPaymentTransactionByOrderId(
+      orderId,
+      paymentMethod,
+    );
 
     return transaction ? this.serializePaymentTransaction(transaction) : null;
   }

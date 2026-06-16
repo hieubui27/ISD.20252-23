@@ -1,5 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  OnDestroy,
+  OnInit,
+  inject,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -63,15 +69,9 @@ export class DeliveryComponent implements OnInit, OnDestroy {
   readonly form = inject(FormBuilder).nonNullable.group({
     receiverName: [
       '',
-      [
-        Validators.required,
-        receiverNameLettersOnlyValidator(),
-      ],
+      [Validators.required, receiverNameLettersOnlyValidator()],
     ],
-    phoneNumber: [
-      '',
-      [Validators.required, phoneNumberValidator()],
-    ],
+    phoneNumber: ['', [Validators.required, phoneNumberValidator()]],
     email: ['', [Validators.required, Validators.email]],
     streetAddress: ['', [Validators.required, notBlankValidator()]],
     province: [
@@ -112,11 +112,8 @@ export class DeliveryComponent implements OnInit, OnDestroy {
       receiverName: this.draft.deliveryInfo.receiverName || '',
       phoneNumber: this.draft.deliveryInfo.phoneNumber || '',
       email: this.draft.deliveryInfo.email || '',
-      streetAddress:
-        this.draft.deliveryInfo.streetAddress || '',
-      province:
-        this.draft.deliveryInfo.province ||
-        PROVINCE_PLACEHOLDER,
+      streetAddress: this.draft.deliveryInfo.streetAddress || '',
+      province: this.draft.deliveryInfo.province || PROVINCE_PLACEHOLDER,
       shippingInstructions: this.draft.deliveryInfo.shippingInstructions || '',
     });
 
@@ -167,11 +164,11 @@ export class DeliveryComponent implements OnInit, OnDestroy {
   get canPreview(): boolean {
     return Boolean(
       this.draft &&
-        this.form.controls.receiverName.valid &&
-        this.form.controls.phoneNumber.valid &&
-        this.form.controls.email.valid &&
-        this.form.controls.streetAddress.valid &&
-        this.form.controls.province.valid,
+      this.form.controls.receiverName.valid &&
+      this.form.controls.phoneNumber.valid &&
+      this.form.controls.email.valid &&
+      this.form.controls.streetAddress.valid &&
+      this.form.controls.province.valid,
     );
   }
 
@@ -196,36 +193,7 @@ export class DeliveryComponent implements OnInit, OnDestroy {
     };
     this.checkoutDraftService.save(updatedDraft);
     this.draft = updatedDraft;
-    this.isCreatingPayment = true;
-
-    this.vietQrPaymentFlow
-      .start({
-        items: this.checkoutDraftService.toPlaceOrderItems(updatedDraft),
-        deliveryInfo: updatedDraft.deliveryInfo,
-      })
-      .subscribe({
-        next: (snapshot) => {
-          this.isCreatingPayment = false;
-
-          if (!snapshot.payment.qrCode && !snapshot.latestTransaction?.qrCode) {
-            this.errorMessage = 'Unable to create VietQR code.';
-            this.cdr.detectChanges();
-            return;
-          }
-
-          this.router.navigate(['/payment']);
-        },
-        error: (err) => {
-          this.isCreatingPayment = false;
-          console.error('Create VietQR payment failed:', err);
-          this.errorMessage =
-            this.buildStockShortageMessage(err) ||
-            err.error?.message ||
-            err.message ||
-            'Unable to create VietQR payment request.';
-          this.cdr.detectChanges();
-        },
-      });
+    this.router.navigate(['/payment']);
   }
 
   /**
@@ -279,7 +247,9 @@ export class DeliveryComponent implements OnInit, OnDestroy {
 
   shouldShowError(controlName: DeliveryInfoField): boolean {
     const control = this.form.controls[controlName];
-    return control.invalid && (this.submitted || control.dirty || control.touched);
+    return (
+      control.invalid && (this.submitted || control.dirty || control.touched)
+    );
   }
 
   fieldError(controlName: DeliveryInfoField): string {
@@ -327,5 +297,4 @@ export class DeliveryComponent implements OnInit, OnDestroy {
       shippingInstructions: value.shippingInstructions.trim(),
     };
   }
-
 }

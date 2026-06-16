@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { CartStoreService } from '../../cart/services/cart-store.service';
 import { CheckoutDraftService } from '../../place-order/services/checkout-draft.service';
 import {
   VietQrPaymentInput,
@@ -15,6 +16,7 @@ import { VietQrPaymentFlowService } from './vietqr-payment-flow.service';
 
 @Injectable()
 export class VietQrPaymentPageFlowService {
+  private readonly cartStore = inject(CartStoreService);
   private readonly checkoutDraftService = inject(CheckoutDraftService);
   private readonly orderResultStorage = inject(OrderResultStorageService);
   private readonly pendingPaymentSession = inject(PendingPaymentSessionService);
@@ -47,13 +49,19 @@ export class VietQrPaymentPageFlowService {
     return false;
   }
 
-  start(): void {
-    this.prepareStart();
+  start(statusMessage = ''): void {
+    this.prepareStart(statusMessage);
 
     this.pendingPaymentSession
       .ensure()
       .then(() => this.startWhenSessionIsReady())
       .catch((err) => this.handleStartError(err));
+  }
+
+  startFresh(statusMessage = ''): void {
+    this.resetSelectionState();
+    this.vietQrPaymentFlow.clearSnapshot();
+    this.start(statusMessage);
   }
 
   confirm(): void {
@@ -89,11 +97,11 @@ export class VietQrPaymentPageFlowService {
     this.vietQrPaymentFlow.stop();
   }
 
-  private prepareStart(): void {
+  private prepareStart(statusMessage = ''): void {
     this.stateStore.patch({
       isLoading: true,
       errorMessage: '',
-      statusMessage: '',
+      statusMessage,
       qrImageUrl: '',
       isVietQrSuccess: false,
     });
@@ -162,6 +170,7 @@ export class VietQrPaymentPageFlowService {
 
   private finishSuccessfulPayment(snapshot?: VietQrPaymentSnapshot): void {
     this.saveOrderResult(snapshot);
+    this.cartStore.clear();
     this.checkoutDraftService.clear();
     this.pendingPaymentSession.clear();
     this.vietQrPaymentFlow.clearSnapshot();
@@ -193,7 +202,9 @@ export class VietQrPaymentPageFlowService {
 
   private saveOrderResult(snapshot?: VietQrPaymentSnapshot): void {
     const successfulSnapshot =
-      snapshot ?? this.currentSnapshot ?? this.vietQrPaymentFlow.currentSnapshot;
+      snapshot ??
+      this.currentSnapshot ??
+      this.vietQrPaymentFlow.currentSnapshot;
 
     if (!successfulSnapshot) return;
 

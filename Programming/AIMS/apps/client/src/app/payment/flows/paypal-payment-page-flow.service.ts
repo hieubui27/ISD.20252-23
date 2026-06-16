@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { CartStoreService } from '../../cart/services/cart-store.service';
 import { PlaceOrderPaymentResult } from '../../place-order/models/place-order.models';
 import { CheckoutDraftService } from '../../place-order/services/checkout-draft.service';
 import { PaymentResultDto } from '../../services/payment.service';
@@ -18,6 +19,7 @@ const PAYPAL_APPROVED_MESSAGE =
 
 @Injectable()
 export class PaypalPaymentPageFlowService {
+  private readonly cartStore = inject(CartStoreService);
   private readonly checkoutDraftService = inject(CheckoutDraftService);
   private readonly orderResultStorage = inject(OrderResultStorageService);
   private readonly paypalPaymentFlow = inject(PaypalPaymentFlowService);
@@ -60,6 +62,11 @@ export class PaypalPaymentPageFlowService {
         statusMessage: '',
       });
     }
+  }
+
+  discardApprovalSession(): void {
+    this.paypalPaymentSession = null;
+    this.paypalPaymentFlow.clearSession();
   }
 
   confirm(): void {
@@ -201,6 +208,7 @@ export class PaypalPaymentPageFlowService {
       statusMessage: 'Payment confirmed successfully! Redirecting...',
       errorMessage: '',
     });
+    this.cartStore.clear();
     this.checkoutDraftService.clear();
     this.paypalPaymentFlow.clearSession();
     this.pendingPaymentSession.clear();
