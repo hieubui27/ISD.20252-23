@@ -38,6 +38,14 @@ export interface ConfirmTransactionDto {
   amount?: number;
 }
 
+export interface RequestPaymentDto {
+  orderId: string;
+  invoiceId: string;
+  paymentMethod: PaymentMethod;
+  amount: number;
+  customerEmail: string;
+}
+
 export interface PaymentResultDto {
   success: boolean;
   status: string;
@@ -63,5 +71,9 @@ export class PaymentService {
 
   confirmTransaction(dto: ConfirmTransactionDto): Observable<PaymentResultDto> {
     return this.http.post<PaymentResultDto>(`${this.apiUrl}/confirm`, dto);
+  }
+
+  requestPayment(dto: RequestPaymentDto): Observable<PaymentResultDto> {
+    return this.http.post<PaymentResultDto>(`${this.apiUrl}/request`, dto);
   }
 }

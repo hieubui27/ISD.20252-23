@@ -4,6 +4,7 @@ import { MailModule } from '../mail/mail.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
+import { PaymentTransactionService } from './payment-transaction.service';
 import { PLACE_ORDER_PAYMENT_PORT } from './ports/place-order-payment.port';
 import { PlaceOrderPaymentAdapter } from '../place-order/adapters/place-order-payment.adapter';
 import { VietqrController } from '../vietqr/vietqr.controller';
@@ -46,6 +47,7 @@ import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
   controllers: [PaymentController, VietqrController, VietqrInboundController],
   providers: [
     PaymentService,
+    PaymentTransactionService,
     VietqrService,
     VietqrInboundService,
     ConfigService,

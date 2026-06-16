@@ -145,7 +145,18 @@ describe('PaymentService', () => {
   };
 
   const mockPaypalService = {
-    createOrder: jest.fn(),
+    getGateway: jest.fn(),
+  };
+
+  const mockPaymentGateway = {
+    createPayment: jest.fn(),
+  };
+
+  const mockPaymentTransactionService = {
+    getOrCreatePendingTransaction: jest.fn(),
+    updateGatewayOrderId: jest.fn(),
+    updateProviderData: jest.fn(),
+    markSuccessAndCancelOtherPending: jest.fn(),
   };
 
   const mockPlaceOrderPaymentPort = {
@@ -159,9 +170,11 @@ describe('PaymentService', () => {
       mockPrisma as any,
       mockVietqrService as any,
       mockPaypalService as any,
+      mockPaymentTransactionService as any,
       mockPlaceOrderPaymentPort,
     );
     jest.clearAllMocks();
+    mockPaypalService.getGateway.mockReturnValue(mockPaymentGateway);
   });
 
   it('should request VietQR payment and persist QR data', async () => {
@@ -171,12 +184,21 @@ describe('PaymentService', () => {
       totalAmount: 250000,
       customerEmail: 'customer.demo@gmail.com',
     });
-    mockPrisma.paymentTransaction.create.mockResolvedValue(transaction);
-    mockPrisma.paymentTransaction.update.mockResolvedValue(transaction);
-    mockVietqrService.generateQrCode.mockResolvedValue({
+    mockPaymentTransactionService.getOrCreatePendingTransaction.mockResolvedValue(
+      transaction,
+    );
+    mockPaymentTransactionService.updateGatewayOrderId.mockResolvedValue(
+      transaction,
+    );
+    mockPaymentTransactionService.updateProviderData.mockResolvedValue(
+      transaction,
+    );
+    mockPaymentGateway.createPayment.mockResolvedValue({
+      paymentUrl: '',
       qrCode: 'qr-code-data',
-      qrContent: 'THANH TOAN AIMS',
-      amount: 250000,
+      providerData: {
+        qrContent: 'THANH TOAN AIMS',
+      },
     });
 
     const result = await service.requestPayment({
@@ -187,15 +209,16 @@ describe('PaymentService', () => {
       customerEmail: 'customer.demo@gmail.com',
     });
 
-    expect(mockPrisma.paymentTransaction.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(
+      mockPaymentTransactionService.getOrCreatePendingTransaction,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
         orderId: 'ORDER_DEMO_001',
         invoiceId: BigInt(20),
         paymentMethod: PaymentMethod.VIETQR,
-        status: PaymentStatus.PENDING,
       }),
-    });
-    expect(mockVietqrService.generateQrCode).toHaveBeenCalled();
+    );
+    expect(mockPaymentGateway.createPayment).toHaveBeenCalled();
     expect(result.status).toBe(PaymentStatus.PENDING);
     expect(result.qrCode).toBe('qr-code-data');
   });
@@ -214,7 +237,9 @@ describe('PaymentService', () => {
         customerEmail: 'customer.demo@gmail.com',
       }),
     ).rejects.toThrow(BadRequestException);
-    expect(mockPrisma.paymentTransaction.create).not.toHaveBeenCalled();
+    expect(
+      mockPaymentTransactionService.getOrCreatePendingTransaction,
+    ).not.toHaveBeenCalled();
   });
 
   it('should accept valid VietQR callback and mark order paid', async () => {
@@ -222,7 +247,7 @@ describe('PaymentService', () => {
     mockPrisma.paymentTransaction.findFirst
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(transaction);
-    mockPrisma.paymentTransaction.update.mockResolvedValue({
+    mockPaymentTransactionService.markSuccessAndCancelOtherPending.mockResolvedValue({
       ...transaction,
       status: PaymentStatus.SUCCESS,
       transactionId: 'TXN001',
@@ -245,10 +270,11 @@ describe('PaymentService', () => {
       orderId: 'PAYMENTTRANS',
     });
 
-    expect(mockPrisma.paymentTransaction.update).toHaveBeenCalledWith({
-      where: { id: 'payment-transaction-id' },
+    expect(
+      mockPaymentTransactionService.markSuccessAndCancelOtherPending,
+    ).toHaveBeenCalledWith({
+      transactionId: 'payment-transaction-id',
       data: expect.objectContaining({
-        status: PaymentStatus.SUCCESS,
         transactionId: 'TXN001',
       }),
     });

@@ -1,7 +1,7 @@
 {
   "/api": {
-    "target": "https://isd-20252-23.onrender.com",
-    "secure": true,
+    "target": "http://localhost:3000",
+    "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   }

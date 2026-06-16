@@ -92,6 +92,13 @@ export class PlaceOrderPaymentAdapter implements PlaceOrderPaymentPort {
       throw new BadRequestException('Invoice does not belong to order');
     }
 
+    if (
+      lookup.customerEmail.trim().toLowerCase() !==
+      order.email.trim().toLowerCase()
+    ) {
+      throw new BadRequestException('Customer email does not belong to order');
+    }
+
     return {
       orderId: order.orderId,
       invoiceId,

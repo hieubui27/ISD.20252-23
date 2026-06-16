@@ -2,16 +2,28 @@ import { inject, Injectable, OnDestroy } from '@angular/core';
 import {
   BehaviorSubject,
   Observable,
+  of,
   Subject,
   Subscription,
   timer,
 } from 'rxjs';
-import { catchError, map, switchMap, takeUntil, tap } from 'rxjs/operators';
-import { PlaceOrderApiService } from '../../place-order/services/place-order-api.service';
-import { PaymentStatus } from '../../services/payment.service';
+import {
+  catchError,
+  map,
+  startWith,
+  switchMap,
+  takeUntil,
+  tap,
+} from 'rxjs/operators';
+import {
+  PaymentService,
+  PaymentStatus,
+} from '../../services/payment.service';
 import { PaymentStatusApiService } from '../services/payment-status-api.service';
+import { mapPaymentResult } from '../services/payment-result.utils';
 import { PaymentFlowStrategy } from './payment-flow.strategy';
 import {
+  ExistingPaymentContext,
   VietQrPaymentInput,
   VietQrPaymentSnapshot,
 } from '../models/vietqr-payment.models';
@@ -22,25 +34,17 @@ const VIETQR_PAYMENT_SNAPSHOT_KEY = 'aims.vietQrPaymentSnapshot';
 
 @Injectable({ providedIn: 'root' })
 /**
- * SOLID review:
- * - SRP: Medium risk. The service is still focused on the VietQR payment flow, but
- *   it combines payment creation, status polling, sandbox callback triggering,
- *   snapshot persistence, and gateway order id derivation.
- * - OCP: Partial violation for callback behavior. Sandbox callback logic is
- *   hardcoded into the flow, so changing environment behavior requires editing
- *   this class.
- * - DIP: Medium risk. It depends on concrete API services and browser localStorage
- *   instead of narrow persistence/status abstractions.
- * - Improvement: Extract PaymentSnapshotStore, PaymentPollingService, and
- *   VietQrSandboxCallbackService. Gate sandbox behavior behind an environment
- *   strategy or feature flag.
+ * VietQR flow owner: creates the payment request, stores the latest snapshot,
+ * polls transaction status, and triggers the sandbox callback used by this app.
+ * If production and sandbox behavior diverge later, move the callback call behind
+ * a small environment-specific service.
  */
 export class VietQrPaymentFlowService
   implements
     PaymentFlowStrategy<VietQrPaymentInput, VietQrPaymentSnapshot>,
     OnDestroy
 {
-  private readonly placeOrderApi = inject(PlaceOrderApiService);
+  private readonly paymentService = inject(PaymentService);
   private readonly paymentStatusApi = inject(PaymentStatusApiService);
   private readonly stop$ = new Subject<void>();
   private pollingSubscription?: Subscription;
@@ -63,18 +67,32 @@ export class VietQrPaymentFlowService
   start(input: VietQrPaymentInput): Observable<VietQrPaymentSnapshot> {
     this.stop();
 
-    return this.placeOrderApi
-      .createPayment({
-        ...input,
+    return this.requestPayment(input.existingPayment).pipe(
+      switchMap((payment) => {
+        const snapshot: VietQrPaymentSnapshot = { payment };
+        this.setSnapshot(snapshot);
+        this.startPolling(payment.orderId);
+
+        return this.snapshotForOrder(payment).pipe(startWith(snapshot));
+      }),
+    );
+  }
+
+  private requestPayment(
+    existingPayment: ExistingPaymentContext,
+  ): Observable<VietQrPaymentSnapshot['payment']> {
+    return this.paymentService
+      .requestPayment({
+        orderId: existingPayment.orderId,
+        invoiceId: existingPayment.invoiceId,
         paymentMethod: 'VIETQR',
+        amount: existingPayment.totalAmount,
+        customerEmail: existingPayment.customerEmail,
       })
       .pipe(
-        tap((payment) => {
-          const snapshot: VietQrPaymentSnapshot = { payment };
-          this.setSnapshot(snapshot);
-          this.startPolling(payment.orderId);
-        }),
-        switchMap((payment) => this.snapshotForOrder(payment)),
+        map((paymentResult) =>
+          mapPaymentResult(existingPayment, paymentResult),
+        ),
       );
   }
 
@@ -85,20 +103,19 @@ export class VietQrPaymentFlowService
       throw new Error('VietQR payment has not been created yet.');
     }
 
-    return this.paymentStatusApi.getLatestByOrderId(snapshot.payment.orderId).pipe(
-      tap((latestTransaction) => {
-        this.setSnapshot({
-          ...snapshot,
-          latestTransaction,
-        });
-      }),
-      switchMap((latestTransaction) =>
-        this.requestSandboxCallback({
-          ...snapshot,
-          latestTransaction,
+    return this.paymentStatusApi
+      .getLatestByOrderId(snapshot.payment.orderId, 'VIETQR')
+      .pipe(
+        tap((latestTransaction) => {
+          this.setLatestTransaction(snapshot, latestTransaction);
         }),
-      ),
-    );
+        switchMap((latestTransaction) =>
+          this.requestSandboxCallback({
+            ...snapshot,
+            latestTransaction,
+          }),
+        ),
+      );
   }
 
   stop(): void {
@@ -120,12 +137,12 @@ export class VietQrPaymentFlowService
   private snapshotForOrder(
     payment: VietQrPaymentSnapshot['payment'],
   ): Observable<VietQrPaymentSnapshot> {
-    return this.paymentStatusApi.getLatestByOrderId(payment.orderId).pipe(
+    return this.paymentStatusApi.getLatestByOrderId(payment.orderId, 'VIETQR').pipe(
       tap((latestTransaction) => {
         this.setSnapshot({ payment, latestTransaction });
       }),
       map((latestTransaction) => ({ payment, latestTransaction })),
-      catchError(() => [{ payment }]),
+      catchError(() => of({ payment })),
     );
   }
 
@@ -133,17 +150,16 @@ export class VietQrPaymentFlowService
     this.pollingSubscription = timer(POLLING_INTERVAL_MS, POLLING_INTERVAL_MS)
       .pipe(
         takeUntil(this.stop$),
-        switchMap(() => this.paymentStatusApi.getLatestByOrderId(orderId)),
+        switchMap(() =>
+          this.paymentStatusApi.getLatestByOrderId(orderId, 'VIETQR'),
+        ),
       )
       .subscribe({
         next: (latestTransaction) => {
           const current = this.latestSnapshot$.value;
           if (!current) return;
 
-          this.setSnapshot({
-            ...current,
-            latestTransaction,
-          });
+          this.setLatestTransaction(current, latestTransaction);
 
           if (this.isTerminalStatus(latestTransaction.status)) {
             this.stop();
@@ -171,12 +187,11 @@ export class VietQrPaymentFlowService
       })
       .pipe(
         takeUntil(this.stop$),
-        switchMap(() => this.paymentStatusApi.getLatestByOrderId(orderId)),
+        switchMap(() =>
+          this.paymentStatusApi.getLatestByOrderId(orderId, 'VIETQR'),
+        ),
         tap((transaction) => {
-          this.setSnapshot({
-            payment: snapshot.payment,
-            latestTransaction: transaction,
-          });
+          this.setLatestTransaction(snapshot, transaction);
         }),
         map((transaction) => ({
           payment: snapshot.payment,
@@ -191,6 +206,16 @@ export class VietQrPaymentFlowService
       status === 'FAILED' ||
       status === 'REFUND_REQUIRED'
     );
+  }
+
+  private setLatestTransaction(
+    snapshot: VietQrPaymentSnapshot,
+    latestTransaction: VietQrPaymentSnapshot['latestTransaction'],
+  ): void {
+    this.setSnapshot({
+      ...snapshot,
+      latestTransaction,
+    });
   }
 
   private setSnapshot(snapshot: VietQrPaymentSnapshot): void {

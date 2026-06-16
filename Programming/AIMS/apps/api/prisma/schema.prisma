@@ -224,6 +224,7 @@ model PaymentTransaction {
   @@index([invoiceId])
   @@index([orderId, invoiceId])
   @@index([status])
+  @@unique([orderId, paymentMethod])
   @@map("payment_transactions")
 }
 
