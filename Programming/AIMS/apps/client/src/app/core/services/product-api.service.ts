@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -11,6 +11,8 @@ import {
   ProductDetail,
   ProductDimensions,
   ProductListItem,
+  ProductPage,
+  ProductQuery,
   ProductSpecificInfo,
   ProductType,
 } from '../../features/products/models/product.model';
@@ -23,6 +25,15 @@ type ProductListResponse =
       products?: unknown[];
       content?: unknown[];
     };
+
+type PaginatedProductsResponse = {
+  items?: unknown[];
+  totalCount?: unknown;
+  nextCursor?: unknown;
+  page?: unknown;
+  limit?: unknown;
+  totalPages?: unknown;
+};
 
 type ProductRecord = Record<string, unknown>;
 
@@ -49,6 +60,57 @@ export class ProductApiService {
     return this.http
       .get<ProductListResponse>(this.apiUrl)
       .pipe(map((response) => this.unwrapProducts(response)));
+  }
+
+  /**
+   * Fetches a single page of catalog products with server-side filtering,
+   * sorting and pagination. Only the requested page (`limit` items) is loaded;
+   * `totalCount` reflects the active filter so the UI can show the correct
+   * item count and total number of pages.
+   */
+  getProductsPaged(query: ProductQuery = {}): Observable<ProductPage> {
+    let params = new HttpParams();
+
+    (query.categories ?? []).forEach((category) => {
+      params = params.append('category', category);
+    });
+    if (query.search?.trim()) {
+      params = params.set('q', query.search.trim());
+    }
+    if (query.sort) {
+      params = params.set('sort', query.sort);
+    }
+    if (query.cursor) {
+      params = params.set('cursor', query.cursor);
+    }
+    if (query.page && query.page > 0) {
+      params = params.set('page', String(query.page));
+    }
+    if (query.limit && query.limit > 0) {
+      params = params.set('limit', String(query.limit));
+    }
+
+    return this.http
+      .get<PaginatedProductsResponse>(this.apiUrl, { params })
+      .pipe(map((response) => this.unwrapPage(response, query)));
+  }
+
+  private unwrapPage(
+    response: PaginatedProductsResponse,
+    query: ProductQuery,
+  ): ProductPage {
+    const items = this.unwrapProducts(response as ProductListResponse);
+    const limit =
+      this.toNumber(response.limit) || query.limit || items.length || 1;
+    const totalCount = this.toNumber(response.totalCount);
+    const page = this.toNumber(response.page) || query.page || 1;
+    const totalPages =
+      this.toNumber(response.totalPages) ||
+      (limit > 0 ? Math.max(1, Math.ceil(totalCount / limit)) : 1);
+    const nextCursor =
+      response.nextCursor == null ? null : this.toString(response.nextCursor);
+
+    return { items, totalCount, nextCursor, page, limit, totalPages };
   }
 
   getProductDetail(productId: string): Observable<ProductDetail> {

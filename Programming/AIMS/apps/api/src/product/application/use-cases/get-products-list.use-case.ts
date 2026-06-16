@@ -1,9 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   PRODUCT_QUERY_REPOSITORY,
+  ProductQueryParams,
   ProductQueryRepository,
 } from '../../domain/repositories/product-query.repository.interface';
-import { ProductListItemDto } from '../dto/product-list-item.dto';
+import { PaginatedProductsDto } from '../dto/paginated-products.dto';
 import { ProductDetailMapper } from '../mappers/product-detail.mapper';
 
 /**
@@ -27,10 +28,25 @@ export class GetProductsListUseCase {
     private readonly productRepository: ProductQueryRepository,
   ) {}
 
-  async execute(): Promise<ProductListItemDto[]> {
-    const products = await this.productRepository.findProducts();
-    return products.map((product) =>
-      ProductDetailMapper.toListItemDto(product),
-    );
+  async execute(
+    params: ProductQueryParams = {},
+  ): Promise<PaginatedProductsDto> {
+    const { items, totalCount, nextCursor } =
+      await this.productRepository.findProducts(params);
+
+    const limit = params.limit && params.limit > 0 ? params.limit : totalCount;
+    const page = params.page && params.page > 0 ? params.page : 1;
+    const totalPages = limit > 0 ? Math.max(1, Math.ceil(totalCount / limit)) : 1;
+
+    return {
+      items: items.map((product) =>
+        ProductDetailMapper.toListItemDto(product),
+      ),
+      totalCount,
+      nextCursor,
+      page,
+      limit,
+      totalPages,
+    };
   }
 }

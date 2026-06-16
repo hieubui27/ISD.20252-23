@@ -4,13 +4,18 @@
     <button class="page-btn prev" [disabled]="currentPage === 1" (click)="onPrev()">
       <svg width="5" height="8" viewBox="0 0 5 8" fill="none"><path d="M4 1L1 4L4 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
     </button>
-    <button 
-      class="page-btn" 
-      *ngFor="let page of pages" 
-      [class.active]="page === currentPage"
-      (click)="onPage(page)">
-      {{ page }}
-    </button>
+    <ng-container *ngFor="let item of pages">
+      <button
+        *ngIf="isPage(item); else gap"
+        class="page-btn"
+        [class.active]="item === currentPage"
+        (click)="onPage(item)">
+        {{ item }}
+      </button>
+      <ng-template #gap>
+        <span class="page-ellipsis" aria-hidden="true">{{ ellipsis }}</span>
+      </ng-template>
+    </ng-container>
     <button class="page-btn next" [disabled]="currentPage === totalPages" (click)="onNext()">
       <svg width="5" height="8" viewBox="0 0 5 8" fill="none"><path d="M1 1L4 4L1 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
     </button>
