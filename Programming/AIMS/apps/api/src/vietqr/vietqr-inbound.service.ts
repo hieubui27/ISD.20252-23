@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
-import { ConfigService } from './config/vietqr-config.service';
+import { VietqrConfigService } from './config/vietqr-config.service';
 
 interface BasicAuthCredentials {
   username: string;
@@ -17,34 +17,10 @@ interface InboundAccessTokenPayload {
   exp?: number;
 }
 
-/**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
- *
- * Coupling reason:
- * - This service depends only on ConfigService and primitive Basic Auth/token data.
- * - It does not update payment transactions, orders, or outbound VietQR API state.
- *
- * Cohesion reason:
- * - All methods support the single inbound VietQR authentication responsibility: parse credentials, validate them, and issue a temporary token.
- */
 @Injectable()
-/**
- * SOLID review:
- * - SRP: Low risk. The service has one broad responsibility: VietQR inbound
- *   authentication. Inside that boundary it parses Basic Auth, validates merchant
- *   credentials, signs temporary tokens, parses tokens, and validates expiry.
- * - DIP: Mostly compliant through ConfigService. The remaining risk is that token
- *   format and crypto algorithm are hardcoded in this service.
- * - Improvement: Extract an InboundTokenSigner/Verifier abstraction so token
- *   creation and validation can change without modifying credential validation.
- */
 export class VietqrInboundService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: VietqrConfigService) {}
 
-  // API INBOUND: VietQR calls AIMS backend to test merchant connection.
-  // This is different from VIETQR_USERNAME/VIETQR_PASSWORD, which are
-  // outbound credentials VietQR gives AIMS for calling VietQR APIs.
   generateAccessToken(authorization?: string) {
     const credentials = this.parseBasicAuth(authorization);
     this.validateInboundCredentials(credentials.username, credentials.password);
@@ -153,15 +129,7 @@ export class VietqrInboundService {
   }
 
   private getRequiredEnv(key: string): string {
-    const value = this.configService.get(key);
-
-    if (!value) {
-      throw new InternalServerErrorException(
-        `Thiếu cấu hình môi trường ${key} cho VietQR inbound`,
-      );
-    }
-
-    return value;
+    return this.configService.getInboundRequiredEnv(key);
   }
 
   private parseAccessTokenPayload(payload: string): InboundAccessTokenPayload {

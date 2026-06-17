@@ -1,4 +1,4 @@
-const LOCAL_API_BASE_URL = 'http://localhost:3000/api';
+const LOCAL_API_BASE_URL = 'https://api.aims.io.vn/api';
 const RENDER_API_BASE_URL = 'https://api.aims.io.vn/api';
 
 export const AIMS_API_BASE_URL =

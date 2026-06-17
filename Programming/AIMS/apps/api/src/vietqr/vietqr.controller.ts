@@ -9,8 +9,9 @@ import {
 import { TransactionSyncDto } from './dto/transaction-sync.dto';
 import { VietqrTestCallbackDto } from './dto/vietqr-test-callback.dto';
 import { VietqrCallbackAuthGuard } from './guards/vietqr-callback-auth.guard';
+import { VietqrCallbackResponseMapper } from './mappers/vietqr-callback-response.mapper';
 import { VietqrCallbackService } from './vietqr-callback.service';
-import { VietqrService } from './vietqr.service';
+import { VietqrSandboxService } from './vietqr-sandbox.service';
 
 /**
  * Coupling: Data Coupling
@@ -37,8 +38,9 @@ import { VietqrService } from './vietqr.service';
  */
 export class VietqrController {
   constructor(
-    private readonly vietqrService: VietqrService,
     private readonly vietqrCallbackService: VietqrCallbackService,
+    private readonly responseMapper: VietqrCallbackResponseMapper,
+    private readonly sandboxService: VietqrSandboxService,
   ) {}
 
   @UseGuards(VietqrCallbackAuthGuard)
@@ -51,14 +53,14 @@ export class VietqrController {
           transactionSyncDto,
         );
 
-      return this.vietqrService.buildCallbackSuccessResponse(
+      return this.responseMapper.success(
         result.refTransactionId,
         result.duplicate
           ? 'Transaction already processed'
           : 'Transaction processed successfully',
       );
     } catch (error) {
-      return this.vietqrService.buildCallbackErrorResponse(
+      return this.responseMapper.error(
         error?.response?.error || error?.name || 'TRANSACTION_SYNC_FAILED',
         error?.message || 'Transaction sync failed',
       );
@@ -68,6 +70,6 @@ export class VietqrController {
   @HttpCode(HttpStatus.OK)
   @Post('payments/vietqr/test-callback')
   testCallback(@Body() vietqrTestCallbackDto: VietqrTestCallbackDto) {
-    return this.vietqrService.testCallback(vietqrTestCallbackDto);
+    return this.sandboxService.testCallback(vietqrTestCallbackDto);
   }
 }

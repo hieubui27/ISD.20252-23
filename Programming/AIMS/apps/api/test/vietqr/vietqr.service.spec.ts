@@ -6,15 +6,21 @@ import {
 } from '../../src/payment/constants/payment.constants';
 import { VietqrService } from '../../src/vietqr/vietqr.service';
 import { VietqrCallbackService } from '../../src/vietqr/vietqr-callback.service';
+import { VietqrQrRequestBuilder } from '../../src/vietqr/builders/vietqr-qr-request.builder';
+import { VietqrConfigService } from '../../src/vietqr/config/vietqr-config.service';
+import { VietqrCallbackResponseMapper } from '../../src/vietqr/mappers/vietqr-callback-response.mapper';
+import { VietqrTokenService } from '../../src/vietqr/vietqr-token.service';
 
 describe('VietqrService', () => {
   let service: VietqrService;
+  let tokenService: VietqrTokenService;
 
   const mockVietqrClient = {
     getAccessToken: jest.fn(),
     generateQRCode: jest.fn(),
     testCallback: jest.fn(),
   };
+  const configService = new VietqrConfigService();
 
   beforeEach(() => {
     process.env.VIETQR_USERNAME = 'valid-username';
@@ -24,8 +30,16 @@ describe('VietqrService', () => {
     process.env.VIETQR_USER_BANK_NAME = 'AIMS';
     process.env.VIETQR_QR_TYPE = '0';
     process.env.VIETQR_TRANS_TYPE = 'C';
-    service = new VietqrService(mockVietqrClient);
     jest.clearAllMocks();
+    tokenService = new VietqrTokenService(
+      mockVietqrClient as any,
+      configService,
+    );
+    service = new VietqrService(
+      mockVietqrClient as any,
+      tokenService,
+      new VietqrQrRequestBuilder(configService),
+    );
   });
 
   describe('getAccessToken', () => {
@@ -272,10 +286,6 @@ describe('VietqrCallbackService', () => {
     },
   };
 
-  const mockVietqrService = {
-    mapCallbackToTransactionStatus: jest.fn(),
-  };
-
   const mockPaymentTransactionService = {
     markSuccessAndCancelOtherPending: jest.fn(),
   };
@@ -288,7 +298,8 @@ describe('VietqrCallbackService', () => {
     process.env.VIETQR_TRANS_TYPE = 'C';
     service = new VietqrCallbackService(
       mockPrisma as any,
-      mockVietqrService as any,
+      new VietqrConfigService(),
+      new VietqrCallbackResponseMapper(),
       mockPaymentTransactionService as any,
       mockPlaceOrderPaymentPort as any,
     );
@@ -304,12 +315,6 @@ describe('VietqrCallbackService', () => {
       ...transaction,
       status: PaymentStatus.SUCCESS,
       transactionId: 'TXN001',
-    });
-    mockVietqrService.mapCallbackToTransactionStatus.mockReturnValue({
-      transactionId: 'TXN001',
-      status: PaymentStatus.SUCCESS,
-      message: 'THANH TOAN AIMS',
-      paidAmount: 250000,
     });
 
     const result = await service.confirmTransactionFromCallback({
@@ -343,5 +348,11 @@ describe('VietqrCallbackService', () => {
       }),
     );
     expect(result.duplicate).toBe(false);
+    expect(result.status).toEqual({
+      transactionId: 'TXN001',
+      status: PaymentStatus.SUCCESS,
+      message: 'THANH TOAN AIMS',
+      paidAmount: 250000,
+    });
   });
 });

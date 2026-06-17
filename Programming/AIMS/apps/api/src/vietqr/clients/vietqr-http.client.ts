@@ -7,6 +7,7 @@ import {
   VietqrGenerateQRCodeResponse,
   VietqrTestCallbackRequest,
 } from './vietqr.client';
+import { VietqrConfigService } from '../config/vietqr-config.service';
 
 /**
  * Coupling: Data Coupling
@@ -21,9 +22,7 @@ import {
  */
 @Injectable()
 export class VietqrHttpClient implements VietqrClient {
-  // TODO(VIETQR_API_INTEGRATION): Replace default sandbox base URL with the merchant environment configured by VietQR.
-  private readonly baseUrl =
-    process.env.VIETQR_BASE_URL || 'https://dev.vietqr.org';
+  constructor(private readonly configService: VietqrConfigService) {}
 
   async getAccessToken(
     username: string,
@@ -33,7 +32,7 @@ export class VietqrHttpClient implements VietqrClient {
       'base64',
     );
     const response = await axios.post(
-      `${this.baseUrl}/vqr/api/token_generate`,
+      `${this.configService.getBaseUrl()}/vqr/api/token_generate`,
       {},
       {
         headers: {
@@ -51,7 +50,7 @@ export class VietqrHttpClient implements VietqrClient {
     request: VietqrGenerateQRCodeRequest,
   ): Promise<VietqrGenerateQRCodeResponse> {
     const response = await axios.post(
-      `${this.baseUrl}/vqr/api/qr/generate-customer`,
+      `${this.configService.getBaseUrl()}/vqr/api/qr/generate-customer`,
       request,
       {
         headers: {
@@ -69,7 +68,7 @@ export class VietqrHttpClient implements VietqrClient {
     request: VietqrTestCallbackRequest,
   ): Promise<{ status?: string; message?: string }> {
     const response = await axios.post(
-      `${this.baseUrl}/vqr/bank/api/test/transaction-callback`,
+      `${this.configService.getBaseUrl()}/vqr/bank/api/test/transaction-callback`,
       request,
       {
         headers: {

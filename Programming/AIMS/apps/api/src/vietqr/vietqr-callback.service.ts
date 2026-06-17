@@ -15,14 +15,16 @@ import {
 } from '../payment/ports/place-order-payment.port';
 import { PaymentTransactionService } from '../payment/payment-transaction.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { VietqrConfigService } from './config/vietqr-config.service';
 import { TransactionSyncDto } from './dto/transaction-sync.dto';
-import { VietqrService } from './vietqr.service';
+import { VietqrCallbackResponseMapper } from './mappers/vietqr-callback-response.mapper';
 
 @Injectable()
 export class VietqrCallbackService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly vietqrService: VietqrService,
+    private readonly configService: VietqrConfigService,
+    private readonly responseMapper: VietqrCallbackResponseMapper,
     private readonly paymentTransactionService: PaymentTransactionService,
     @Inject(PLACE_ORDER_PAYMENT_PORT)
     private readonly placeOrderPaymentPort: PlaceOrderPaymentPort,
@@ -35,7 +37,7 @@ export class VietqrCallbackService {
     refTransactionId: string;
     duplicate: boolean;
   }> {
-    if (callback.transType !== (process.env.VIETQR_TRANS_TYPE || 'C')) {
+    if (callback.transType !== this.configService.getTransType()) {
       throw new BadRequestException('Invalid VietQR transaction type');
     }
 
@@ -97,7 +99,7 @@ export class VietqrCallbackService {
     });
 
     return {
-      status: this.vietqrService.mapCallbackToTransactionStatus(callback),
+      status: this.responseMapper.toTransactionStatus(callback),
       refTransactionId: updated.id,
       duplicate: false,
     };
