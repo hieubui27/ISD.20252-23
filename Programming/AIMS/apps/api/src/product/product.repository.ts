@@ -69,20 +69,27 @@ export class ProductRepository {
       const product = await tx.product.update({
         where: { id: BigInt(id) },
         data: {
+          barcode: dto.barcode,
+          category: dto.category,
           title: dto.title,
+          description: dto.description,
+          dimensions: dto.dimensions,
+          weight: dto.weight,
+          originalValue: dto.originalValue,
           currentPrice: dto.currentPrice,
           quantity: dto.quantity,
           status: dto.status,
+          imageUrl: dto.imageUrl,
+          videoUrl: dto.videoUrl,
         },
       });
 
-      if (dto.type) {
-        const handler = this.handlers.find((h) =>
-          h.supports(dto.type as ProductType),
-        );
-        if (handler) {
-          await handler.update(tx, BigInt(id), dto);
-        }
+      const rawType = dto.type || product.category || '';
+      const productType = String(rawType).toUpperCase() as ProductType;
+
+      const handler = this.handlers.find((h) => h.supports(productType));
+      if (handler) {
+        await handler.update(tx, BigInt(id), dto);
       }
 
       return product;

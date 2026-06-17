@@ -34,6 +34,30 @@ export class CdHandler implements IProductHandler<CreateCdDto, any> {
   }
 
   async update(tx: any, productId: bigint, data: any): Promise<void> {
-    // Update logic for CD if needed
+    const discData: any = {};
+    if (data.releaseDate !== undefined)
+      discData.releaseDate = new Date(data.releaseDate);
+    if (data.genre !== undefined) discData.genre = data.genre;
+    if (data.language !== undefined) discData.language = data.language;
+    if (data.totalLength !== undefined) discData.totalLength = data.totalLength;
+
+    if (Object.keys(discData).length > 0) {
+      await tx.discProduct.update({
+        where: { id: productId },
+        data: discData,
+      });
+    }
+
+    const cdData: any = {};
+    if (data.artist !== undefined) cdData.artist = data.artist;
+    if (data.recordLabel !== undefined) cdData.recordLabel = data.recordLabel;
+    if (data.track !== undefined) cdData.track = data.track;
+
+    if (Object.keys(cdData).length > 0) {
+      await tx.cD.update({
+        where: { id: productId },
+        data: cdData,
+      });
+    }
   }
 }

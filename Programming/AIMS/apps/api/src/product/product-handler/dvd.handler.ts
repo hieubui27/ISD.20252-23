@@ -35,6 +35,31 @@ export class DvdHandler implements IProductHandler<CreateDvdDto, any> {
   }
 
   async update(tx: any, productId: bigint, data: any): Promise<void> {
-    // Update logic for DVD if needed
+    const discData: any = {};
+    if (data.releaseDate !== undefined)
+      discData.releaseDate = new Date(data.releaseDate);
+    if (data.genre !== undefined) discData.genre = data.genre;
+    if (data.language !== undefined) discData.language = data.language;
+    if (data.totalLength !== undefined) discData.totalLength = data.totalLength;
+
+    if (Object.keys(discData).length > 0) {
+      await tx.discProduct.update({
+        where: { id: productId },
+        data: discData,
+      });
+    }
+
+    const dvdData: any = {};
+    if (data.discType !== undefined) dvdData.discType = data.discType;
+    if (data.director !== undefined) dvdData.director = data.director;
+    if (data.studio !== undefined) dvdData.studio = data.studio;
+    if (data.subtitles !== undefined) dvdData.subtitles = data.subtitles;
+
+    if (Object.keys(dvdData).length > 0) {
+      await tx.dVD.update({
+        where: { id: productId },
+        data: dvdData,
+      });
+    }
   }
 }
