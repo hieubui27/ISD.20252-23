@@ -7,7 +7,7 @@ import { PlaceOrderPaymentResultDto } from './dto/place-order-payment-result.dto
 import { PlaceOrderRequestDto } from './dto/place-order-request.dto';
 import { StockCheckResultDto } from './dto/stock-check-result.dto';
 import { SubmitDeliveryInfoDto } from './dto/submit-delivery-info.dto';
-import { PlaceOrderBeService } from './application/place-order.service';
+import { PlaceOrderBeService } from './place-order.service';
 
 @Controller('place-order')
 export class PlaceOrderController {

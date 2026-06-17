@@ -5,6 +5,7 @@ import {
   PaymentStatus,
 } from '../../src/payment/constants/payment.constants';
 import { VietqrService } from '../../src/vietqr/vietqr.service';
+import { VietqrCallbackService } from '../../src/vietqr/vietqr-callback.service';
 
 describe('VietqrService', () => {
   let service: VietqrService;
@@ -134,14 +135,10 @@ describe('PaymentService', () => {
     paymentTransaction: {
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       findFirst: jest.fn(),
       findUnique: jest.fn(),
     },
-  };
-
-  const mockVietqrService = {
-    generateQrCode: jest.fn(),
-    mapCallbackToTransactionStatus: jest.fn(),
   };
 
   const mockPaypalService = {
@@ -157,6 +154,7 @@ describe('PaymentService', () => {
     updateGatewayOrderId: jest.fn(),
     updateProviderData: jest.fn(),
     markSuccessAndCancelOtherPending: jest.fn(),
+    cancelOtherPendingByOrder: jest.fn(),
   };
 
   const mockPlaceOrderPaymentPort = {
@@ -168,13 +166,16 @@ describe('PaymentService', () => {
     process.env.VIETQR_TRANS_TYPE = 'C';
     service = new PaymentService(
       mockPrisma as any,
-      mockVietqrService as any,
       mockPaypalService as any,
       mockPaymentTransactionService as any,
       mockPlaceOrderPaymentPort,
     );
     jest.clearAllMocks();
     mockPaypalService.getGateway.mockReturnValue(mockPaymentGateway);
+    mockPrisma.paymentTransaction.updateMany.mockResolvedValue({ count: 0 });
+    mockPaymentTransactionService.cancelOtherPendingByOrder.mockResolvedValue({
+      count: 0,
+    });
   });
 
   it('should request VietQR payment and persist QR data', async () => {
@@ -241,6 +242,58 @@ describe('PaymentService', () => {
       mockPaymentTransactionService.getOrCreatePendingTransaction,
     ).not.toHaveBeenCalled();
   });
+});
+
+describe('VietqrCallbackService', () => {
+  let service: VietqrCallbackService;
+
+  const transaction = {
+    id: 'payment-transaction-id',
+    orderId: 'ORDER_DEMO_001',
+    invoiceId: BigInt(20),
+    paymentMethod: PaymentMethod.VIETQR,
+    provider: PaymentMethod.VIETQR,
+    amount: 250000,
+    status: PaymentStatus.PENDING,
+    gatewayOrderId: 'PAYMENTTRANS',
+    qrCode: null,
+    qrContent: 'THANH TOAN AIMS',
+    qrDataUrl: null,
+    transactionId: null,
+    transactionContent: null,
+    transactionDateTime: null,
+    gatewayReferenceNumber: null,
+  };
+
+  const mockPrisma = {
+    paymentTransaction: {
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+    },
+  };
+
+  const mockVietqrService = {
+    mapCallbackToTransactionStatus: jest.fn(),
+  };
+
+  const mockPaymentTransactionService = {
+    markSuccessAndCancelOtherPending: jest.fn(),
+  };
+
+  const mockPlaceOrderPaymentPort = {
+    markPaidAndPendingProcessing: jest.fn(),
+  };
+
+  beforeEach(() => {
+    process.env.VIETQR_TRANS_TYPE = 'C';
+    service = new VietqrCallbackService(
+      mockPrisma as any,
+      mockVietqrService as any,
+      mockPaymentTransactionService as any,
+      mockPlaceOrderPaymentPort as any,
+    );
+    jest.clearAllMocks();
+  });
 
   it('should accept valid VietQR callback and mark order paid', async () => {
     mockPrisma.paymentTransaction.findUnique.mockResolvedValue(null);
@@ -259,7 +312,7 @@ describe('PaymentService', () => {
       paidAmount: 250000,
     });
 
-    const result = await service.confirmTransactionFromVietqrCallback({
+    const result = await service.confirmTransactionFromCallback({
       bankaccount: '123456789',
       amount: 250000,
       transType: 'C',

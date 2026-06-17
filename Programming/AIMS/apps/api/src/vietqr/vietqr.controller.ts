@@ -6,10 +6,10 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { PaymentService } from '../payment/payment.service';
 import { TransactionSyncDto } from './dto/transaction-sync.dto';
 import { VietqrTestCallbackDto } from './dto/vietqr-test-callback.dto';
 import { VietqrCallbackAuthGuard } from './guards/vietqr-callback-auth.guard';
+import { VietqrCallbackService } from './vietqr-callback.service';
 import { VietqrService } from './vietqr.service';
 
 /**
@@ -17,7 +17,7 @@ import { VietqrService } from './vietqr.service';
  * Cohesion: Functional Cohesion
  *
  * Coupling reason:
- * - This controller depends only on VietqrService, PaymentService, VietQR DTOs, and the callback token guard.
+ * - This controller depends only on VietqrService, VietqrCallbackService, VietQR DTOs, and the callback token guard.
  * - It does not query the database or call VietQR HTTP APIs directly.
  *
  * Cohesion reason:
@@ -38,7 +38,7 @@ import { VietqrService } from './vietqr.service';
 export class VietqrController {
   constructor(
     private readonly vietqrService: VietqrService,
-    private readonly paymentService: PaymentService,
+    private readonly vietqrCallbackService: VietqrCallbackService,
   ) {}
 
   @UseGuards(VietqrCallbackAuthGuard)
@@ -47,7 +47,7 @@ export class VietqrController {
   async syncTransaction(@Body() transactionSyncDto: TransactionSyncDto) {
     try {
       const result =
-        await this.paymentService.confirmTransactionFromVietqrCallback(
+        await this.vietqrCallbackService.confirmTransactionFromCallback(
           transactionSyncDto,
         );
 

@@ -29,6 +29,6 @@ export class DeliveryInfoDto {
   shippingInstructions?: string;
 
   @IsEmail()
-  @IsNotEmpty()
-  email: string;
+  @IsOptional()
+  email?: string;
 }

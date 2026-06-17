@@ -6,8 +6,7 @@ import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
 import { PaymentTransactionService } from './payment-transaction.service';
 import { PLACE_ORDER_PAYMENT_PORT } from './ports/place-order-payment.port';
-import { PlaceOrderPaymentAdapter } from '../place-order/infrastructure/adapter/place-order-payment.adapter';
-import { PlaceOrderDomainModule } from '../place-order/place-order-domain.module';
+import { PlaceOrderPaymentAdapter } from '../place-order/adapters/place-order-payment.adapter';
 import { VietqrController } from '../vietqr/vietqr.controller';
 import { VietqrService } from '../vietqr/vietqr.service';
 import { VIETQR_CLIENT } from '../vietqr/clients/vietqr.client';
@@ -15,6 +14,7 @@ import { VietqrHttpClient } from '../vietqr/clients/vietqr-http.client';
 import { VietqrCallbackAuthGuard } from '../vietqr/guards/vietqr-callback-auth.guard';
 import { VietqrInboundController } from '../vietqr/vietqr-inbound.controller';
 import { VietqrInboundService } from '../vietqr/vietqr-inbound.service';
+import { VietqrCallbackService } from '../vietqr/vietqr-callback.service';
 import { ConfigService } from '../vietqr/config/vietqr-config.service';
 import { PAYMENT_GATEWAYS } from './ports/payment-gateway.port';
 import { PaypalGatewayAdapter } from './adapters/paypal-gateway.adapter';
@@ -44,12 +44,13 @@ import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
    *   narrow provider-facing service/port. PaymentModule should import VietqrModule
    *   and depend on exported abstractions.
    */
-  imports: [PaypalModule, PrismaModule, MailModule, PlaceOrderDomainModule],
+  imports: [PaypalModule, PrismaModule, MailModule],
   controllers: [PaymentController, VietqrController, VietqrInboundController],
   providers: [
     PaymentService,
     PaymentTransactionService,
     VietqrService,
+    VietqrCallbackService,
     VietqrInboundService,
     ConfigService,
     VietqrCallbackAuthGuard,

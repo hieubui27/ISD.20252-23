@@ -1,32 +1,24 @@
+jest.mock('../../src/mail/mail.service', () => ({
+  MailService: class MailService {},
+}));
+
 import { BadRequestException } from '@nestjs/common';
-import { DeliveryInfoValidator } from '../../src/place-order/domain/validators/delivery-info.validator';
-import { PlaceOrderBeService } from '../../src/place-order/application/place-order.service';
-import { OrderFactory } from '../../src/place-order/domain/factories/order.factory';
-import { InvoiceCalculator } from '../../src/place-order/domain/services/invoice-calculator.service';
-import { OrderValidationService } from '../../src/place-order/domain/services/order-validation.service';
-import { StockCheckerService } from '../../src/place-order/domain/services/stock-checker.service';
-import { WeightBasedShippingStrategy } from '../../src/place-order/infrastructure/adapter/weight-based-shipping.strategy';
+import { ShippingFeeService } from '../../src/shared/utils/shipping-fee.service';
+import { PlaceOrderBeService } from '../../src/place-order/place-order.service';
 import { InvalidDeliveryInfoException } from '../../src/place-order/exceptions/invalid-delivery-info.exception';
 import { InvalidQuantityException } from '../../src/place-order/exceptions/invalid-quantity.exception';
 import { PaymentNotSuccessfulException } from '../../src/place-order/exceptions/payment-not-successful.exception';
 
-/**
- * After the SOLID refactor the facade depends only on abstractions, so the test
- * mocks the repository + event publisher and uses the real (pure) domain
- * collaborators. This is itself evidence of the improved low coupling.
- */
 describe('PlaceOrderBeService', () => {
   let service: PlaceOrderBeService;
-  let repository: any;
-  let eventPublisher: any;
+  let prisma: any;
   let paymentService: any;
 
-  // ProductSnapshot read-model returned by the repository.
   const activeProduct = {
-    id: 1,
+    id: BigInt(1),
     title: 'Clean Code',
     currentPrice: 100000,
-    weightGrams: 1000,
+    weight: 1000,
     quantity: 5,
     status: 'AVAILABLE',
   };
@@ -40,45 +32,48 @@ describe('PlaceOrderBeService', () => {
   };
 
   beforeEach(() => {
-    repository = {
-      findProductsByIds: jest.fn(),
-      findPaymentTransactionByTransactionId: jest.fn(),
-      findOrderDetailByOrderId: jest.fn(),
-      createPendingPaymentOrder: jest.fn(),
-      createConfirmedOrder: jest.fn().mockResolvedValue(undefined),
-      applyPaidTransition: jest.fn(),
+    prisma = {
+      product: {
+        findMany: jest.fn(),
+      },
+      order: {
+        findUnique: jest.fn(),
+      },
+      paymentTransaction: {
+        findUnique: jest.fn(),
+      },
+      $transaction: jest.fn(),
     };
-    eventPublisher = { publish: jest.fn().mockResolvedValue(undefined) };
-    paymentService = { requestPayment: jest.fn() };
-
-    const invoiceCalculator = new InvoiceCalculator(
-      new WeightBasedShippingStrategy(),
-    );
-
+    const mailService = {
+      sendMail: jest.fn().mockResolvedValue(undefined),
+    } as any;
+    paymentService = {
+      requestPayment: jest.fn(),
+    };
     service = new PlaceOrderBeService(
-      repository,
-      new OrderValidationService(new DeliveryInfoValidator()),
-      new StockCheckerService(),
-      invoiceCalculator,
-      new OrderFactory(),
-      eventPublisher,
+      prisma,
+      new ShippingFeeService(),
+      mailService,
       paymentService,
     );
   });
 
   describe('checkStock', () => {
     it('should return sufficient when all products have enough stock', async () => {
-      repository.findProductsByIds.mockResolvedValue([activeProduct]);
+      prisma.product.findMany.mockResolvedValue([activeProduct]);
 
       const result = await service.checkStock({
         items: [{ productId: 1, quantity: 2 }],
       });
 
-      expect(result).toEqual({ sufficient: true, insufficientItems: [] });
+      expect(result).toEqual({
+        sufficient: true,
+        insufficientItems: [],
+      });
     });
 
     it('should return insufficient item details when stock is not enough', async () => {
-      repository.findProductsByIds.mockResolvedValue([activeProduct]);
+      prisma.product.findMany.mockResolvedValue([activeProduct]);
 
       const result = await service.checkStock({
         items: [{ productId: 1, quantity: 8 }],
@@ -91,7 +86,7 @@ describe('PlaceOrderBeService', () => {
     });
 
     it('should treat deactivated products as insufficient', async () => {
-      repository.findProductsByIds.mockResolvedValue([
+      prisma.product.findMany.mockResolvedValue([
         { ...activeProduct, status: 'DEACTIVATED' },
       ]);
 
@@ -105,7 +100,7 @@ describe('PlaceOrderBeService', () => {
     });
 
     it('should treat missing products as insufficient', async () => {
-      repository.findProductsByIds.mockResolvedValue([]);
+      prisma.product.findMany.mockResolvedValue([]);
 
       const result = await service.checkStock({
         items: [{ productId: 99, quantity: 1 }],
@@ -146,7 +141,7 @@ describe('PlaceOrderBeService', () => {
     });
 
     it('should throw InvalidQuantityException when stock is insufficient', async () => {
-      repository.findProductsByIds.mockResolvedValue([
+      prisma.product.findMany.mockResolvedValue([
         { ...activeProduct, quantity: 0 },
       ]);
 
@@ -159,7 +154,7 @@ describe('PlaceOrderBeService', () => {
     });
 
     it('should build invoice preview from database price and gram weight', async () => {
-      repository.findProductsByIds.mockResolvedValue([activeProduct]);
+      prisma.product.findMany.mockResolvedValue([activeProduct]);
 
       const result = await service.processDeliveryInfo({
         items: [{ productId: 1, quantity: 2, price: 1, weight: 100 }],
@@ -184,12 +179,12 @@ describe('PlaceOrderBeService', () => {
     });
 
     it('should convert product gram weights to kilograms before calculating shipping', async () => {
-      repository.findProductsByIds.mockResolvedValue([
+      prisma.product.findMany.mockResolvedValue([
         {
           ...activeProduct,
           title: "Harry Potter and the Philosopher's Stone",
           currentPrice: 125000,
-          weightGrams: 250.5,
+          weight: 250.5,
         },
       ]);
 
@@ -207,12 +202,12 @@ describe('PlaceOrderBeService', () => {
     });
 
     it('should not charge oversized shipping when Thriller has 100 grams weight', async () => {
-      repository.findProductsByIds.mockResolvedValue([
+      prisma.product.findMany.mockResolvedValue([
         {
           ...activeProduct,
           title: 'Thriller',
           currentPrice: 159000,
-          weightGrams: 100,
+          weight: 100,
         },
       ]);
 
@@ -231,12 +226,26 @@ describe('PlaceOrderBeService', () => {
 
   describe('createPayment', () => {
     it('should create a pending order and request VietQR payment', async () => {
-      repository.findProductsByIds.mockResolvedValue([activeProduct]);
-      repository.createPendingPaymentOrder.mockResolvedValue({
-        orderId: 'PO-1',
-        invoiceId: '20',
-        totalAmount: 132000,
-      });
+      const tx = {
+        product: {
+          findMany: jest.fn().mockResolvedValue([activeProduct]),
+        },
+        order: {
+          create: jest.fn().mockResolvedValue({
+            id: BigInt(10),
+            orderId: 'PO-1',
+          }),
+        },
+        orderProduct: {
+          createMany: jest.fn().mockResolvedValue({ count: 1 }),
+        },
+        invoice: {
+          create: jest.fn().mockResolvedValue({ id: BigInt(20) }),
+        },
+      };
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+      );
       paymentService.requestPayment.mockResolvedValue({
         status: 'PENDING',
         paymentMethod: 'VIETQR',
@@ -252,9 +261,11 @@ describe('PlaceOrderBeService', () => {
         paymentMethod: 'VIETQR' as any,
       });
 
-      expect(repository.createPendingPaymentOrder).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'PENDING_PAYMENT' }),
-      );
+      expect(tx.order.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          status: 'PENDING_PAYMENT',
+        }),
+      });
       expect(paymentService.requestPayment).toHaveBeenCalledWith({
         orderId: 'PO-1',
         invoiceId: '20',
@@ -296,11 +307,18 @@ describe('PlaceOrderBeService', () => {
       ).rejects.toThrow(PaymentNotSuccessfulException);
     });
 
-    it('should throw InvalidQuantityException when stock is insufficient', async () => {
-      repository.findPaymentTransactionByTransactionId.mockResolvedValue(null);
-      repository.findProductsByIds.mockResolvedValue([
-        { ...activeProduct, quantity: 0 },
-      ]);
+    it('should throw InvalidQuantityException when stock is insufficient inside transaction', async () => {
+      prisma.paymentTransaction.findUnique.mockResolvedValue(null);
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: any) => Promise<unknown>) =>
+          callback({
+            product: {
+              findMany: jest
+                .fn()
+                .mockResolvedValue([{ ...activeProduct, quantity: 0 }]),
+            },
+          }),
+      );
 
       await expect(
         service.confirmOrder({
@@ -312,9 +330,36 @@ describe('PlaceOrderBeService', () => {
       ).rejects.toThrow(InvalidQuantityException);
     });
 
-    it('should persist a confirmed order through the repository and notify', async () => {
-      repository.findPaymentTransactionByTransactionId.mockResolvedValue(null);
-      repository.findProductsByIds.mockResolvedValue([activeProduct]);
+    it('should create order, order products, invoice, transaction, payment transaction, and decrement stock with tx client', async () => {
+      const tx = {
+        product: {
+          findMany: jest.fn().mockResolvedValue([activeProduct]),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          findUnique: jest.fn(),
+        },
+        order: {
+          create: jest.fn().mockResolvedValue({
+            id: BigInt(10),
+            orderId: 'PO-1',
+          }),
+        },
+        orderProduct: {
+          createMany: jest.fn().mockResolvedValue({ count: 1 }),
+        },
+        invoice: {
+          create: jest.fn().mockResolvedValue({ id: BigInt(20) }),
+        },
+        transaction: {
+          create: jest.fn().mockResolvedValue({}),
+        },
+        paymentTransaction: {
+          create: jest.fn().mockResolvedValue({}),
+        },
+      };
+      prisma.paymentTransaction.findUnique.mockResolvedValue(null);
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+      );
 
       const result = await service.confirmOrder({
         items: [{ productId: 1, quantity: 1 }],
@@ -325,27 +370,50 @@ describe('PlaceOrderBeService', () => {
         paymentMethod: 'VIETQR',
       });
 
-      expect(repository.createConfirmedOrder).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'PENDING_PROCESSING' }),
-        expect.objectContaining({
-          transactionId: 'VQR123',
-          status: 'SUCCESS',
-          provider: 'PLACE_ORDER',
-        }),
-      );
-      expect(eventPublisher.publish).toHaveBeenCalledWith(
-        expect.objectContaining({ recipientEmail: 'customer@example.com' }),
-      );
+      expect(tx.order.create).toHaveBeenCalled();
+      expect(tx.orderProduct.createMany).toHaveBeenCalled();
+      expect(tx.invoice.create).toHaveBeenCalled();
+      expect(tx.transaction.create).toHaveBeenCalled();
+      expect(tx.paymentTransaction.create).toHaveBeenCalled();
+      expect(tx.product.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: BigInt(1),
+          quantity: { gte: 1 },
+        },
+        data: {
+          quantity: { decrement: 1 },
+        },
+      });
+      expect(prisma.product.findMany).not.toHaveBeenCalled();
       expect(result.transactionId).toBe('VQR123');
     });
 
-    it('should propagate InvalidQuantityException raised by the repository', async () => {
-      repository.findPaymentTransactionByTransactionId.mockResolvedValue(null);
-      repository.findProductsByIds.mockResolvedValue([activeProduct]);
-      repository.createConfirmedOrder.mockRejectedValue(
-        new InvalidQuantityException([
-          { productId: 1, requested: 1, available: 0 },
-        ]),
+    it('should throw InvalidQuantityException if atomic stock decrement fails', async () => {
+      const tx = {
+        product: {
+          findMany: jest.fn().mockResolvedValue([activeProduct]),
+          updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+          findUnique: jest.fn().mockResolvedValue({ quantity: 0 }),
+        },
+        order: {
+          create: jest.fn().mockResolvedValue({
+            id: BigInt(10),
+            orderId: 'PO-1',
+          }),
+        },
+        orderProduct: {
+          createMany: jest.fn().mockResolvedValue({ count: 1 }),
+        },
+        invoice: {
+          create: jest.fn().mockResolvedValue({ id: BigInt(20) }),
+        },
+        transaction: {
+          create: jest.fn().mockResolvedValue({}),
+        },
+      };
+      prisma.paymentTransaction.findUnique.mockResolvedValue(null);
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: any) => Promise<unknown>) => callback(tx),
       );
 
       await expect(
@@ -359,25 +427,18 @@ describe('PlaceOrderBeService', () => {
     });
 
     it('should return existing order success response for duplicate transaction id', async () => {
-      repository.findPaymentTransactionByTransactionId.mockResolvedValue({
+      prisma.paymentTransaction.findUnique.mockResolvedValue({
         orderId: 'PO-1',
         transactionId: 'VQR123',
         transactionContent: 'Paid',
         transactionDateTime: new Date('2026-05-26T00:00:00.000Z'),
-        createdAt: new Date('2026-05-26T00:00:00.000Z'),
       });
-      repository.findOrderDetailByOrderId.mockResolvedValue({
-        orderId: 'PO-1',
-        status: 'PENDING_PROCESSING',
+      prisma.order.findUnique.mockResolvedValue({
         customerName: 'Nguyen Van A',
         phoneNumber: '0981413168',
         province: 'Hanoi',
         streetAddress: '1 Dai Co Viet',
-        email: 'customer@example.com',
-        subtotal: 100000,
-        deliveryFee: 0,
-        invoice: { id: '20', vatSubtotal: 110000, totalAmount: 110000 },
-        lines: [],
+        invoice: { totalAmount: 110000 },
       });
 
       const result = await service.confirmOrder({
@@ -387,7 +448,7 @@ describe('PlaceOrderBeService', () => {
         paymentMethod: 'VIETQR',
       });
 
-      expect(repository.createConfirmedOrder).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
       expect(result.totalAmount).toBe(110000);
     });
   });
