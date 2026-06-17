@@ -15,10 +15,7 @@ import {
   takeUntil,
   tap,
 } from 'rxjs/operators';
-import {
-  PaymentService,
-  PaymentStatus,
-} from '../../services/payment.service';
+import { PaymentService, PaymentStatus } from '../../services/payment.service';
 import { PaymentStatusApiService } from '../services/payment-status-api.service';
 import { mapPaymentResult } from '../services/payment-result.utils';
 import { PaymentFlowStrategy } from './payment-flow.strategy';
@@ -27,6 +24,7 @@ import {
   VietQrPaymentInput,
   VietQrPaymentSnapshot,
 } from '../models/vietqr-payment.models';
+import { PAYMENT_METHOD, PAYMENT_STATUS } from '../constants/payment.constants';
 
 const POLLING_INTERVAL_MS = 10_000;
 const VIETQR_TRANS_TYPE_CREDIT = 'C';
@@ -48,8 +46,9 @@ export class VietQrPaymentFlowService
   private readonly paymentStatusApi = inject(PaymentStatusApiService);
   private readonly stop$ = new Subject<void>();
   private pollingSubscription?: Subscription;
-  private latestSnapshot$ =
-    new BehaviorSubject<VietQrPaymentSnapshot | null>(this.readStoredSnapshot());
+  private latestSnapshot$ = new BehaviorSubject<VietQrPaymentSnapshot | null>(
+    this.readStoredSnapshot(),
+  );
 
   get snapshot$(): Observable<VietQrPaymentSnapshot | null> {
     return this.latestSnapshot$.asObservable();
@@ -85,7 +84,7 @@ export class VietQrPaymentFlowService
       .requestPayment({
         orderId: existingPayment.orderId,
         invoiceId: existingPayment.invoiceId,
-        paymentMethod: 'VIETQR',
+        paymentMethod: PAYMENT_METHOD.VIETQR,
         amount: existingPayment.totalAmount,
         customerEmail: existingPayment.customerEmail,
       })
@@ -104,7 +103,7 @@ export class VietQrPaymentFlowService
     }
 
     return this.paymentStatusApi
-      .getLatestByOrderId(snapshot.payment.orderId, 'VIETQR')
+      .getLatestByOrderId(snapshot.payment.orderId, PAYMENT_METHOD.VIETQR)
       .pipe(
         tap((latestTransaction) => {
           this.setLatestTransaction(snapshot, latestTransaction);
@@ -137,13 +136,15 @@ export class VietQrPaymentFlowService
   private snapshotForOrder(
     payment: VietQrPaymentSnapshot['payment'],
   ): Observable<VietQrPaymentSnapshot> {
-    return this.paymentStatusApi.getLatestByOrderId(payment.orderId, 'VIETQR').pipe(
-      tap((latestTransaction) => {
-        this.setSnapshot({ payment, latestTransaction });
-      }),
-      map((latestTransaction) => ({ payment, latestTransaction })),
-      catchError(() => of({ payment })),
-    );
+    return this.paymentStatusApi
+      .getLatestByOrderId(payment.orderId, PAYMENT_METHOD.VIETQR)
+      .pipe(
+        tap((latestTransaction) => {
+          this.setSnapshot({ payment, latestTransaction });
+        }),
+        map((latestTransaction) => ({ payment, latestTransaction })),
+        catchError(() => of({ payment })),
+      );
   }
 
   private startPolling(orderId: string): void {
@@ -151,7 +152,10 @@ export class VietQrPaymentFlowService
       .pipe(
         takeUntil(this.stop$),
         switchMap(() =>
-          this.paymentStatusApi.getLatestByOrderId(orderId, 'VIETQR'),
+          this.paymentStatusApi.getLatestByOrderId(
+            orderId,
+            PAYMENT_METHOD.VIETQR,
+          ),
         ),
       )
       .subscribe({
@@ -188,7 +192,10 @@ export class VietQrPaymentFlowService
       .pipe(
         takeUntil(this.stop$),
         switchMap(() =>
-          this.paymentStatusApi.getLatestByOrderId(orderId, 'VIETQR'),
+          this.paymentStatusApi.getLatestByOrderId(
+            orderId,
+            PAYMENT_METHOD.VIETQR,
+          ),
         ),
         tap((transaction) => {
           this.setLatestTransaction(snapshot, transaction);
@@ -202,9 +209,9 @@ export class VietQrPaymentFlowService
 
   private isTerminalStatus(status: PaymentStatus): boolean {
     return (
-      status === 'SUCCESS' ||
-      status === 'FAILED' ||
-      status === 'REFUND_REQUIRED'
+      status === PAYMENT_STATUS.SUCCESS ||
+      status === PAYMENT_STATUS.FAILED ||
+      status === PAYMENT_STATUS.REFUND_REQUIRED
     );
   }
 

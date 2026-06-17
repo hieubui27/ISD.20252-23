@@ -9,6 +9,7 @@ import {
   PaypalPaymentSession,
   PendingPaymentSession,
 } from '../models/payment-session.models';
+import { PAYMENT_METHOD } from '../constants/payment.constants';
 import { PaymentSessionStorageService } from '../services/payment-session-storage.service';
 import { mapPaymentResult } from '../services/payment-result.utils';
 
@@ -24,7 +25,7 @@ export class PaypalPaymentFlowService {
       .requestPayment({
         orderId: pendingPaymentSession.orderId,
         invoiceId: pendingPaymentSession.invoiceId,
-        paymentMethod: 'PAYPAL',
+        paymentMethod: PAYMENT_METHOD.PAYPAL,
         amount: pendingPaymentSession.totalAmount,
         customerEmail: pendingPaymentSession.customerEmail,
       })
@@ -35,13 +36,11 @@ export class PaypalPaymentFlowService {
       );
   }
 
-  capture(
-    paymentSession: PaypalPaymentSession,
-  ): Observable<PaymentResultDto> {
+  capture(paymentSession: PaypalPaymentSession): Observable<PaymentResultDto> {
     return this.paymentService.confirmTransaction({
       orderId: paymentSession.orderId,
       invoiceId: paymentSession.invoiceId,
-      paymentMethod: 'PAYPAL',
+      paymentMethod: PAYMENT_METHOD.PAYPAL,
       transactionId: '',
       transactionContent: 'PayPal capture',
       transactionDateTime: new Date().toISOString(),
