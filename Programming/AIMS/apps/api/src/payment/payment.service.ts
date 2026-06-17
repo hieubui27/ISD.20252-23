@@ -225,10 +225,6 @@ export class PaymentService {
     await this.paymentTransactionService.markFailed(transactionId);
   }
 
-  async handleRejectedOrderRefund(orderId: string, rejectReason: string) {
-    return this.refundPaidOrder(orderId, rejectReason);
-  }
-
   async requestCustomerRefund(dto: CustomerRefundRequestDto) {
     const payload = this.verifyRefundToken(dto.token);
     const order = await this.prisma.order.findUnique({
