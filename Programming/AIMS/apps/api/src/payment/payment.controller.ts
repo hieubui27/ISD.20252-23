@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { ConfirmTransactionDto } from './dto/confirm-transaction.dto';
+import { CustomerRefundRequestDto } from './dto/customer-refund-request.dto';
 import { RequestPaymentDto } from './dto/request-payment.dto';
 import { PaymentMethod } from './constants/payment.constants';
 
@@ -27,6 +28,11 @@ export class PaymentController {
   @Post('confirm')
   confirmTransaction(@Body() confirmTransactionDto: ConfirmTransactionDto) {
     return this.paymentService.confirmTransaction(confirmTransactionDto);
+  }
+
+  @Post('refund/request')
+  requestCustomerRefund(@Body() dto: CustomerRefundRequestDto) {
+    return this.paymentService.requestCustomerRefund(dto);
   }
 
   @Get('transactions/order/:orderId')

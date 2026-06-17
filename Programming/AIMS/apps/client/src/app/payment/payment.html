@@ -139,7 +139,7 @@
                 <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm3.3 5.3l-4 4a.5.5 0 01-.7 0l-2-2a.5.5 0 11.7-.7L7 9.3l3.6-3.6a.5.5 0 01.7.7z" fill="#0a8754"/>
                 </svg>
-                <span>PayPal payment approved! We are finalizing your purchase.</span>
+                <span>PayPal payment approved. Confirming your payment...</span>
               </div>
               <div class="paypal-card__info paypal-card__info--confirmed" *ngIf="state.paypalConfirmed">
                 <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -197,7 +197,7 @@
             </ng-container>
             <ng-container *ngIf="state.selectedMethod === 'PAYPAL'">
               <ng-container *ngIf="state.paypalApproved">
-                {{ state.isLoading ? 'Confirming Payment...' : 'Confirm Payment' }}
+                Confirming Payment...
               </ng-container>
               <ng-container *ngIf="state.paypalConfirmed">
                 View Order
