@@ -199,7 +199,6 @@ export class PaymentService {
       transactionContent: updated.transactionContent,
       transactionDateTime: updated.transactionDateTime,
     });
-    // TODO(NOTIFICATION_INTEGRATION): Send invoice and transaction information to the customer email after success.
 
     return {
       success: true,
@@ -209,6 +208,81 @@ export class PaymentService {
       qrCode: updated.qrCode || '',
       transactionId: updated.id,
       message: 'Payment transaction confirmed',
+    };
+  }
+
+  async confirmTransactionFromVietqrCallback(
+    callback: TransactionSyncDto,
+  ): Promise<{
+    status: TransactionStatusDto;
+    refTransactionId: string;
+    duplicate: boolean;
+  }> {
+    if (callback.transType !== (process.env.VIETQR_TRANS_TYPE || 'C')) {
+      throw new BadRequestException('Invalid VietQR transaction type');
+    }
+
+    const duplicate = await this.findDuplicateCallback(callback);
+    if (duplicate) {
+      return {
+        status: {
+          transactionId: callback.transactionid,
+          status: duplicate.status,
+          message: 'Transaction already processed',
+          paidAmount: callback.amount,
+        },
+        refTransactionId: duplicate.id,
+        duplicate: true,
+      };
+    }
+
+    const transaction = await this.findVietqrTransaction(callback);
+    if (!transaction) {
+      throw new NotFoundException('Payment transaction not found');
+    }
+
+    if (transaction.amount !== callback.amount) {
+      throw new BadRequestException('Amount mismatch');
+    }
+
+    if (transaction.status === PaymentStatus.SUCCESS) {
+      return {
+        status: {
+          transactionId: callback.transactionid,
+          status: transaction.status,
+          message: 'Transaction already processed',
+          paidAmount: callback.amount,
+        },
+        refTransactionId: transaction.id,
+        duplicate: true,
+      };
+    }
+
+    const updated =
+      await this.paymentTransactionService.markSuccessAndCancelOtherPending({
+        transactionId: transaction.id,
+        data: {
+          transactionId: callback.transactionid,
+          transactionContent: callback.content,
+          transactionDateTime: new Date(callback.transactiontime),
+          gatewayReferenceNumber: callback.referencenumber,
+        },
+      });
+
+    await this.placeOrderPaymentPort.markPaidAndPendingProcessing({
+      orderId: updated.orderId,
+      invoiceId: updated.invoiceId.toString(),
+      paymentMethod: updated.paymentMethod,
+      amount: updated.amount,
+      transactionId: updated.transactionId || callback.transactionid,
+      transactionContent: updated.transactionContent,
+      transactionDateTime: updated.transactionDateTime,
+    });
+
+    return {
+      status: this.vietqrService.mapCallbackToTransactionStatus(callback),
+      refTransactionId: updated.id,
+      duplicate: false,
     };
   }
 
