@@ -2,9 +2,11 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PaypalService } from '../../paypal/paypal.service';
 import { PaymentMethod } from '../constants/payment.constants';
 import {
-  PaymentGateway,
+  PaymentConfirmationGateway,
+  PaymentCreationGateway,
   PaymentGatewayContext,
   PaymentGatewayResult,
+  PaymentRefundGateway,
 } from '../ports/payment-gateway.port';
 import { convertMoneyToUSD } from '../helpers/payment-transaction-status.helper';
 
@@ -26,7 +28,12 @@ interface PaypalApprovalLink {
  * - All methods adapt PayPal-specific provider operations to the unified gateway contract.
  */
 @Injectable()
-export class PaypalGatewayAdapter implements PaymentGateway {
+export class PaypalGatewayAdapter
+  implements
+    PaymentCreationGateway,
+    PaymentConfirmationGateway,
+    PaymentRefundGateway
+{
   constructor(private readonly paypalService: PaypalService) {}
 
   getMethod(): PaymentMethod {
@@ -54,6 +61,7 @@ export class PaypalGatewayAdapter implements PaymentGateway {
       paymentUrl: approveLink,
       qrCode: '',
       providerData: { paypalOrderId: order.id, links: order.links },
+      transactionUpdate: { gatewayOrderId: order.id },
     };
   }
 
@@ -77,10 +85,7 @@ export class PaypalGatewayAdapter implements PaymentGateway {
     };
   }
 
-  async refundPayment(
-    transactionRef: string,
-    _amount: number,
-  ): Promise<PaymentGatewayResult> {
+  async refundPayment(transactionRef: string): Promise<PaymentGatewayResult> {
     const refundResult = await this.paypalService.refundPayment(transactionRef);
     return {
       paymentUrl: '',

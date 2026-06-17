@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,11 +8,7 @@ import {
   PaymentStatus,
 } from '../payment/constants/payment.constants';
 import { TransactionStatusDto } from '../payment/dto/transaction-status.dto';
-import {
-  PLACE_ORDER_PAYMENT_PORT,
-  PlaceOrderPaymentPort,
-} from '../payment/ports/place-order-payment.port';
-import { PaymentTransactionService } from '../payment/payment-transaction.service';
+import { PaymentCompletionService } from '../payment/payment-completion.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { VietqrConfigService } from './config/vietqr-config.service';
 import { TransactionSyncDto } from './dto/transaction-sync.dto';
@@ -25,9 +20,7 @@ export class VietqrCallbackService {
     private readonly prisma: PrismaService,
     private readonly configService: VietqrConfigService,
     private readonly responseMapper: VietqrCallbackResponseMapper,
-    private readonly paymentTransactionService: PaymentTransactionService,
-    @Inject(PLACE_ORDER_PAYMENT_PORT)
-    private readonly placeOrderPaymentPort: PlaceOrderPaymentPort,
+    private readonly paymentCompletionService: PaymentCompletionService,
   ) {}
 
   async confirmTransactionFromCallback(
@@ -77,8 +70,8 @@ export class VietqrCallbackService {
       };
     }
 
-    const updated =
-      await this.paymentTransactionService.markSuccessAndCancelOtherPending({
+    const updated = await this.paymentCompletionService.completeSuccessfulPayment(
+      {
         transactionId: transaction.id,
         data: {
           transactionId: callback.transactionid,
@@ -86,17 +79,9 @@ export class VietqrCallbackService {
           transactionDateTime: new Date(callback.transactiontime),
           gatewayReferenceNumber: callback.referencenumber,
         },
-      });
-
-    await this.placeOrderPaymentPort.markPaidAndPendingProcessing({
-      orderId: updated.orderId,
-      invoiceId: updated.invoiceId.toString(),
-      paymentMethod: updated.paymentMethod,
-      amount: updated.amount,
-      transactionId: updated.transactionId || callback.transactionid,
-      transactionContent: updated.transactionContent,
-      transactionDateTime: updated.transactionDateTime,
-    });
+        fallbackProviderTransactionId: callback.transactionid,
+      },
+    );
 
     return {
       status: this.responseMapper.toTransactionStatus(callback),

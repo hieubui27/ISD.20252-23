@@ -17,9 +17,12 @@ import {
   PlaceOrderPaymentPort,
 } from './ports/place-order-payment.port';
 import { ensureCanMarkRefundRequired } from './helpers/payment-transaction-status.helper';
-import { buildPaymentGatewayOrderId } from './helpers/payment-reference.helper';
 import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
 import { PaymentTransactionService } from './payment-transaction.service';
+import { PaymentCompletionService } from './payment-completion.service';
+import { PaymentGatewayTransactionRefResolver } from './payment-gateway-transaction-ref.resolver';
+import { PaypalStaleTransactionCleanupService } from './paypal-stale-transaction-cleanup.service';
+import { PaymentGatewayOrderIdService } from './payment-gateway-order-id.service';
 
 /**
  * Coupling: Data Coupling
@@ -39,15 +42,19 @@ export class PaymentService {
     private readonly prisma: PrismaService,
     private readonly gatewayFactory: PaymentGatewayFactory,
     private readonly paymentTransactionService: PaymentTransactionService,
+    private readonly paymentCompletionService: PaymentCompletionService,
+    private readonly transactionRefResolver: PaymentGatewayTransactionRefResolver,
+    private readonly paypalStaleTransactionCleanup: PaypalStaleTransactionCleanupService,
+    private readonly gatewayOrderIdService: PaymentGatewayOrderIdService,
     @Inject(PLACE_ORDER_PAYMENT_PORT)
     private readonly placeOrderPaymentPort: PlaceOrderPaymentPort,
   ) {}
 
   async requestPayment(dto: RequestPaymentDto): Promise<PaymentResultDto> {
-    await this.expireStalePaypalTransactions();
+    await this.paypalStaleTransactionCleanup.expireStaleTransactions();
 
     const paymentMethod = dto.paymentMethod || PaymentMethod.VIETQR;
-    const gateway = this.gatewayFactory.getGateway(paymentMethod);
+    const gateway = this.gatewayFactory.getCreationGateway(paymentMethod);
     const invoiceId = this.parseInvoiceId(dto.invoiceId);
 
     const paymentContext = await this.placeOrderPaymentPort.getPaymentContext({
@@ -72,24 +79,18 @@ export class PaymentService {
       transaction.orderId,
       transaction.id,
     );
-    const localGatewayOrderId = buildPaymentGatewayOrderId(transaction.id);
-
-    if (paymentMethod === PaymentMethod.VIETQR) {
-      await this.paymentTransactionService.updateGatewayOrderId(
-        transaction.id,
-        localGatewayOrderId,
+    const gatewayOrderId =
+      await this.gatewayOrderIdService.ensureForCreatePayment(
+        paymentMethod,
+        transaction,
       );
-    }
 
     let gatewayResult: Awaited<ReturnType<typeof gateway.createPayment>>;
     try {
       gatewayResult = await gateway.createPayment({
-        gatewayOrderId:
-          paymentMethod === PaymentMethod.VIETQR
-            ? localGatewayOrderId
-            : transaction.gatewayOrderId || localGatewayOrderId,
+        gatewayOrderId,
         amount: dto.amount,
-        description: `AIMS ${localGatewayOrderId}`,
+        description: `AIMS ${gatewayOrderId}`,
         customerEmail: dto.customerEmail,
         invoiceId: dto.invoiceId,
       });
@@ -98,10 +99,7 @@ export class PaymentService {
       throw err;
     }
 
-    const providerUpdate = this.buildProviderDataUpdate(
-      paymentMethod,
-      gatewayResult,
-    );
+    const providerUpdate = gatewayResult.transactionUpdate || {};
 
     if (
       paymentMethod === PaymentMethod.PAYPAL &&
@@ -162,10 +160,16 @@ export class PaymentService {
       );
     }
 
-    const gateway = this.gatewayFactory.getGateway(
+    if (transaction.paymentMethod === PaymentMethod.VIETQR) {
+      throw new BadRequestException(
+        'VietQR payments are confirmed by callback only',
+      );
+    }
+
+    const gateway = this.gatewayFactory.getConfirmationGateway(
       transaction.paymentMethod as PaymentMethod,
     );
-    const transactionRef = this.resolveGatewayTransactionRef(transaction);
+    const transactionRef = this.transactionRefResolver.resolve(transaction);
     const confirmResult = await gateway.confirmPayment(transactionRef);
 
     const transactionId =
@@ -180,25 +184,17 @@ export class PaymentService {
       ? new Date(dto.transactionDateTime)
       : new Date();
 
-    const updated =
-      await this.paymentTransactionService.markSuccessAndCancelOtherPending({
+    const updated = await this.paymentCompletionService.completeSuccessfulPayment(
+      {
         transactionId: transaction.id,
         data: {
           transactionId,
           transactionContent,
           transactionDateTime,
         },
-      });
-
-    await this.placeOrderPaymentPort.markPaidAndPendingProcessing({
-      orderId: updated.orderId,
-      invoiceId: updated.invoiceId.toString(),
-      paymentMethod: updated.paymentMethod,
-      amount: updated.amount,
-      transactionId: updated.transactionId || transactionId,
-      transactionContent: updated.transactionContent,
-      transactionDateTime: updated.transactionDateTime,
-    });
+        fallbackProviderTransactionId: transactionId,
+      },
+    );
 
     return {
       success: true,
@@ -233,7 +229,7 @@ export class PaymentService {
     ensureCanMarkRefundRequired(transaction.status);
 
     try {
-      const gateway = this.gatewayFactory.getGateway(
+      const gateway = this.gatewayFactory.getRefundGateway(
         transaction.paymentMethod as PaymentMethod,
       );
       await gateway.refundPayment(
@@ -305,81 +301,4 @@ export class PaymentService {
     };
   }
 
-  private buildProviderDataUpdate(
-    paymentMethod: PaymentMethod,
-    gatewayResult: { qrCode: string; providerData?: Record<string, unknown> },
-  ) {
-    if (paymentMethod === PaymentMethod.VIETQR && gatewayResult.providerData) {
-      const data: Record<string, unknown> = {
-        qrCode: gatewayResult.qrCode,
-        qrContent: gatewayResult.providerData.qrContent || '',
-      };
-
-      if (gatewayResult.providerData.qrDataUrl) {
-        data.qrDataUrl = gatewayResult.providerData.qrDataUrl;
-      }
-      if (gatewayResult.providerData.qrLink) {
-        data.qrLink = gatewayResult.providerData.qrLink;
-      }
-      if (gatewayResult.providerData.expiredAt) {
-        data.expiredAt = gatewayResult.providerData.expiredAt;
-      }
-
-      return data;
-    }
-
-    if (paymentMethod === PaymentMethod.PAYPAL && gatewayResult.providerData) {
-      const data: Record<string, unknown> = {};
-      if (gatewayResult.providerData.paypalOrderId) {
-        data.gatewayOrderId = gatewayResult.providerData.paypalOrderId;
-      }
-      return data;
-    }
-
-    return {};
-  }
-
-  private resolveGatewayTransactionRef(transaction: {
-    id: string;
-    paymentMethod: string;
-    gatewayOrderId: string | null;
-  }): string {
-    if (transaction.paymentMethod !== PaymentMethod.PAYPAL) {
-      return transaction.gatewayOrderId || transaction.id;
-    }
-
-    if (!transaction.gatewayOrderId) {
-      throw new BadRequestException(
-        'PayPal order id is missing. Please create a new PayPal payment.',
-      );
-    }
-
-    const localGatewayOrderId = buildPaymentGatewayOrderId(transaction.id);
-    if (transaction.gatewayOrderId === localGatewayOrderId) {
-      throw new BadRequestException(
-        'PayPal order id is invalid. Please create a new PayPal payment.',
-      );
-    }
-
-    return transaction.gatewayOrderId;
-  }
-
-  private async expireStalePaypalTransactions(): Promise<number> {
-    const expiredBefore = new Date(Date.now() - 3 * 60 * 60 * 1000);
-
-    const result = await this.prisma.paymentTransaction.updateMany({
-      where: {
-        paymentMethod: PaymentMethod.PAYPAL,
-        status: PaymentStatus.PENDING,
-        createdAt: {
-          lt: expiredBefore,
-        },
-      },
-      data: {
-        status: PaymentStatus.FAILED,
-      },
-    });
-
-    return result.count;
-  }
 }
