@@ -42,6 +42,34 @@ export class NewspaperHandler implements IProductHandler<
   }
 
   async update(tx: any, productId: bigint, data: any): Promise<void> {
-    // Update logic for Newspaper if needed
+    const printableData: any = {};
+    if (data.publisher !== undefined) printableData.publisher = data.publisher;
+    if (data.language !== undefined) printableData.language = data.language;
+    if (data.publishDate !== undefined)
+      printableData.publishDate = new Date(data.publishDate);
+
+    if (Object.keys(printableData).length > 0) {
+      await tx.printableProduct.update({
+        where: { id: productId },
+        data: printableData,
+      });
+    }
+
+    const newspaperData: any = {};
+    if (data.editorInChief !== undefined)
+      newspaperData.editorInChief = data.editorInChief;
+    if (data.issueNumber !== undefined)
+      newspaperData.issueNumber = data.issueNumber;
+    if (data.publicationFreq !== undefined)
+      newspaperData.publicationFreq = data.publicationFreq;
+    if (data.issn !== undefined) newspaperData.issn = data.issn;
+    if (data.sections !== undefined) newspaperData.sections = data.sections;
+
+    if (Object.keys(newspaperData).length > 0) {
+      await tx.newspaper.update({
+        where: { id: productId },
+        data: newspaperData,
+      });
+    }
   }
 }

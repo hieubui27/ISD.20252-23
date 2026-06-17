@@ -47,6 +47,49 @@ export class BookHandler implements IProductHandler<CreateBookDto, any> {
   }
 
   async update(tx: any, productId: bigint, data: any): Promise<void> {
-    // Update logic for Book if needed
+    const printableData: any = {};
+    if (data.publisher !== undefined) printableData.publisher = data.publisher;
+    if (data.language !== undefined) printableData.language = data.language;
+    if (data.publishDate !== undefined)
+      printableData.publishDate = new Date(data.publishDate);
+
+    if (Object.keys(printableData).length > 0) {
+      await tx.printableProduct.update({
+        where: { id: productId },
+        data: printableData,
+      });
+    }
+
+    const bookData: any = {};
+    if (data.coverType !== undefined) bookData.coverType = data.coverType;
+    if (data.nbPages !== undefined) bookData.nbPages = data.nbPages;
+    if (data.genre !== undefined) bookData.genre = data.genre;
+
+    if (Object.keys(bookData).length > 0) {
+      await tx.book.update({
+        where: { id: productId },
+        data: bookData,
+      });
+    }
+
+    if (data.authors && Array.isArray(data.authors)) {
+      await tx.bookAuthor.deleteMany({ where: { bookId: productId } });
+      const authorLinks = [];
+      for (const authorName of data.authors) {
+        let author = await tx.author.findFirst({ where: { name: authorName } });
+        if (!author) {
+          author = await tx.author.create({ data: { name: authorName } });
+        }
+        authorLinks.push({ authorId: author.id });
+      }
+      if (authorLinks.length > 0) {
+        await tx.bookAuthor.createMany({
+          data: authorLinks.map((link) => ({
+            bookId: productId,
+            authorId: link.authorId,
+          })),
+        });
+      }
+    }
   }
 }
