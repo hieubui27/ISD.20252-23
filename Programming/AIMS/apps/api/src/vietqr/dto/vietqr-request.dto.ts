@@ -13,17 +13,17 @@ import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
  */
 export class VietqrRequestDto {
   @IsString()
-  orderId: string;
+  orderId!: string;
 
   @IsString()
-  invoiceId: string;
+  invoiceId!: string;
 
   @IsNumber()
   @Min(1)
-  amount: number;
+  amount!: number;
 
   @IsString()
-  description: string;
+  description!: string;
 
   @IsString()
   @IsOptional()

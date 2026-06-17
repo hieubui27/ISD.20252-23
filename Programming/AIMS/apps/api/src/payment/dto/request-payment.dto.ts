@@ -14,18 +14,18 @@ import { PaymentMethod } from '../constants/payment.constants';
  */
 export class RequestPaymentDto {
   @IsString()
-  orderId: string;
+  orderId!: string;
 
   @IsString()
-  invoiceId: string;
+  invoiceId!: string;
 
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod = PaymentMethod.VIETQR;
 
   @IsNumber()
   @Min(1)
-  amount: number;
+  amount!: number;
 
   @IsEmail()
-  customerEmail: string;
+  customerEmail!: string;
 }

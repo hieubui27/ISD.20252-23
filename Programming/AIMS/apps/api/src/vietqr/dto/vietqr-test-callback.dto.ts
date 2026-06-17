@@ -21,10 +21,10 @@ export class VietqrTestCallbackDto {
   bankAccount?: string;
 
   @IsNumber()
-  amount: number;
+  amount!: number;
 
   @IsString()
-  content: string;
+  content!: string;
 
   @IsString()
   @IsOptional()

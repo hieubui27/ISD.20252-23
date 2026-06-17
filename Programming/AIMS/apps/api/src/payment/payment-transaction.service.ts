@@ -13,6 +13,7 @@ import {
   ensureCanMarkFailed,
   ensureCanMarkSuccess,
 } from './helpers/payment-transaction-status.helper';
+import { Prisma } from '../prisma/generated/client';
 
 interface GetOrCreateTransactionInput {
   orderId: string;
@@ -108,7 +109,7 @@ export class PaymentTransactionService {
   }
 
   async markSuccessAndCancelOtherPending(input: MarkSuccessInput) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const transaction = await tx.paymentTransaction.findUnique({
         where: { id: input.transactionId },
       });
@@ -219,7 +220,7 @@ export class PaymentTransactionService {
   }
 
   private async lockOrderPaymentLifecycle(
-    tx: { $executeRawUnsafe: (...args: unknown[]) => Promise<unknown> },
+    tx: Prisma.TransactionClient,
     orderId: string,
   ): Promise<void> {
     await tx.$executeRawUnsafe(

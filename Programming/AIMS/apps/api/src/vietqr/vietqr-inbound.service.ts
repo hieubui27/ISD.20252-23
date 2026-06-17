@@ -67,9 +67,12 @@ export class VietqrInboundService {
       throw new UnauthorizedException('Invalid VietQR callback token subject');
     }
 
+    const expiresAt = parsedPayload.exp;
+
     if (
-      !Number.isInteger(parsedPayload.exp) ||
-      parsedPayload.exp < Math.floor(Date.now() / 1000)
+      !Number.isInteger(expiresAt) ||
+      expiresAt === undefined ||
+      expiresAt < Math.floor(Date.now() / 1000)
     ) {
       throw new UnauthorizedException('Expired VietQR callback token');
     }

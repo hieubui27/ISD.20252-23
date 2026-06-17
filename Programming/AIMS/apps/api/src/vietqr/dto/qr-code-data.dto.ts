@@ -10,11 +10,11 @@
  * - All properties describe the result of one generated VietQR code.
  */
 export class QRCodeDataDto {
-  qrCode: string;
+  qrCode!: string;
   qrDataUrl?: string;
   qrLink?: string;
-  amount: number;
+  amount!: number;
   expiredAt?: Date;
-  qrContent?: string;
-  orderId?: string;
+  qrContent!: string;
+  orderId!: string;
 }

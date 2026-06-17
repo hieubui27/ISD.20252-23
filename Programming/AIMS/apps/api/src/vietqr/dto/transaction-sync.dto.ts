@@ -21,36 +21,36 @@ const toOptionalNumber = ({ value }: { value: unknown }) =>
 export class TransactionSyncDto {
   @Transform(toOptionalString)
   @IsString()
-  bankaccount: string;
+  bankaccount!: string;
 
   @Transform(toOptionalNumber)
   @IsNumber()
   @Min(1)
-  amount: number;
+  amount!: number;
 
   @IsString()
-  transType: string;
-
-  @Transform(toOptionalString)
-  @IsString()
-  content: string;
+  transType!: string;
 
   @Transform(toOptionalString)
   @IsString()
-  transactionid: string;
+  content!: string;
+
+  @Transform(toOptionalString)
+  @IsString()
+  transactionid!: string;
 
   @Transform(toOptionalNumber)
   @IsInt()
   @Min(1)
-  transactiontime: number;
+  transactiontime!: number;
 
   @Transform(toOptionalString)
   @IsString()
-  referencenumber: string;
+  referencenumber!: string;
 
   @Transform(toOptionalString)
   @IsString()
-  orderId: string;
+  orderId!: string;
 
   @Transform(toOptionalString)
   @IsString()

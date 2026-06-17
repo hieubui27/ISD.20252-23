@@ -60,9 +60,12 @@ export class VietqrController {
           : 'Transaction processed successfully',
       );
     } catch (error) {
+      const responseError = this.getResponseError(error);
+      const message = error instanceof Error ? error.message : undefined;
+
       return this.responseMapper.error(
-        error?.response?.error || error?.name || 'TRANSACTION_SYNC_FAILED',
-        error?.message || 'Transaction sync failed',
+        responseError || 'TRANSACTION_SYNC_FAILED',
+        message || 'Transaction sync failed',
       );
     }
   }
@@ -71,5 +74,19 @@ export class VietqrController {
   @Post('payments/vietqr/test-callback')
   testCallback(@Body() vietqrTestCallbackDto: VietqrTestCallbackDto) {
     return this.sandboxService.testCallback(vietqrTestCallbackDto);
+  }
+
+  private getResponseError(error: unknown): string | undefined {
+    if (error && typeof error === 'object') {
+      const response = (error as { response?: unknown }).response;
+      if (response && typeof response === 'object') {
+        const responseError = (response as { error?: unknown }).error;
+        if (typeof responseError === 'string') {
+          return responseError;
+        }
+      }
+    }
+
+    return error instanceof Error && error.name ? error.name : undefined;
   }
 }
