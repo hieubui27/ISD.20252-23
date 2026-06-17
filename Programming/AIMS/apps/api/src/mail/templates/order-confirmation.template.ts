@@ -27,6 +27,7 @@ interface OrderConfirmationSuccess {
 export const getOrderConfirmationEmailTemplate = (
   successDto: OrderConfirmationSuccess,
   invoicePreview: OrderConfirmationInvoice,
+  cancelUrl?: string,
 ): string => {
   const itemRows = invoicePreview.items
     .map(
@@ -94,6 +95,20 @@ export const getOrderConfirmationEmailTemplate = (
       <p style="color:#666;font-size:13px">
         Đơn hàng đang chờ xác nhận từ nhân viên AIMS. Chúng tôi sẽ thông báo khi đơn hàng được duyệt.
       </p>
+
+      ${
+        cancelUrl
+          ? `<div style="margin-top:24px;padding-top:24px;border-top:1px solid #eee;text-align:center">
+        <p style="margin:0 0 12px;color:#414752;font-size:14px">
+          Bạn muốn hủy đơn? Bạn có thể hủy và được hoàn tiền <strong>trước khi đơn được duyệt</strong>.
+        </p>
+        <a href="${cancelUrl}"
+          style="display:inline-block;padding:12px 24px;background:#d32f2f;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600">
+          Hủy đơn &amp; hoàn tiền
+        </a>
+      </div>`
+          : ''
+      }
     </div>
   `;
 };

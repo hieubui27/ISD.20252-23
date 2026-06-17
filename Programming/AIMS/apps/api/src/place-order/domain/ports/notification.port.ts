@@ -14,6 +14,9 @@ export const NOTIFICATION_OBSERVERS = 'NOTIFICATION_OBSERVERS';
 
 export interface OrderConfirmedEvent {
   recipientEmail?: string;
+  /** Business order code (Order.orderId) – used to build the self-service
+   *  cancel/refund link embedded in the confirmation e-mail. */
+  orderId?: string;
   order: OrderSuccessDto;
   invoice: InvoicePreviewDto;
 }

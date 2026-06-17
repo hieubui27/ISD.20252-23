@@ -185,6 +185,7 @@ export class PlaceOrderBeService {
 
     await this.eventPublisher.publish({
       recipientEmail: dto.deliveryInfo.email,
+      orderId: createInput.orderCode,
       order: successDto,
       invoice,
     });

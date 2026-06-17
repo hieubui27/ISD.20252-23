@@ -5,6 +5,7 @@ import { ProductDetailPageComponent } from './features/products/pages/product-de
 import { ProductListPageComponent } from './features/products/pages/product-list-page/product-list-page';
 import { DeliveryComponent } from './place-order/delivery/delivery';
 import { OrderResultComponent } from './place-order/order-result/order-result';
+import { CancelOrderComponent } from './place-order/cancel-order/cancel-order';
 
 export const appRoutes: Route[] = [
   { path: '', redirectTo: 'product-catalog', pathMatch: 'full' },
@@ -23,4 +24,5 @@ export const appRoutes: Route[] = [
   },
   { path: 'payment', component: PaymentComponent },
   { path: 'order-result', component: OrderResultComponent },
+  { path: 'cancel-order', component: CancelOrderComponent },
 ];

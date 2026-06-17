@@ -35,6 +35,11 @@ export class PaymentController {
     return this.paymentService.requestCustomerRefund(dto);
   }
 
+  @Get('refund/order-info')
+  getRefundOrderInfo(@Query('orderId') orderId: string) {
+    return this.paymentService.getRefundOrderInfo(orderId);
+  }
+
   @Get('transactions/order/:orderId')
   getPaymentTransactionByOrderId(
     @Param('orderId') orderId: string,

@@ -1,0 +1,97 @@
+<div class="cancel-order-page">
+  <app-aims-header
+    [cartItemCount]="0"
+    [showSearch]="false"
+    (brandClicked)="returnHome()"
+    (browseClicked)="returnHome()"
+  ></app-aims-header>
+
+  <main class="cancel-order-page__main">
+    <section class="cancel-card">
+      <!-- Loading -->
+      <ng-container *ngIf="status() === 'loading'">
+        <p class="cancel-card__muted">Loading order information…</p>
+      </ng-container>
+
+      <!-- Error -->
+      <ng-container *ngIf="status() === 'error'">
+        <h1>Unable to Process</h1>
+        <p>{{ errorMessage() }}</p>
+        <app-aims-button type="button" (pressed)="returnHome()">
+          Return to Homepage
+        </app-aims-button>
+      </ng-container>
+
+      <!-- Success -->
+      <ng-container *ngIf="status() === 'success'">
+        <h1>Cancellation Requested</h1>
+        <p>{{ successMessage() }}</p>
+        <app-aims-button type="button" (pressed)="returnHome()">
+          Return to Homepage
+        </app-aims-button>
+      </ng-container>
+
+      <!-- Ready / Submitting -->
+      <ng-container
+        *ngIf="
+          (status() === 'ready' || status() === 'submitting') &&
+          orderInfo() as info
+        "
+      >
+        <h1>Cancel Order &amp; Refund</h1>
+        <p>Please review your order details before confirming the cancellation.</p>
+
+        <section class="order-details">
+          <h2>Order Information</h2>
+          <div>
+            <span>Order ID</span>
+            <strong>{{ info.orderId }}</strong>
+          </div>
+          <div>
+            <span>Customer Name</span>
+            <strong>{{ info.customerName || '—' }}</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong>{{ info.status }}</strong>
+          </div>
+          <div>
+            <span>Payment Method</span>
+            <strong>{{ info.paymentMethod || '—' }}</strong>
+          </div>
+          <div>
+            <span>Refund Amount</span>
+            <strong>{{ info.totalAmount | number: '1.0-0' }} VND</strong>
+          </div>
+        </section>
+
+        <ng-container *ngIf="info.cancellable; else notCancellable">
+          <p class="cancel-card__note">
+            Cancelling this order will refund the full amount of
+            <strong>{{ info.totalAmount | number: '1.0-0' }} VND</strong>
+            to your original payment method. You can only cancel before the
+            order is approved.
+          </p>
+          <app-aims-button
+            type="button"
+            variant="danger"
+            [loading]="status() === 'submitting'"
+            (pressed)="confirmCancel()"
+          >
+            Confirm Cancellation &amp; Refund
+          </app-aims-button>
+        </ng-container>
+
+        <ng-template #notCancellable>
+          <p class="cancel-card__note">
+            This order can no longer be cancelled (it has already been approved
+            or cancelled).
+          </p>
+          <app-aims-button type="button" (pressed)="returnHome()">
+            Return to Homepage
+          </app-aims-button>
+        </ng-template>
+      </ng-container>
+    </section>
+  </main>
+</div>
