@@ -1,26 +1,15 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { VietqrService } from '../../vietqr/vietqr.service';
 import { PaymentMethod } from '../constants/payment.constants';
 import {
-  PaymentGateway,
+  PaymentCreationGateway,
   PaymentGatewayContext,
   PaymentGatewayResult,
 } from '../ports/payment-gateway.port';
 import { normalizeVietqrContent } from '../../vietqr/helpers/vietqr-normalize.helper';
 
-/**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
- *
- * Coupling reason:
- * - This adapter wraps VietqrService behind the PaymentGateway interface.
- * - It receives only PaymentGatewayContext primitives and returns PaymentGatewayResult.
- *
- * Cohesion reason:
- * - All methods adapt VietQR-specific provider operations to the unified gateway contract.
- */
 @Injectable()
-export class VietqrGatewayAdapter implements PaymentGateway {
+export class VietqrGatewayAdapter implements PaymentCreationGateway {
   constructor(private readonly vietqrService: VietqrService) {}
 
   getMethod(): PaymentMethod {
@@ -49,23 +38,13 @@ export class VietqrGatewayAdapter implements PaymentGateway {
         qrLink: qrCodeData.qrLink,
         expiredAt: qrCodeData.expiredAt,
       },
+      transactionUpdate: {
+        qrCode: qrCodeData.qrCode,
+        qrContent: qrCodeData.qrContent || qrContent,
+        ...(qrCodeData.qrDataUrl ? { qrDataUrl: qrCodeData.qrDataUrl } : {}),
+        ...(qrCodeData.qrLink ? { qrLink: qrCodeData.qrLink } : {}),
+        ...(qrCodeData.expiredAt ? { expiredAt: qrCodeData.expiredAt } : {}),
+      },
     };
-  }
-
-  async confirmPayment(_transactionRef: string): Promise<PaymentGatewayResult> {
-    // VietQR xác nhận qua callback tự động (vqr/bank/api/transaction-sync),
-    // không cần gọi confirm thủ công từ phía client.
-    return { paymentUrl: '', qrCode: '' };
-  }
-
-  async refundPayment(
-    _transactionRef: string,
-    _amount: number,
-  ): Promise<PaymentGatewayResult> {
-    // VietQR không hỗ trợ hoàn tiền tự động qua API.
-    // Cần xử lý thủ công bởi Product Manager.
-    throw new BadRequestException(
-      'VietQR refund requires manual product manager handling',
-    );
   }
 }

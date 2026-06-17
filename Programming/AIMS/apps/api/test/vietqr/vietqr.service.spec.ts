@@ -4,6 +4,11 @@ import {
   PaymentMethod,
   PaymentStatus,
 } from '../../src/payment/constants/payment.constants';
+import { PaymentCompletionService } from '../../src/payment/payment-completion.service';
+import { PaymentGatewayTransactionRefResolver } from '../../src/payment/payment-gateway-transaction-ref.resolver';
+import { PaymentGatewayOrderIdService } from '../../src/payment/payment-gateway-order-id.service';
+import { buildPaymentGatewayOrderId } from '../../src/payment/helpers/payment-reference.helper';
+import { PaypalStaleTransactionCleanupService } from '../../src/payment/paypal-stale-transaction-cleanup.service';
 import { VietqrService } from '../../src/vietqr/vietqr.service';
 import { VietqrCallbackService } from '../../src/vietqr/vietqr-callback.service';
 import { VietqrQrRequestBuilder } from '../../src/vietqr/builders/vietqr-qr-request.builder';
@@ -157,6 +162,9 @@ describe('PaymentService', () => {
 
   const mockPaypalService = {
     getGateway: jest.fn(),
+    getCreationGateway: jest.fn(),
+    getConfirmationGateway: jest.fn(),
+    getRefundGateway: jest.fn(),
   };
 
   const mockPaymentGateway = {
@@ -171,6 +179,22 @@ describe('PaymentService', () => {
     cancelOtherPendingByOrder: jest.fn(),
   };
 
+  const mockPaymentCompletionService = {
+    completeSuccessfulPayment: jest.fn(),
+  };
+
+  const mockTransactionRefResolver = {
+    resolve: jest.fn(),
+  };
+
+  const mockPaypalStaleTransactionCleanup = {
+    expireStaleTransactions: jest.fn(),
+  };
+
+  const mockGatewayOrderIdService = {
+    ensureForCreatePayment: jest.fn(),
+  };
+
   const mockPlaceOrderPaymentPort = {
     getPaymentContext: jest.fn(),
     markPaidAndPendingProcessing: jest.fn(),
@@ -182,11 +206,26 @@ describe('PaymentService', () => {
       mockPrisma as any,
       mockPaypalService as any,
       mockPaymentTransactionService as any,
+      mockPaymentCompletionService as any,
+      mockTransactionRefResolver as any,
+      mockPaypalStaleTransactionCleanup as any,
+      mockGatewayOrderIdService as any,
       mockPlaceOrderPaymentPort,
     );
     jest.clearAllMocks();
     mockPaypalService.getGateway.mockReturnValue(mockPaymentGateway);
+    mockPaypalService.getCreationGateway.mockReturnValue(mockPaymentGateway);
+    mockPaypalService.getConfirmationGateway.mockReturnValue(
+      mockPaymentGateway,
+    );
+    mockPaypalService.getRefundGateway.mockReturnValue(mockPaymentGateway);
     mockPrisma.paymentTransaction.updateMany.mockResolvedValue({ count: 0 });
+    mockPaypalStaleTransactionCleanup.expireStaleTransactions.mockResolvedValue(
+      0,
+    );
+    mockGatewayOrderIdService.ensureForCreatePayment.mockResolvedValue(
+      'PAYMENTTRANS',
+    );
     mockPaymentTransactionService.cancelOtherPendingByOrder.mockResolvedValue({
       count: 0,
     });
@@ -214,6 +253,10 @@ describe('PaymentService', () => {
       providerData: {
         qrContent: 'THANH TOAN AIMS',
       },
+      transactionUpdate: {
+        qrCode: 'qr-code-data',
+        qrContent: 'THANH TOAN AIMS',
+      },
     });
 
     const result = await service.requestPayment({
@@ -234,6 +277,13 @@ describe('PaymentService', () => {
       }),
     );
     expect(mockPaymentGateway.createPayment).toHaveBeenCalled();
+    expect(
+      mockPaypalStaleTransactionCleanup.expireStaleTransactions,
+    ).toHaveBeenCalled();
+    expect(mockGatewayOrderIdService.ensureForCreatePayment).toHaveBeenCalledWith(
+      PaymentMethod.VIETQR,
+      transaction,
+    );
     expect(result.status).toBe(PaymentStatus.PENDING);
     expect(result.qrCode).toBe('qr-code-data');
   });
@@ -255,6 +305,64 @@ describe('PaymentService', () => {
     expect(
       mockPaymentTransactionService.getOrCreatePendingTransaction,
     ).not.toHaveBeenCalled();
+  });
+
+  it('should reject manual VietQR confirmation because callback owns success', async () => {
+    mockPrisma.paymentTransaction.findFirst.mockResolvedValue(transaction);
+
+    await expect(
+      service.confirmTransaction({
+        orderId: 'ORDER_DEMO_001',
+        invoiceId: '20',
+        paymentMethod: PaymentMethod.VIETQR,
+        transactionId: 'TXN001',
+        transactionContent: 'THANH TOAN AIMS',
+        transactionDateTime: new Date(1757342061000).toISOString(),
+        status: PaymentStatus.SUCCESS,
+        amount: 250000,
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(mockPaypalService.getConfirmationGateway).not.toHaveBeenCalled();
+    expect(
+      mockPaymentCompletionService.completeSuccessfulPayment,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('should mark refund required when VietQR does not support automatic refund', async () => {
+    mockPrisma.paymentTransaction.findFirst.mockResolvedValue({
+      ...transaction,
+      status: PaymentStatus.SUCCESS,
+      transactionId: 'TXN001',
+    });
+    mockPaypalService.getRefundGateway.mockImplementation(() => {
+      throw new BadRequestException(
+        'Payment method VIETQR does not support automatic refund',
+      );
+    });
+    mockPrisma.paymentTransaction.update.mockResolvedValue({
+      ...transaction,
+      status: PaymentStatus.REFUND_REQUIRED,
+    });
+
+    const result = await service.handleRejectedOrderRefund(
+      'ORDER_DEMO_001',
+      'Out of stock',
+    );
+
+    expect(mockPaypalService.getRefundGateway).toHaveBeenCalledWith(
+      PaymentMethod.VIETQR,
+    );
+    expect(mockPrisma.paymentTransaction.update).toHaveBeenCalledWith({
+      where: { id: 'payment-transaction-id' },
+      data: { status: PaymentStatus.REFUND_REQUIRED },
+    });
+    expect(result).toEqual({
+      status: PaymentStatus.REFUND_REQUIRED,
+      orderId: 'ORDER_DEMO_001',
+      rejectReason: 'Out of stock',
+      message: 'Refund required - check payment method for processing details',
+    });
   });
 });
 
@@ -286,12 +394,8 @@ describe('VietqrCallbackService', () => {
     },
   };
 
-  const mockPaymentTransactionService = {
-    markSuccessAndCancelOtherPending: jest.fn(),
-  };
-
-  const mockPlaceOrderPaymentPort = {
-    markPaidAndPendingProcessing: jest.fn(),
+  const mockPaymentCompletionService = {
+    completeSuccessfulPayment: jest.fn(),
   };
 
   beforeEach(() => {
@@ -300,8 +404,7 @@ describe('VietqrCallbackService', () => {
       mockPrisma as any,
       new VietqrConfigService(),
       new VietqrCallbackResponseMapper(),
-      mockPaymentTransactionService as any,
-      mockPlaceOrderPaymentPort as any,
+      mockPaymentCompletionService as any,
     );
     jest.clearAllMocks();
   });
@@ -311,7 +414,7 @@ describe('VietqrCallbackService', () => {
     mockPrisma.paymentTransaction.findFirst
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(transaction);
-    mockPaymentTransactionService.markSuccessAndCancelOtherPending.mockResolvedValue({
+    mockPaymentCompletionService.completeSuccessfulPayment.mockResolvedValue({
       ...transaction,
       status: PaymentStatus.SUCCESS,
       transactionId: 'TXN001',
@@ -329,24 +432,14 @@ describe('VietqrCallbackService', () => {
     });
 
     expect(
-      mockPaymentTransactionService.markSuccessAndCancelOtherPending,
+      mockPaymentCompletionService.completeSuccessfulPayment,
     ).toHaveBeenCalledWith({
       transactionId: 'payment-transaction-id',
       data: expect.objectContaining({
         transactionId: 'TXN001',
       }),
+      fallbackProviderTransactionId: 'TXN001',
     });
-    expect(
-      mockPlaceOrderPaymentPort.markPaidAndPendingProcessing,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orderId: 'ORDER_DEMO_001',
-        invoiceId: '20',
-        paymentMethod: PaymentMethod.VIETQR,
-        amount: 250000,
-        transactionId: 'TXN001',
-      }),
-    );
     expect(result.duplicate).toBe(false);
     expect(result.status).toEqual({
       transactionId: 'TXN001',
@@ -354,5 +447,214 @@ describe('VietqrCallbackService', () => {
       message: 'THANH TOAN AIMS',
       paidAmount: 250000,
     });
+  });
+});
+
+describe('PaymentCompletionService', () => {
+  const updatedTransaction = {
+    id: 'payment-transaction-id',
+    orderId: 'ORDER_DEMO_001',
+    invoiceId: BigInt(20),
+    paymentMethod: PaymentMethod.VIETQR,
+    amount: 250000,
+    transactionId: 'TXN001',
+    transactionContent: 'THANH TOAN AIMS',
+    transactionDateTime: new Date(1757342061000),
+  };
+
+  const mockPaymentTransactionService = {
+    markSuccessAndCancelOtherPending: jest.fn(),
+  };
+
+  const mockPlaceOrderPaymentPort = {
+    markPaidAndPendingProcessing: jest.fn(),
+  };
+
+  let service: PaymentCompletionService;
+
+  beforeEach(() => {
+    service = new PaymentCompletionService(
+      mockPaymentTransactionService as any,
+      mockPlaceOrderPaymentPort as any,
+    );
+    jest.clearAllMocks();
+  });
+
+  it('should mark transaction success and mark order paid', async () => {
+    mockPaymentTransactionService.markSuccessAndCancelOtherPending.mockResolvedValue(
+      updatedTransaction,
+    );
+
+    const result = await service.completeSuccessfulPayment({
+      transactionId: 'payment-transaction-id',
+      data: {
+        transactionId: 'TXN001',
+        transactionContent: 'THANH TOAN AIMS',
+        transactionDateTime: new Date(1757342061000),
+      },
+      fallbackProviderTransactionId: 'TXN001',
+    });
+
+    expect(
+      mockPaymentTransactionService.markSuccessAndCancelOtherPending,
+    ).toHaveBeenCalledWith({
+      transactionId: 'payment-transaction-id',
+      data: expect.objectContaining({
+        transactionId: 'TXN001',
+        transactionContent: 'THANH TOAN AIMS',
+      }),
+    });
+    expect(
+      mockPlaceOrderPaymentPort.markPaidAndPendingProcessing,
+    ).toHaveBeenCalledWith({
+      orderId: 'ORDER_DEMO_001',
+      invoiceId: '20',
+      paymentMethod: PaymentMethod.VIETQR,
+      amount: 250000,
+      transactionId: 'TXN001',
+      transactionContent: 'THANH TOAN AIMS',
+      transactionDateTime: updatedTransaction.transactionDateTime,
+    });
+    expect(result).toBe(updatedTransaction);
+  });
+});
+
+describe('PaymentGatewayTransactionRefResolver', () => {
+  const resolver = new PaymentGatewayTransactionRefResolver();
+
+  it('should resolve non-PayPal transaction ref from gateway order id', () => {
+    expect(
+      resolver.resolve({
+        id: 'payment-transaction-id',
+        paymentMethod: PaymentMethod.VIETQR,
+        gatewayOrderId: 'PAYMENTTRANS',
+      }),
+    ).toBe('PAYMENTTRANS');
+  });
+
+  it('should resolve non-PayPal transaction ref from transaction id fallback', () => {
+    expect(
+      resolver.resolve({
+        id: 'payment-transaction-id',
+        paymentMethod: PaymentMethod.VIETQR,
+        gatewayOrderId: null,
+      }),
+    ).toBe('payment-transaction-id');
+  });
+
+  it('should reject PayPal transaction without provider order id', () => {
+    expect(() =>
+      resolver.resolve({
+        id: 'payment-transaction-id',
+        paymentMethod: PaymentMethod.PAYPAL,
+        gatewayOrderId: null,
+      }),
+    ).toThrow(BadRequestException);
+  });
+
+  it('should reject PayPal transaction with local gateway order id', () => {
+    expect(() =>
+      resolver.resolve({
+        id: 'payment-transaction-id',
+        paymentMethod: PaymentMethod.PAYPAL,
+        gatewayOrderId: buildPaymentGatewayOrderId('payment-transaction-id'),
+      }),
+    ).toThrow(BadRequestException);
+  });
+
+  it('should resolve PayPal transaction ref from provider order id', () => {
+    expect(
+      resolver.resolve({
+        id: 'payment-transaction-id',
+        paymentMethod: PaymentMethod.PAYPAL,
+        gatewayOrderId: 'PAYPAL-ORDER-ID',
+      }),
+    ).toBe('PAYPAL-ORDER-ID');
+  });
+});
+
+describe('PaymentGatewayOrderIdService', () => {
+  const mockPaymentTransactionService = {
+    updateGatewayOrderId: jest.fn(),
+  };
+
+  let service: PaymentGatewayOrderIdService;
+
+  beforeEach(() => {
+    service = new PaymentGatewayOrderIdService(
+      mockPaymentTransactionService as any,
+    );
+    jest.clearAllMocks();
+  });
+
+  it('should persist and return local gateway order id for VietQR', async () => {
+    const result = await service.ensureForCreatePayment(PaymentMethod.VIETQR, {
+      id: 'payment-transaction-id',
+      gatewayOrderId: 'old-gateway-order-id',
+    });
+
+    const expectedGatewayOrderId = buildPaymentGatewayOrderId(
+      'payment-transaction-id',
+    );
+
+    expect(mockPaymentTransactionService.updateGatewayOrderId).toHaveBeenCalledWith(
+      'payment-transaction-id',
+      expectedGatewayOrderId,
+    );
+    expect(result).toBe(expectedGatewayOrderId);
+  });
+
+  it('should reuse existing gateway order id for non-VietQR payments', async () => {
+    const result = await service.ensureForCreatePayment(PaymentMethod.PAYPAL, {
+      id: 'payment-transaction-id',
+      gatewayOrderId: 'PAYPAL-ORDER-ID',
+    });
+
+    expect(mockPaymentTransactionService.updateGatewayOrderId).not.toHaveBeenCalled();
+    expect(result).toBe('PAYPAL-ORDER-ID');
+  });
+
+  it('should use local gateway order id fallback for non-VietQR payments', async () => {
+    const result = await service.ensureForCreatePayment(PaymentMethod.PAYPAL, {
+      id: 'payment-transaction-id',
+      gatewayOrderId: null,
+    });
+
+    expect(result).toBe(buildPaymentGatewayOrderId('payment-transaction-id'));
+  });
+});
+
+describe('PaypalStaleTransactionCleanupService', () => {
+  const mockPrisma = {
+    paymentTransaction: {
+      updateMany: jest.fn(),
+    },
+  };
+
+  let service: PaypalStaleTransactionCleanupService;
+
+  beforeEach(() => {
+    service = new PaypalStaleTransactionCleanupService(mockPrisma as any);
+    jest.clearAllMocks();
+  });
+
+  it('should expire stale pending PayPal transactions', async () => {
+    mockPrisma.paymentTransaction.updateMany.mockResolvedValue({ count: 2 });
+
+    const result = await service.expireStaleTransactions();
+
+    expect(mockPrisma.paymentTransaction.updateMany).toHaveBeenCalledWith({
+      where: {
+        paymentMethod: PaymentMethod.PAYPAL,
+        status: PaymentStatus.PENDING,
+        createdAt: {
+          lt: expect.any(Date),
+        },
+      },
+      data: {
+        status: PaymentStatus.FAILED,
+      },
+    });
+    expect(result).toBe(2);
   });
 });

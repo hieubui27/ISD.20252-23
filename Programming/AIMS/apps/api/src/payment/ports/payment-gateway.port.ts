@@ -38,40 +38,56 @@ export interface PaymentGatewayResult {
   qrCode: string;
   /** Dữ liệu bổ sung từ provider, dùng để lưu vào DB nếu cần */
   providerData?: Record<string, unknown>;
+  /** Dữ liệu cần cập nhật vào payment transaction sau khi provider trả kết quả */
+  transactionUpdate?: Record<string, unknown>;
 }
 
 // ── Token cho NestJS DI ──
 export const PAYMENT_GATEWAYS = 'PAYMENT_GATEWAYS';
 
 // ── Interface chính mà mọi payment provider phải implement ──
-export interface PaymentGateway {
+export interface PaymentGatewayBase {
   /**
    * Trả về phương thức thanh toán mà adapter này xử lý.
    * Factory dùng giá trị này để đăng ký và tra cứu đúng adapter.
    */
   getMethod(): PaymentMethod;
+}
 
+export interface PaymentCreationGateway extends PaymentGatewayBase {
   /**
    * Tạo một yêu cầu thanh toán mới với provider bên ngoài.
    * - PayPal: gọi createOrder() → trả approvalUrl
    * - VietQR: gọi generateQrCode() → trả qrCode + qrLink
    */
   createPayment(context: PaymentGatewayContext): Promise<PaymentGatewayResult>;
+}
 
+export interface PaymentConfirmationGateway extends PaymentGatewayBase {
   /**
    * Xác nhận (capture) thanh toán sau khi khách hàng đã approve.
    * - PayPal: gọi capturePayment(orderId)
-   * - VietQR: callback tự động xử lý, method này có thể là no-op
+   * - VietQR: không implement, callback tự động xử lý success
    */
   confirmPayment(transactionRef: string): Promise<PaymentGatewayResult>;
+}
 
+export interface PaymentRefundGateway extends PaymentGatewayBase {
   /**
    * Hoàn tiền cho một giao dịch đã thanh toán.
    * - PayPal: gọi refundPayment(captureId)
-   * - VietQR: đánh dấu cần hoàn thủ công bởi Product Manager
+   * - VietQR: không implement, payment chung sẽ đánh dấu cần hoàn thủ công
    */
   refundPayment(
     transactionRef: string,
     amount: number,
   ): Promise<PaymentGatewayResult>;
 }
+
+export type PaymentGateway =
+  | PaymentCreationGateway
+  | (PaymentCreationGateway & PaymentConfirmationGateway)
+  | (PaymentCreationGateway & PaymentRefundGateway)
+  | (PaymentCreationGateway &
+      PaymentConfirmationGateway &
+      PaymentRefundGateway);

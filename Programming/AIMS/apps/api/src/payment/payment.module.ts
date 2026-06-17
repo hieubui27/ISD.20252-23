@@ -1,26 +1,18 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { PaypalModule } from '../paypal/paypal.module';
 import { MailModule } from '../mail/mail.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { VietqrModule } from '../vietqr/vietqr.module';
 import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
+import { PaymentCompletionService } from './payment-completion.service';
+import { PaymentGatewayTransactionRefResolver } from './payment-gateway-transaction-ref.resolver';
+import { PaymentGatewayOrderIdService } from './payment-gateway-order-id.service';
+import { PaypalStaleTransactionCleanupService } from './paypal-stale-transaction-cleanup.service';
 import { PaymentTransactionService } from './payment-transaction.service';
 import { PLACE_ORDER_PAYMENT_PORT } from './ports/place-order-payment.port';
 import { PlaceOrderPaymentAdapter } from '../place-order/infrastructure/adapter/place-order-payment.adapter';
 import { PlaceOrderDomainModule } from '../place-order/place-order-domain.module';
-import { VietqrController } from '../vietqr/vietqr.controller';
-import { VietqrService } from '../vietqr/vietqr.service';
-import { VIETQR_CLIENT } from '../vietqr/clients/vietqr.client';
-import { VietqrHttpClient } from '../vietqr/clients/vietqr-http.client';
-import { VietqrCallbackAuthGuard } from '../vietqr/guards/vietqr-callback-auth.guard';
-import { VietqrInboundController } from '../vietqr/vietqr-inbound.controller';
-import { VietqrInboundService } from '../vietqr/vietqr-inbound.service';
-import { VietqrCallbackService } from '../vietqr/vietqr-callback.service';
-import { VietqrConfigService } from '../vietqr/config/vietqr-config.service';
-import { VietqrTokenService } from '../vietqr/vietqr-token.service';
-import { VietqrSandboxService } from '../vietqr/vietqr-sandbox.service';
-import { VietqrQrRequestBuilder } from '../vietqr/builders/vietqr-qr-request.builder';
-import { VietqrCallbackResponseMapper } from '../vietqr/mappers/vietqr-callback-response.mapper';
 import { PAYMENT_GATEWAYS } from './ports/payment-gateway.port';
 import { PaypalGatewayAdapter } from './adapters/paypal-gateway.adapter';
 import { VietqrGatewayAdapter } from './adapters/vietqr-gateway.adapter';
@@ -49,24 +41,21 @@ import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
    *   narrow provider-facing service/port. PaymentModule should import VietqrModule
    *   and depend on exported abstractions.
    */
-  imports: [PaypalModule, PrismaModule, MailModule, PlaceOrderDomainModule],
-  controllers: [PaymentController, VietqrController, VietqrInboundController],
+  imports: [
+    PaypalModule,
+    PrismaModule,
+    MailModule,
+    PlaceOrderDomainModule,
+    forwardRef(() => VietqrModule),
+  ],
+  controllers: [PaymentController],
   providers: [
     PaymentService,
+    PaymentCompletionService,
+    PaymentGatewayTransactionRefResolver,
+    PaymentGatewayOrderIdService,
+    PaypalStaleTransactionCleanupService,
     PaymentTransactionService,
-    VietqrService,
-    VietqrCallbackService,
-    VietqrInboundService,
-    VietqrConfigService,
-    VietqrTokenService,
-    VietqrSandboxService,
-    VietqrQrRequestBuilder,
-    VietqrCallbackResponseMapper,
-    VietqrCallbackAuthGuard,
-    {
-      provide: VIETQR_CLIENT,
-      useClass: VietqrHttpClient,
-    },
     {
       provide: PLACE_ORDER_PAYMENT_PORT,
       useClass: PlaceOrderPaymentAdapter,
@@ -87,6 +76,6 @@ import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
     },
     PaymentGatewayFactory,
   ],
-  exports: [PaymentService],
+  exports: [PaymentService, PaymentCompletionService],
 })
 export class PaymentModule {}
