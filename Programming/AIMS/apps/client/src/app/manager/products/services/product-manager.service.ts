@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { AIMS_API_BASE_URL } from '../../../core/api/api.config';
 import {
   ProductDetail,
@@ -15,7 +16,22 @@ export class ProductManagerService {
   private readonly http = inject(HttpClient);
 
   getProducts(): Observable<ProductListItem[]> {
-    return this.http.get<ProductListItem[]>(this.apiUrl);
+    // The catalog endpoint now returns a paginated envelope ({ items, ... }).
+    // The manager list is not paginated, so we omit paging params (the backend
+    // then returns every product) and unwrap the items. We still tolerate a
+    // plain array for backward compatibility.
+    return this.http
+      .get<ProductListItem[] | { items?: ProductListItem[] }>(this.apiUrl)
+      .pipe(map((response) => this.unwrapItems(response)));
+  }
+
+  private unwrapItems(
+    response: ProductListItem[] | { items?: ProductListItem[] },
+  ): ProductListItem[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+    return response?.items ?? [];
   }
 
   getProductById(id: string): Observable<ProductDetail> {

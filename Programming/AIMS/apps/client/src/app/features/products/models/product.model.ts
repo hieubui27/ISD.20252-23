@@ -30,6 +30,41 @@ export interface ProductListItem {
   status: string;
 }
 
+/** Catalog sort orders supported by the backend. */
+export type ProductSortOption =
+  | 'recommended'
+  | 'priceAsc'
+  | 'priceDesc'
+  | 'titleAsc';
+
+/** Query options sent to the paginated catalog endpoint. */
+export interface ProductQuery {
+  categories?: ProductType[];
+  search?: string;
+  sort?: ProductSortOption;
+  /** Keyset cursor (id of the last item of the previous page). */
+  cursor?: string;
+  /** 1-based page index for direct page jumps. */
+  page?: number;
+  /** Page size. */
+  limit?: number;
+}
+
+/** One page of catalog products plus paging metadata returned by the backend. */
+export interface ProductPage {
+  items: ProductListItem[];
+  /** Total products matching the active filter, across all pages. */
+  totalCount: number;
+  /** Cursor to load the next page, or null on the last page. */
+  nextCursor: string | null;
+  /** 1-based index of this page. */
+  page: number;
+  /** Page size used for this response. */
+  limit: number;
+  /** Total number of pages for the active filter. */
+  totalPages: number;
+}
+
 export interface BookSpecificInfo {
   authors: string[];
   coverType: string;
