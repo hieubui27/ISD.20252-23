@@ -2,7 +2,7 @@ import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CustomerRefundRequestDto {
   @IsString()
-  token!: string;
+  orderId!: string;
 
   @IsString()
   @IsOptional()

@@ -115,6 +115,7 @@ export class PlaceOrderPaymentAdapter implements PlaceOrderPaymentPort {
 
     await this.eventPublisher.publish({
       recipientEmail: order.email,
+      orderId: order.orderId,
       order: successDto,
       invoice: this.invoiceCalculator.buildFromPersistedOrder(order),
     });
