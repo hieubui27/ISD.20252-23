@@ -15,7 +15,12 @@ import { VietqrHttpClient } from '../vietqr/clients/vietqr-http.client';
 import { VietqrCallbackAuthGuard } from '../vietqr/guards/vietqr-callback-auth.guard';
 import { VietqrInboundController } from '../vietqr/vietqr-inbound.controller';
 import { VietqrInboundService } from '../vietqr/vietqr-inbound.service';
-import { ConfigService } from '../vietqr/config/vietqr-config.service';
+import { VietqrCallbackService } from '../vietqr/vietqr-callback.service';
+import { VietqrConfigService } from '../vietqr/config/vietqr-config.service';
+import { VietqrTokenService } from '../vietqr/vietqr-token.service';
+import { VietqrSandboxService } from '../vietqr/vietqr-sandbox.service';
+import { VietqrQrRequestBuilder } from '../vietqr/builders/vietqr-qr-request.builder';
+import { VietqrCallbackResponseMapper } from '../vietqr/mappers/vietqr-callback-response.mapper';
 import { PAYMENT_GATEWAYS } from './ports/payment-gateway.port';
 import { PaypalGatewayAdapter } from './adapters/paypal-gateway.adapter';
 import { VietqrGatewayAdapter } from './adapters/vietqr-gateway.adapter';
@@ -50,8 +55,13 @@ import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
     PaymentService,
     PaymentTransactionService,
     VietqrService,
+    VietqrCallbackService,
     VietqrInboundService,
-    ConfigService,
+    VietqrConfigService,
+    VietqrTokenService,
+    VietqrSandboxService,
+    VietqrQrRequestBuilder,
+    VietqrCallbackResponseMapper,
     VietqrCallbackAuthGuard,
     {
       provide: VIETQR_CLIENT,

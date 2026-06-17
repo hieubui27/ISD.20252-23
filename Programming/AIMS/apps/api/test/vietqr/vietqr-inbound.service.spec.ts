@@ -1,6 +1,6 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { createHmac } from 'crypto';
-import { ConfigService } from '../../src/vietqr/config/vietqr-config.service';
+import { VietqrConfigService } from '../../src/vietqr/config/vietqr-config.service';
 import { VietqrInboundService } from '../../src/vietqr/vietqr-inbound.service';
 
 describe('VietqrInboundService', () => {
@@ -12,7 +12,7 @@ describe('VietqrInboundService', () => {
     process.env.VIETQR_INBOUND_TOKEN_SECRET = 'test-secret';
     process.env.VIETQR_INBOUND_TOKEN_EXPIRES_IN_SECONDS = '300';
 
-    service = new VietqrInboundService(new ConfigService());
+    service = new VietqrInboundService(new VietqrConfigService());
   });
 
   it('should validate token generated from Basic Auth credentials', () => {

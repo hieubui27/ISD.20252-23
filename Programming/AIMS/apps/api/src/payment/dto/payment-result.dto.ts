@@ -10,11 +10,11 @@
  * - All properties describe the result of a payment operation returned to callers.
  */
 export class PaymentResultDto {
-  success: boolean;
-  status: string;
-  paymentMethod: string;
-  paymentUrl: string;
-  qrCode: string;
-  transactionId: string;
-  message: string;
+  success!: boolean;
+  status!: string;
+  paymentMethod!: string;
+  paymentUrl!: string;
+  qrCode!: string;
+  transactionId!: string;
+  message!: string;
 }

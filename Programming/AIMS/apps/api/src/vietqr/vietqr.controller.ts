@@ -6,18 +6,19 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { PaymentService } from '../payment/payment.service';
 import { TransactionSyncDto } from './dto/transaction-sync.dto';
 import { VietqrTestCallbackDto } from './dto/vietqr-test-callback.dto';
 import { VietqrCallbackAuthGuard } from './guards/vietqr-callback-auth.guard';
-import { VietqrService } from './vietqr.service';
+import { VietqrCallbackResponseMapper } from './mappers/vietqr-callback-response.mapper';
+import { VietqrCallbackService } from './vietqr-callback.service';
+import { VietqrSandboxService } from './vietqr-sandbox.service';
 
 /**
  * Coupling: Data Coupling
  * Cohesion: Functional Cohesion
  *
  * Coupling reason:
- * - This controller depends only on VietqrService, PaymentService, VietQR DTOs, and the callback token guard.
+ * - This controller depends only on VietqrService, VietqrCallbackService, VietQR DTOs, and the callback token guard.
  * - It does not query the database or call VietQR HTTP APIs directly.
  *
  * Cohesion reason:
@@ -37,8 +38,9 @@ import { VietqrService } from './vietqr.service';
  */
 export class VietqrController {
   constructor(
-    private readonly vietqrService: VietqrService,
-    private readonly paymentService: PaymentService,
+    private readonly vietqrCallbackService: VietqrCallbackService,
+    private readonly responseMapper: VietqrCallbackResponseMapper,
+    private readonly sandboxService: VietqrSandboxService,
   ) {}
 
   @UseGuards(VietqrCallbackAuthGuard)
@@ -47,20 +49,23 @@ export class VietqrController {
   async syncTransaction(@Body() transactionSyncDto: TransactionSyncDto) {
     try {
       const result =
-        await this.paymentService.confirmTransactionFromVietqrCallback(
+        await this.vietqrCallbackService.confirmTransactionFromCallback(
           transactionSyncDto,
         );
 
-      return this.vietqrService.buildCallbackSuccessResponse(
+      return this.responseMapper.success(
         result.refTransactionId,
         result.duplicate
           ? 'Transaction already processed'
           : 'Transaction processed successfully',
       );
     } catch (error) {
-      return this.vietqrService.buildCallbackErrorResponse(
-        error?.response?.error || error?.name || 'TRANSACTION_SYNC_FAILED',
-        error?.message || 'Transaction sync failed',
+      const responseError = this.getResponseError(error);
+      const message = error instanceof Error ? error.message : undefined;
+
+      return this.responseMapper.error(
+        responseError || 'TRANSACTION_SYNC_FAILED',
+        message || 'Transaction sync failed',
       );
     }
   }
@@ -68,6 +73,20 @@ export class VietqrController {
   @HttpCode(HttpStatus.OK)
   @Post('payments/vietqr/test-callback')
   testCallback(@Body() vietqrTestCallbackDto: VietqrTestCallbackDto) {
-    return this.vietqrService.testCallback(vietqrTestCallbackDto);
+    return this.sandboxService.testCallback(vietqrTestCallbackDto);
+  }
+
+  private getResponseError(error: unknown): string | undefined {
+    if (error && typeof error === 'object') {
+      const response = (error as { response?: unknown }).response;
+      if (response && typeof response === 'object') {
+        const responseError = (response as { error?: unknown }).error;
+        if (typeof responseError === 'string') {
+          return responseError;
+        }
+      }
+    }
+
+    return error instanceof Error && error.name ? error.name : undefined;
   }
 }

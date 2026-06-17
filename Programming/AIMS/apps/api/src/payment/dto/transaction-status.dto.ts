@@ -10,8 +10,8 @@
  * - All properties describe the synchronized status of one payment transaction.
  */
 export class TransactionStatusDto {
-  transactionId: string;
-  status: string;
-  message: string;
-  paidAmount: number;
+  transactionId!: string;
+  status!: string;
+  message!: string;
+  paidAmount!: number;
 }

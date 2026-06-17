@@ -7,21 +7,17 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import {
   PaymentMethod,
-  PaymentProvider,
   PaymentStatus,
 } from './constants/payment.constants';
 import { ConfirmTransactionDto } from './dto/confirm-transaction.dto';
 import { PaymentResultDto } from './dto/payment-result.dto';
 import { RequestPaymentDto } from './dto/request-payment.dto';
-import { TransactionStatusDto } from './dto/transaction-status.dto';
 import {
   PLACE_ORDER_PAYMENT_PORT,
   PlaceOrderPaymentPort,
 } from './ports/place-order-payment.port';
 import { ensureCanMarkRefundRequired } from './helpers/payment-transaction-status.helper';
-import { TransactionSyncDto } from '../vietqr/dto/transaction-sync.dto';
-import { VietqrService } from '../vietqr/vietqr.service';
-import { buildGatewayOrderId } from '../vietqr/helpers/vietqr-normalize.helper';
+import { buildPaymentGatewayOrderId } from './helpers/payment-reference.helper';
 import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
 import { PaymentTransactionService } from './payment-transaction.service';
 
@@ -31,9 +27,7 @@ import { PaymentTransactionService } from './payment-transaction.service';
  *
  * Coupling reason:
  * - This service coordinates payment through PaymentGatewayFactory, PrismaService, and PlaceOrderPaymentPort.
- * - It no longer depends directly on PaypalService or VietqrService for creating payments.
- * - VietqrService is retained only for the VietQR callback flow (confirmTransactionFromVietqrCallback),
- *   which is initiated by VietQR's server and requires VietQR-specific callback response mapping.
+ * - It does not handle provider inbound callbacks; provider-specific modules own those flows.
  *
  * Cohesion reason:
  * - All public methods serve the payment transaction lifecycle: request, method change, confirmation,
@@ -43,7 +37,6 @@ import { PaymentTransactionService } from './payment-transaction.service';
 export class PaymentService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly vietqrService: VietqrService,
     private readonly gatewayFactory: PaymentGatewayFactory,
     private readonly paymentTransactionService: PaymentTransactionService,
     @Inject(PLACE_ORDER_PAYMENT_PORT)
@@ -79,7 +72,7 @@ export class PaymentService {
       transaction.orderId,
       transaction.id,
     );
-    const localGatewayOrderId = buildGatewayOrderId(transaction.id);
+    const localGatewayOrderId = buildPaymentGatewayOrderId(transaction.id);
 
     if (paymentMethod === PaymentMethod.VIETQR) {
       await this.paymentTransactionService.updateGatewayOrderId(
@@ -215,81 +208,6 @@ export class PaymentService {
       qrCode: updated.qrCode || '',
       transactionId: updated.id,
       message: 'Payment transaction confirmed',
-    };
-  }
-
-  async confirmTransactionFromVietqrCallback(
-    callback: TransactionSyncDto,
-  ): Promise<{
-    status: TransactionStatusDto;
-    refTransactionId: string;
-    duplicate: boolean;
-  }> {
-    if (callback.transType !== (process.env.VIETQR_TRANS_TYPE || 'C')) {
-      throw new BadRequestException('Invalid VietQR transaction type');
-    }
-
-    const duplicate = await this.findDuplicateCallback(callback);
-    if (duplicate) {
-      return {
-        status: {
-          transactionId: callback.transactionid,
-          status: duplicate.status,
-          message: 'Transaction already processed',
-          paidAmount: callback.amount,
-        },
-        refTransactionId: duplicate.id,
-        duplicate: true,
-      };
-    }
-
-    const transaction = await this.findVietqrTransaction(callback);
-    if (!transaction) {
-      throw new NotFoundException('Payment transaction not found');
-    }
-
-    if (transaction.amount !== callback.amount) {
-      throw new BadRequestException('Amount mismatch');
-    }
-
-    if (transaction.status === PaymentStatus.SUCCESS) {
-      return {
-        status: {
-          transactionId: callback.transactionid,
-          status: transaction.status,
-          message: 'Transaction already processed',
-          paidAmount: callback.amount,
-        },
-        refTransactionId: transaction.id,
-        duplicate: true,
-      };
-    }
-
-    const updated =
-      await this.paymentTransactionService.markSuccessAndCancelOtherPending({
-        transactionId: transaction.id,
-        data: {
-          transactionId: callback.transactionid,
-          transactionContent: callback.content,
-          transactionDateTime: new Date(callback.transactiontime),
-          gatewayReferenceNumber: callback.referencenumber,
-        },
-      });
-
-    await this.placeOrderPaymentPort.markPaidAndPendingProcessing({
-      orderId: updated.orderId,
-      invoiceId: updated.invoiceId.toString(),
-      paymentMethod: updated.paymentMethod,
-      amount: updated.amount,
-      transactionId: updated.transactionId || callback.transactionid,
-      transactionContent: updated.transactionContent,
-      transactionDateTime: updated.transactionDateTime,
-    });
-
-    return {
-      status: this.vietqrService.mapCallbackToTransactionStatus(callback),
-      refTransactionId: updated.id,
-      duplicate: false,
     };
   }
 
@@ -436,7 +354,7 @@ export class PaymentService {
       );
     }
 
-    const localGatewayOrderId = buildGatewayOrderId(transaction.id);
+    const localGatewayOrderId = buildPaymentGatewayOrderId(transaction.id);
     if (transaction.gatewayOrderId === localGatewayOrderId) {
       throw new BadRequestException(
         'PayPal order id is invalid. Please create a new PayPal payment.',
@@ -444,48 +362,6 @@ export class PaymentService {
     }
 
     return transaction.gatewayOrderId;
-  }
-
-  private async findDuplicateCallback(callback: TransactionSyncDto) {
-    const byTransactionId = await this.prisma.paymentTransaction.findUnique({
-      where: { transactionId: callback.transactionid },
-    });
-
-    if (byTransactionId) {
-      return byTransactionId;
-    }
-
-    if (!callback.referencenumber) {
-      return null;
-    }
-
-    return this.prisma.paymentTransaction.findFirst({
-      where: { gatewayReferenceNumber: callback.referencenumber },
-    });
-  }
-
-  private async findVietqrTransaction(callback: TransactionSyncDto) {
-    const lookupConditions: Record<string, unknown>[] = [];
-
-    if (callback.orderId) {
-      lookupConditions.push({ gatewayOrderId: callback.orderId });
-    }
-
-    if (callback.content) {
-      lookupConditions.push({ qrContent: callback.content });
-    }
-
-    if (lookupConditions.length === 0) {
-      return null;
-    }
-
-    return this.prisma.paymentTransaction.findFirst({
-      where: {
-        provider: PaymentProvider.VIETQR,
-        OR: lookupConditions,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
   }
 
   private async expireStalePaypalTransactions(): Promise<number> {

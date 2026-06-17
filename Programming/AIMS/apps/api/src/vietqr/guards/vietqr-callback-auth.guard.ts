@@ -4,6 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { VietqrConfigService } from '../config/vietqr-config.service';
 import { VietqrInboundService } from '../vietqr-inbound.service';
 
 /**
@@ -19,7 +20,10 @@ import { VietqrInboundService } from '../vietqr-inbound.service';
  */
 @Injectable()
 export class VietqrCallbackAuthGuard implements CanActivate {
-  constructor(private readonly vietqrInboundService: VietqrInboundService) {}
+  constructor(
+    private readonly vietqrInboundService: VietqrInboundService,
+    private readonly configService: VietqrConfigService,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
@@ -30,7 +34,7 @@ export class VietqrCallbackAuthGuard implements CanActivate {
     }
 
     const receivedToken = authHeader.slice('Bearer '.length).trim();
-    const staticCallbackToken = process.env.VIETQR_CALLBACK_TOKEN;
+    const staticCallbackToken = this.configService.getCallbackToken();
 
     if (staticCallbackToken && receivedToken === staticCallbackToken) {
       return true;
