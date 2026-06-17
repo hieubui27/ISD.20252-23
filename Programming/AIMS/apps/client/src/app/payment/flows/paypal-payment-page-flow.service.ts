@@ -1,14 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { CartStoreService } from '../../cart/services/cart-store.service';
 import { PlaceOrderPaymentResult } from '../../place-order/models/place-order.models';
-import { CheckoutDraftService } from '../../place-order/services/checkout-draft.service';
 import { PaymentResultDto } from '../../services/payment.service';
+import { PAYMENT_METHOD, PAYMENT_STATUS } from '../constants/payment.constants';
 import {
   PaypalPaymentSession,
   PendingPaymentSession,
 } from '../models/payment-session.models';
-import { OrderResultStorageService } from '../services/order-result-storage.service';
+import { PaymentCompletionService } from '../services/payment-completion.service';
 import { PendingPaymentSessionService } from '../services/pending-payment-session.service';
 import { readPaymentErrorMessage } from '../services/payment-result.utils';
 import { PaymentPageStateStore } from '../stores/payment-page-state.store';
@@ -19,9 +18,7 @@ const PAYPAL_APPROVED_MESSAGE =
 
 @Injectable()
 export class PaypalPaymentPageFlowService {
-  private readonly cartStore = inject(CartStoreService);
-  private readonly checkoutDraftService = inject(CheckoutDraftService);
-  private readonly orderResultStorage = inject(OrderResultStorageService);
+  private readonly paymentCompletion = inject(PaymentCompletionService);
   private readonly paypalPaymentFlow = inject(PaypalPaymentFlowService);
   private readonly pendingPaymentSession = inject(PendingPaymentSessionService);
   private readonly router = inject(Router);
@@ -47,7 +44,7 @@ export class PaypalPaymentPageFlowService {
     }
 
     this.stateStore.patch({
-      selectedMethod: 'PAYPAL',
+      selectedMethod: PAYMENT_METHOD.PAYPAL,
       paypalApproved: true,
       paypalConfirmed: false,
       statusMessage: PAYPAL_APPROVED_MESSAGE,
@@ -100,7 +97,9 @@ export class PaypalPaymentPageFlowService {
   }
 
   private startWhenSessionIsReady(session: PendingPaymentSession): void {
-    if (this.stateStore.snapshot.selectedMethod !== 'PAYPAL') return;
+    if (this.stateStore.snapshot.selectedMethod !== PAYMENT_METHOD.PAYPAL) {
+      return;
+    }
 
     this.paypalPaymentFlow.createOrReusePayment(session).subscribe({
       next: (result) => this.handlePaymentCreated(result),
@@ -168,13 +167,12 @@ export class PaypalPaymentPageFlowService {
     paymentSession: PaypalPaymentSession,
     result: PaymentResultDto,
   ): void {
-    if (!result.success || result.status !== 'SUCCESS') {
+    if (!result.success || result.status !== PAYMENT_STATUS.SUCCESS) {
       this.handleCaptureFailed(result);
       return;
     }
 
-    this.saveOrderResult(paymentSession, result);
-    this.finishSuccessfulPayment();
+    this.finishSuccessfulPayment(paymentSession, result);
   }
 
   private handleCaptureFailed(result: PaymentResultDto): void {
@@ -186,33 +184,29 @@ export class PaypalPaymentPageFlowService {
     });
   }
 
-  private saveOrderResult(
+  private finishSuccessfulPayment(
     paymentSession: PaypalPaymentSession,
     result: PaymentResultDto,
   ): void {
-    this.orderResultStorage.save({
-      paymentMethod: 'PAYPAL',
-      status: 'SUCCESS',
-      transactionId: result.transactionId || paymentSession.orderId,
-      orderId: paymentSession.orderId,
-      invoiceId: paymentSession.invoiceId,
-      completedAt: new Date().toISOString(),
-    });
-  }
-
-  private finishSuccessfulPayment(): void {
-    this.stateStore.patch({
-      isLoading: false,
-      paypalConfirmed: true,
-      paypalApproved: false,
-      statusMessage: 'Payment confirmed successfully! Redirecting...',
-      errorMessage: '',
-    });
-    this.cartStore.clear();
-    this.checkoutDraftService.clear();
-    this.paypalPaymentFlow.clearSession();
-    this.pendingPaymentSession.clear();
-    this.router.navigate(['/order-result']);
+    this.paymentCompletion.complete(
+      {
+        paymentMethod: PAYMENT_METHOD.PAYPAL,
+        status: PAYMENT_STATUS.SUCCESS,
+        transactionId: result.transactionId || paymentSession.orderId,
+        orderId: paymentSession.orderId,
+        invoiceId: paymentSession.invoiceId,
+        completedAt: new Date().toISOString(),
+      },
+      () => this.paypalPaymentFlow.clearSession(),
+      () =>
+        this.stateStore.patch({
+          isLoading: false,
+          paypalConfirmed: true,
+          paypalApproved: false,
+          statusMessage: 'Payment confirmed successfully! Redirecting...',
+          errorMessage: '',
+        }),
+    );
   }
 
   private handleCaptureError(err: unknown): void {

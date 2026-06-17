@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PaymentMethod } from '../../services/payment.service';
+import { PAYMENT_METHOD } from '../constants/payment.constants';
 import {
   CheckoutDraft,
   CheckoutDraftService,
@@ -96,7 +97,7 @@ export class PaymentPageFacade {
       return;
     }
 
-    if (this.stateStore.snapshot.selectedMethod === 'PAYPAL') {
+    if (this.stateStore.snapshot.selectedMethod === PAYMENT_METHOD.PAYPAL) {
       this.paypalPageFlow.confirm();
       return;
     }
@@ -114,7 +115,7 @@ export class PaymentPageFacade {
   }
 
   private startPaymentFlow(): void {
-    if (this.stateStore.snapshot.selectedMethod === 'VIETQR') {
+    if (this.stateStore.snapshot.selectedMethod === PAYMENT_METHOD.VIETQR) {
       this.vietQrPageFlow.start();
       return;
     }
@@ -128,7 +129,7 @@ export class PaymentPageFacade {
     this.paypalPageFlow.discardApprovalSession();
 
     this.stateStore.patch({
-      selectedMethod: 'VIETQR',
+      selectedMethod: PAYMENT_METHOD.VIETQR,
       paypalApproved: false,
       paypalConfirmed: false,
       paypalRedirectUrl: '',
