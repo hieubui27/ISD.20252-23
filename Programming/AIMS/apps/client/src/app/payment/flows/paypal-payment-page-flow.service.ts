@@ -14,7 +14,7 @@ import { PaymentPageStateStore } from '../stores/payment-page-state.store';
 import { PaypalPaymentFlowService } from './paypal-payment-flow.service';
 
 const PAYPAL_APPROVED_MESSAGE =
-  'PayPal payment approved. Click "Confirm Payment" to complete your purchase.';
+  'PayPal payment approved. Confirming your payment...';
 
 @Injectable()
 export class PaypalPaymentPageFlowService {
@@ -58,7 +58,10 @@ export class PaypalPaymentPageFlowService {
           'Your payment session has expired or could not be found. Please return to the product catalog and try again.',
         statusMessage: '',
       });
+      return;
     }
+
+    this.capture();
   }
 
   discardApprovalSession(): void {

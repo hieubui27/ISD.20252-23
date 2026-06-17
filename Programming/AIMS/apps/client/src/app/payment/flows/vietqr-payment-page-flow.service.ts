@@ -208,6 +208,8 @@ export class VietQrPaymentPageFlowService {
     if (!successfulSnapshot) return null;
 
     const transaction = successfulSnapshot.latestTransaction;
+    const completedAt =
+      transaction?.transactionDateTime || new Date().toISOString();
 
     return {
       paymentMethod: PAYMENT_METHOD.VIETQR,
@@ -219,7 +221,11 @@ export class VietQrPaymentPageFlowService {
         successfulSnapshot.payment.orderId,
       orderId: successfulSnapshot.payment.orderId,
       invoiceId: successfulSnapshot.payment.invoiceId,
-      completedAt: transaction?.transactionDateTime || new Date().toISOString(),
+      completedAt,
+      totalAmount: successfulSnapshot.payment.totalAmount ?? 0,
+      transactionContent:
+        transaction?.transactionContent || 'Purchase of Media Product',
+      transactionDateTime: completedAt,
     };
   }
 

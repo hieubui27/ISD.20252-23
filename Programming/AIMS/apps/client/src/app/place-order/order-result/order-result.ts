@@ -5,10 +5,7 @@ import { AimsButtonComponent } from '../../shared/ui/aims-button/aims-button';
 import { AimsHeaderComponent } from '../../shared/layout/aims-header/aims-header';
 import { VietQrPaymentFlowService } from '../../payment/flows/vietqr-payment-flow.service';
 import { CheckoutDraftService } from '../services/checkout-draft.service';
-import {
-  ORDER_RESULT_STATE_KEY,
-  OrderResultState,
-} from './order-result-state';
+import { ORDER_RESULT_STATE_KEY, OrderResultState } from './order-result-state';
 
 @Component({
   selector: 'app-order-result',
@@ -33,11 +30,17 @@ export class OrderResultComponent implements OnInit {
     this.snapshot?.payment.orderId ||
     'AIMS-PENDING';
 
-  readonly orderDate = new Intl.DateTimeFormat('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date());
+  // General order info + transaction info shown after a successful payment.
+  readonly customerName = this.orderResult?.customerName ?? '';
+  readonly phoneNumber = this.orderResult?.phoneNumber ?? '';
+  readonly province = this.orderResult?.province ?? '';
+  readonly streetAddress = this.orderResult?.streetAddress ?? '';
+  readonly totalAmount = this.orderResult?.totalAmount ?? 0;
+  readonly transactionContent = this.orderResult?.transactionContent ?? '';
+  readonly transactionDate =
+    this.orderResult?.transactionDateTime ??
+    this.orderResult?.completedAt ??
+    '';
 
   ngOnInit(): void {
     const hasSuccessfulVietQr =

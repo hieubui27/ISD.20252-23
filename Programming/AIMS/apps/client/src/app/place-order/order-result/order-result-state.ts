@@ -9,4 +9,13 @@ export interface OrderResultState {
   orderId: string;
   invoiceId: string;
   completedAt: string;
+  // General order info (Table 3 - output after a successful payment).
+  customerName?: string;
+  phoneNumber?: string;
+  province?: string;
+  streetAddress?: string;
+  totalAmount?: number;
+  // Transaction info.
+  transactionContent?: string;
+  transactionDateTime?: string;
 }

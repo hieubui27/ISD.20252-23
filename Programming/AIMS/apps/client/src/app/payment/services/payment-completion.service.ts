@@ -20,7 +20,7 @@ export class PaymentCompletionService {
     afterSave?: () => void,
   ): void {
     if (orderResult) {
-      this.orderResultStorage.save(orderResult);
+      this.orderResultStorage.save(this.withOrderDetails(orderResult));
     }
     afterSave?.();
     this.cartStore.clear();
@@ -28,5 +28,26 @@ export class PaymentCompletionService {
     cleanup?.();
     this.pendingPaymentSession.clear();
     this.router.navigate(['/order-result']);
+  }
+
+  private withOrderDetails(orderResult: OrderResultState): OrderResultState {
+    const deliveryInfo = this.checkoutDraftService.get()?.deliveryInfo;
+    const completedAt = orderResult.completedAt;
+
+    return {
+      ...orderResult,
+      customerName: orderResult.customerName ?? deliveryInfo?.receiverName ?? '',
+      phoneNumber: orderResult.phoneNumber ?? deliveryInfo?.phoneNumber ?? '',
+      province: orderResult.province ?? deliveryInfo?.province ?? '',
+      streetAddress:
+        orderResult.streetAddress ?? deliveryInfo?.streetAddress ?? '',
+      totalAmount:
+        orderResult.totalAmount ??
+        this.pendingPaymentSession.session?.totalAmount ??
+        0,
+      transactionContent:
+        orderResult.transactionContent ?? 'Purchase of Media Product',
+      transactionDateTime: orderResult.transactionDateTime ?? completedAt,
+    };
   }
 }

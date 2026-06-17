@@ -16,15 +16,12 @@
         <p>Discover products loaded from the AIMS backend.</p>
       </div>
 
-      <span>{{ availableProducts().length }} items</span>
+      <!-- Reflects the active category/search filter, not the whole catalog. -->
+      <span>{{ totalCount() }} items</span>
     </section>
 
-    @if (isLoading()) {
-    <app-status-message tone="info">Loading products...</app-status-message>
-    } @else if (errorMessage()) {
+    @if (errorMessage()) {
     <app-status-message tone="error">{{ errorMessage() }}</app-status-message>
-    } @else if (availableProducts().length === 0) {
-    <app-status-message tone="info">No products available.</app-status-message>
     } @else {
     <div class="catalog-layout">
       <aside class="filters-panel" aria-label="Product filters">
@@ -32,7 +29,7 @@
 
         <section>
           <h3>Categories</h3>
-          @for (type of productTypes(); track type) {
+          @for (type of productTypes; track type) {
           <label class="filter-check" [class.filter-check--active]="isTypeSelected(type)">
             <input
               type="checkbox"
@@ -59,7 +56,11 @@
       <section class="catalog-column">
         <div class="catalog-toolbar">
           <div class="catalog-toolbar__meta">
-            <span>Showing {{ filteredProducts().length }} results</span>
+            @if (totalCount() === 0) {
+            <span>Showing 0 results</span>
+            } @else {
+            <span>Showing {{ rangeStart() }}–{{ rangeEnd() }} of {{ totalCount() }} results</span>
+            }
             <label>
               Sort by:
               <select
@@ -76,16 +77,25 @@
           </div>
         </div>
 
-        @if (filteredProducts().length === 0) {
+        @if (isLoading()) {
+        <app-status-message tone="info">Loading products...</app-status-message>
+        } @else if (products().length === 0) {
         <app-status-message tone="info">
           No products match the current filter.
         </app-status-message>
         } @else {
         <section class="product-grid" aria-label="Product list">
-          @for (product of filteredProducts(); track product.id) {
+          @for (product of products(); track product.id) {
           <app-product-card [product]="product" />
           }
         </section>
+
+        <app-aims-pagination
+          [currentPage]="currentPage()"
+          [totalPages]="totalPages()"
+          [infoText]="''"
+          (pageChange)="onPageChange($event)"
+        ></app-aims-pagination>
         }
       </section>
     </div>

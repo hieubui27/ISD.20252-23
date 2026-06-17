@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Resend } from 'resend';
 import {
   sendMailDto,
   SendInvitationDto,
@@ -11,35 +11,41 @@ import { getOtpCodeTemplate } from './templates/get-otp-code.template';
 
 @Injectable()
 export class MailService {
-  constructor(private readonly configService: ConfigService) {}
-  emailTransport() {
-    const transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('EMAIL_HOST'),
-      port: 587,
-      secure: false,
-      auth: {
-        user: this.configService.get<string>('EMAIL_USER'),
-        pass: this.configService.get<string>('EMAIL_PASSWORD'),
-      },
-    });
-    return transporter;
+  private readonly resend: Resend;
+  private readonly logger = new Logger(MailService.name);
+
+  constructor(private readonly configService: ConfigService) {
+    // Requires RESEND_API_KEY in .env
+    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+    this.resend = new Resend(apiKey);
   }
 
   async sendMail(dto: sendMailDto) {
-    const recipientEmail = dto.recipientEmail.join(', ');
-    const transporter = this.emailTransport();
-    const options: nodemailer.SendMailOptions = {
-      from: this.configService.get<string>('EMAIL_USER'),
-      to: recipientEmail,
-      subject: dto.subject,
-      html: dto.html,
-      text: dto.text,
-    };
+    // Sử dụng domain cá nhân đã verify trên Resend (vd: no-reply@aims.io.vn)
+    // Để gửi được cho tất cả mọi người, biến RESEND_FROM_EMAIL phải dùng domain bạn đã verify.
+    const fromEmail =
+      this.configService.get<string>('RESEND_FROM_EMAIL') ||
+      'no-reply@aims.io.vn';
+
     try {
-      await transporter.sendMail(options);
-      console.log(`Mail sent successfully to: ${recipientEmail}`);
+      const { data, error } = await this.resend.emails.send({
+        from: `AIMS System <${fromEmail}>`,
+        to: dto.recipientEmail,
+        subject: dto.subject,
+        html: dto.html,
+        text: dto.text,
+      });
+
+      if (error) {
+        this.logger.error(`Resend API Error: ${JSON.stringify(error)}`);
+        return;
+      }
+
+      this.logger.log(
+        `Mail sent successfully to: ${dto.recipientEmail.join(', ')}. ID: ${data?.id}`,
+      );
     } catch (error) {
-      console.error(`Send mail error: ${error}`);
+      this.logger.error(`Send mail exception: ${error}`);
     }
   }
 

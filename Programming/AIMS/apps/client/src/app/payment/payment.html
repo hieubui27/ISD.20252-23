@@ -8,9 +8,9 @@
 
   <main class="payment-page__main">
     <section class="payment-heading">
-      <h1>Complete Your Purchase</h1>
+      <h1>Invoice Screen</h1>
       <p>
-        Review your order details and select a payment method to finalize your
+        Review your invoice details and select a payment method to finalize your
         transaction securely.
       </p>
     </section>
@@ -36,34 +36,74 @@
                 stroke-linecap="round"
               />
             </svg>
-            Invoice Summary
+            Invoice
           </h2>
+
+          <ul class="invoice-items">
+            @for (item of state.order.items; track item; let i = $index) {
+            <li class="invoice-item">
+              <div class="invoice-item__head">
+                <span class="invoice-item__no">{{ i + 1 }}</span>
+                <strong class="invoice-item__title">{{ item.name }}</strong>
+              </div>
+              <div class="invoice-item__line">
+                <span>Price</span>
+                <span class="invoice-num"
+                  >{{ item.unitPrice | number: '1.0-0' }} VND</span
+                >
+              </div>
+              <div class="invoice-item__line">
+                <span>Quantity</span>
+                <span class="invoice-num">{{
+                  item.quantity | number: '1.0-0'
+                }}</span>
+              </div>
+              <div class="invoice-item__line">
+                <span>Amount</span>
+                <span class="invoice-num"
+                  >{{ item.unitPrice * item.quantity | number: '1.0-0' }}
+                  VND</span
+                >
+              </div>
+            </li>
+            }
+          </ul>
 
           <div class="summary-list">
             <div>
-              <span>Subtotal</span>
-              <strong>{{ state.order.subtotal | number }} VND</strong>
+              <span>Subtotal before VAT</span>
+              <strong class="invoice-num"
+                >{{ state.order.subtotal | number: '1.0-0' }} VND</strong
+              >
             </div>
             <div>
-              <span>VAT ({{ state.order.vatRate * 100 }}%)</span>
-              <strong
-                >{{ state.order.subtotal * state.order.vatRate | number }}
-                VND</strong
+              <span
+                >VAT ({{ state.order.vatRate * 100 | number: '1.0-0' }}%)</span
+              >
+              <strong class="invoice-num"
+                >{{ state.order.subtotal * state.order.vatRate | number:
+                '1.0-0' }} VND</strong
+              >
+            </div>
+            <div>
+              <span>Subtotal</span>
+              <strong class="invoice-num"
+                >{{ state.order.subtotal * (1 + state.order.vatRate) | number:
+                '1.0-0' }} VND</strong
               >
             </div>
             <div>
               <span>Shipping Fee</span>
-              <strong class="summary-list__accent">
-                {{ state.order.shippingFee > 0 ? (state.order.shippingFee |
-                number) + ' VND' : 'Free' }}
-              </strong>
+              <strong class="invoice-num summary-list__accent"
+                >{{ state.order.shippingFee | number: '1.0-0' }} VND</strong
+              >
             </div>
           </div>
 
           <div class="summary-total">
-            <p>Total Amount</p>
+            <p>Total</p>
             <span>Includes taxes and fees</span>
-            <strong>{{ state.order.total | number }} VND</strong>
+            <strong>{{ state.order.total | number: '1.0-0' }} VND</strong>
           </div>
         </section>
 

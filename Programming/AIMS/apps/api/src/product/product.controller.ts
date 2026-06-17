@@ -6,12 +6,17 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UploadedFile,
   UseInterceptors,
   BadRequestException,
   Req,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ProductQueryParams,
+  ProductSortOption,
+} from './domain/repositories/product-query.repository.interface';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -59,9 +64,78 @@ export class ProductController {
     return this.productService.create(createProductDto, user.userId);
   }
 
+  /**
+   * Customer catalog listing.
+   *
+   * Filtering (category + search), sorting and pagination are all resolved on
+   * the server so the returned page, its item count and the total count stay
+   * consistent with the active filter.
+   *
+   * Query params:
+   *  - category: one category, or several (repeated `?category=` or comma-separated).
+   *  - q / search: free-text title search.
+   *  - sort: recommended | priceAsc | priceDesc | titleAsc.
+   *  - cursor: id of the last item of the previous page (keyset / next-page flow).
+   *  - page: 1-based page index for direct page jumps.
+   *  - limit: page size (defaults to 20; omit/0 returns all matching products).
+   */
   @Get()
-  findAll() {
-    return this.getProductsListUseCase.execute();
+  findAll(
+    @Query('category') category?: string | string[],
+    @Query('q') q?: string,
+    @Query('search') search?: string,
+    @Query('sort') sort?: string,
+    @Query('cursor') cursor?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const params: ProductQueryParams = {
+      categories: this.parseCategories(category),
+      search: (q ?? search)?.trim() || undefined,
+      sort: this.parseSort(sort),
+      cursor: cursor?.trim() || undefined,
+      page: this.parsePositiveInt(page),
+      limit: this.parsePositiveInt(limit),
+    };
+
+    return this.getProductsListUseCase.execute(params);
+  }
+
+  /** Normalizes the category query param into a clean list. */
+  private parseCategories(value?: string | string[]): string[] | undefined {
+    if (value == null) {
+      return undefined;
+    }
+
+    const raw = Array.isArray(value) ? value : [value];
+    const categories = raw
+      .flatMap((entry) => entry.split(','))
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+
+    return categories.length > 0 ? categories : undefined;
+  }
+
+  /** Validates the sort query param, falling back to the default order. */
+  private parseSort(value?: string): ProductSortOption | undefined {
+    const allowed: ProductSortOption[] = [
+      'recommended',
+      'priceAsc',
+      'priceDesc',
+      'titleAsc',
+    ];
+    return allowed.includes(value as ProductSortOption)
+      ? (value as ProductSortOption)
+      : undefined;
+  }
+
+  /** Parses a positive integer query param, returning undefined when invalid. */
+  private parsePositiveInt(value?: string): number | undefined {
+    if (value == null) {
+      return undefined;
+    }
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
   }
 
   @Get('logs')

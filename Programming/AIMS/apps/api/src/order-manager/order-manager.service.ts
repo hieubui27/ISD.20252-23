@@ -185,10 +185,7 @@ export class OrderManagerService implements IOrderManagerService {
 
     // Handle refund logic
     const safeReason = reason || 'Rejected by manager without specific reason';
-    await this.paymentService.handleRejectedOrderRefund(
-      order.orderId,
-      safeReason,
-    );
+    await this.paymentService.refundPaidOrder(order.orderId, safeReason);
 
     // Send email
     if (order.email) {

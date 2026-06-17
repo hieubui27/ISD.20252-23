@@ -280,10 +280,9 @@ describe('PaymentService', () => {
     expect(
       mockPaypalStaleTransactionCleanup.expireStaleTransactions,
     ).toHaveBeenCalled();
-    expect(mockGatewayOrderIdService.ensureForCreatePayment).toHaveBeenCalledWith(
-      PaymentMethod.VIETQR,
-      transaction,
-    );
+    expect(
+      mockGatewayOrderIdService.ensureForCreatePayment,
+    ).toHaveBeenCalledWith(PaymentMethod.VIETQR, transaction);
     expect(result.status).toBe(PaymentStatus.PENDING);
     expect(result.qrCode).toBe('qr-code-data');
   });
@@ -345,7 +344,7 @@ describe('PaymentService', () => {
       status: PaymentStatus.REFUND_REQUIRED,
     });
 
-    const result = await service.handleRejectedOrderRefund(
+    const result = await service.refundPaidOrder(
       'ORDER_DEMO_001',
       'Out of stock',
     );
@@ -360,7 +359,7 @@ describe('PaymentService', () => {
     expect(result).toEqual({
       status: PaymentStatus.REFUND_REQUIRED,
       orderId: 'ORDER_DEMO_001',
-      rejectReason: 'Out of stock',
+      reason: 'Out of stock',
       message: 'Refund required - check payment method for processing details',
     });
   });
@@ -597,10 +596,9 @@ describe('PaymentGatewayOrderIdService', () => {
       'payment-transaction-id',
     );
 
-    expect(mockPaymentTransactionService.updateGatewayOrderId).toHaveBeenCalledWith(
-      'payment-transaction-id',
-      expectedGatewayOrderId,
-    );
+    expect(
+      mockPaymentTransactionService.updateGatewayOrderId,
+    ).toHaveBeenCalledWith('payment-transaction-id', expectedGatewayOrderId);
     expect(result).toBe(expectedGatewayOrderId);
   });
 
@@ -610,7 +608,9 @@ describe('PaymentGatewayOrderIdService', () => {
       gatewayOrderId: 'PAYPAL-ORDER-ID',
     });
 
-    expect(mockPaymentTransactionService.updateGatewayOrderId).not.toHaveBeenCalled();
+    expect(
+      mockPaymentTransactionService.updateGatewayOrderId,
+    ).not.toHaveBeenCalled();
     expect(result).toBe('PAYPAL-ORDER-ID');
   });
 
