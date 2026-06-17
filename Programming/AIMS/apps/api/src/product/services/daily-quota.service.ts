@@ -1,79 +1,111 @@
-import { Injectable, HttpException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import {
+  Injectable,
+  Inject,
+  HttpException,
+  BadRequestException,
+} from '@nestjs/common';
 import { isTodayUTC } from '../../common/utils/date.util';
+import {
+  IDailyQuotaRepositoryToken,
+  IDailyQuotaRepository,
+  UserQuotaData,
+} from '../interfaces/daily-quota.repository.interface';
+import { IDailyQuotaService } from '../interfaces/daily-quota.service.interface';
 
+/**
+ * DailyQuotaService — Business logic ONLY for daily deletion quota management.
+ *
+ * [SOLID Fix Applied]
+ * Fixed Principle: SRP & DIP
+ * What changed: Removed direct PrismaService dependency. All data access is now
+ *   delegated to IDailyQuotaRepository (injected via token). This class now has
+ *   only ONE reason to change: when quota business rules change.
+ * Why: Previously, this class mixed business logic (quota calculation, limit checking)
+ *   with data access (Prisma queries). Changes to storage strategy (e.g., Redis caching)
+ *   would have forced changes to business logic code. Now, storage can be swapped by
+ *   providing a different IDailyQuotaRepository implementation without touching this class.
+ *
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: Data Coupling because it interacts with the repository using a focused
+ *   DTO (UserQuotaData) containing only the fields it needs. Functional Cohesion because
+ *   every method relates to a single concern: enforcing daily deletion quota rules.
+ */
 @Injectable()
-export class DailyQuotaService {
-  constructor(private readonly prisma: PrismaService) {}
+export class DailyQuotaService implements IDailyQuotaService {
+  /**
+   * Maximum number of product deletions allowed per user per day.
+   * Extracted from hard-coded magic number to named constant (OCP fix).
+   */
+  private static readonly MAX_DAILY_DELETES = 20;
 
-  private calculateCurrentDeletes(user: any): number {
-    if (isTodayUTC(user.lastDeleteDate)) {
-      return user.dailyDeletes;
+  constructor(
+    @Inject(IDailyQuotaRepositoryToken)
+    private readonly quotaRepository: IDailyQuotaRepository,
+  ) { }
+
+  private calculateCurrentDeletes(quotaData: UserQuotaData): number {
+    if (isTodayUTC(quotaData.lastDeleteDate)) {
+      return quotaData.dailyDeletes;
     }
     return 0; // Reset for a new day
   }
 
   async checkAndDeleteQuota(userId: string): Promise<void> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: BigInt(userId) },
-    });
-    if (!user) throw new BadRequestException('User not found');
+    const quotaData = await this.quotaRepository.findUserQuota(userId);
+    if (!quotaData) throw new BadRequestException('User not found');
 
-    const currentDeletes = this.calculateCurrentDeletes(user);
+    const currentDeletes = this.calculateCurrentDeletes(quotaData);
 
-    if (currentDeletes >= 20) {
+    if (currentDeletes >= DailyQuotaService.MAX_DAILY_DELETES) {
       throw new HttpException(
-        'Exceeded daily product deletion limit (20)',
+        `Exceeded daily product deletion limit (${DailyQuotaService.MAX_DAILY_DELETES})`,
         429,
       );
     }
   }
 
   async incrementQuota(userId: string): Promise<void> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: BigInt(userId) },
-    });
-    if (!user) return;
+    const quotaData = await this.quotaRepository.findUserQuota(userId);
+    if (!quotaData) return;
 
-    const currentDeletes = this.calculateCurrentDeletes(user);
+    const currentDeletes = this.calculateCurrentDeletes(quotaData);
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    await this.prisma.user.update({
-      where: { id: BigInt(userId) },
-      data: { dailyDeletes: currentDeletes + 1, lastDeleteDate: today },
-    });
+    await this.quotaRepository.updateUserQuota(
+      userId,
+      currentDeletes + 1,
+      today,
+    );
   }
 
   async checkBulkQuota(userId: string, count: number): Promise<void> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: BigInt(userId) },
-    });
-    if (!user) throw new BadRequestException('User not found');
+    const quotaData = await this.quotaRepository.findUserQuota(userId);
+    if (!quotaData) throw new BadRequestException('User not found');
 
-    const currentDeletes = this.calculateCurrentDeletes(user);
+    const currentDeletes = this.calculateCurrentDeletes(quotaData);
+    const maxDeletes = DailyQuotaService.MAX_DAILY_DELETES;
 
-    if (currentDeletes + count > 20) {
+    if (currentDeletes + count > maxDeletes) {
       throw new HttpException(
-        `Exceeded daily product deletion limit (20). You are trying to delete ${count} items but you only have ${20 - currentDeletes} left.`,
+        `Exceeded daily product deletion limit (${maxDeletes}). You are trying to delete ${count} items but you only have ${maxDeletes - currentDeletes} left.`,
         429,
       );
     }
   }
 
   async incrementBulkQuota(userId: string, count: number): Promise<void> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: BigInt(userId) },
-    });
-    if (!user) return;
+    const quotaData = await this.quotaRepository.findUserQuota(userId);
+    if (!quotaData) return;
 
-    const currentDeletes = this.calculateCurrentDeletes(user);
+    const currentDeletes = this.calculateCurrentDeletes(quotaData);
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    await this.prisma.user.update({
-      where: { id: BigInt(userId) },
-      data: { dailyDeletes: currentDeletes + count, lastDeleteDate: today },
-    });
+    await this.quotaRepository.updateUserQuota(
+      userId,
+      currentDeletes + count,
+      today,
+    );
   }
 }

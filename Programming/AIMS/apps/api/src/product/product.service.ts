@@ -6,9 +6,10 @@ import {
 } from '@nestjs/common';
 import { IProductLogServiceToken } from './interfaces/product-log.service.interface';
 import type { IProductLogService } from './interfaces/product-log.service.interface';
+import { IDailyQuotaServiceToken } from './interfaces/daily-quota.service.interface';
+import type { IDailyQuotaService } from './interfaces/daily-quota.service.interface';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { DailyQuotaService } from './services/daily-quota.service';
 import { ProductRepository } from './product.repository';
 import { canHardDeleteProduct } from './utils/product-validation.util';
 
@@ -18,7 +19,8 @@ export class ProductService {
     private readonly repository: ProductRepository,
     @Inject(IProductLogServiceToken)
     private readonly productLogService: IProductLogService,
-    private readonly dailyQuotaService: DailyQuotaService,
+    @Inject(IDailyQuotaServiceToken)
+    private readonly dailyQuotaService: IDailyQuotaService,
   ) {}
 
   async create(dto: CreateProductDto, userId: string) {

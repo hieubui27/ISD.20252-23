@@ -18,6 +18,9 @@ import { CdHandler } from './product-handler/cd.handler';
 import { DvdHandler } from './product-handler/dvd.handler';
 import { NewspaperHandler } from './product-handler/newspaper.handler';
 import { DailyQuotaService } from './services/daily-quota.service';
+import { DailyQuotaRepository } from './services/daily-quota.repository';
+import { IDailyQuotaServiceToken } from './interfaces/daily-quota.service.interface';
+import { IDailyQuotaRepositoryToken } from './interfaces/daily-quota.repository.interface';
 import { ProductRepository } from './product.repository';
 
 /**
@@ -29,7 +32,7 @@ import { ProductRepository } from './product.repository';
  * OCP: Satisfied. Repository implementation can be swapped by changing DI binding.
  * LSP: Satisfied. Any ProductQueryRepository implementation can replace PrismaProductRepository.
  * ISP: Satisfied. UC235 is bound to query repository operations only.
- * DIP: Satisfied. The module binds PRODUCT_QUERY_REPOSITORY to the Prisma implementation.
+ * DIP: Satisfied. The module binds all service/repository tokens to their implementations.
  *
  * Improvement Direction:
  * Keep module wiring declarative and avoid putting business or database logic here.
@@ -54,6 +57,15 @@ import { ProductRepository } from './product.repository';
       useClass: ProductLogService,
     },
     DailyQuotaService,
+    DailyQuotaRepository,
+    {
+      provide: IDailyQuotaServiceToken,
+      useExisting: DailyQuotaService,
+    },
+    {
+      provide: IDailyQuotaRepositoryToken,
+      useExisting: DailyQuotaRepository,
+    },
     BookHandler,
     CdHandler,
     DvdHandler,
