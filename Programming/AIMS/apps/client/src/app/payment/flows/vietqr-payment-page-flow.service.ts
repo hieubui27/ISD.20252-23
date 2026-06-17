@@ -1,13 +1,12 @@
 import { Injectable, inject } from '@angular/core';
-import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { CartStoreService } from '../../cart/services/cart-store.service';
-import { CheckoutDraftService } from '../../place-order/services/checkout-draft.service';
+import { OrderResultState } from '../../place-order/order-result/order-result-state';
+import { PAYMENT_METHOD, PAYMENT_STATUS } from '../constants/payment.constants';
 import {
   VietQrPaymentInput,
   VietQrPaymentSnapshot,
 } from '../models/vietqr-payment.models';
-import { OrderResultStorageService } from '../services/order-result-storage.service';
+import { PaymentCompletionService } from '../services/payment-completion.service';
 import { PendingPaymentSessionService } from '../services/pending-payment-session.service';
 import { readPaymentErrorMessage } from '../services/payment-result.utils';
 import { QrImageService } from '../services/qr-image.service';
@@ -16,12 +15,9 @@ import { VietQrPaymentFlowService } from './vietqr-payment-flow.service';
 
 @Injectable()
 export class VietQrPaymentPageFlowService {
-  private readonly cartStore = inject(CartStoreService);
-  private readonly checkoutDraftService = inject(CheckoutDraftService);
-  private readonly orderResultStorage = inject(OrderResultStorageService);
+  private readonly paymentCompletion = inject(PaymentCompletionService);
   private readonly pendingPaymentSession = inject(PendingPaymentSessionService);
   private readonly qrImage = inject(QrImageService);
-  private readonly router = inject(Router);
   private readonly stateStore = inject(PaymentPageStateStore);
   private readonly vietQrPaymentFlow = inject(VietQrPaymentFlowService);
 
@@ -111,7 +107,9 @@ export class VietQrPaymentPageFlowService {
   }
 
   private startWhenSessionIsReady(): void {
-    if (this.stateStore.snapshot.selectedMethod !== 'VIETQR') return;
+    if (this.stateStore.snapshot.selectedMethod !== PAYMENT_METHOD.VIETQR) {
+      return;
+    }
 
     const paymentToResume =
       this.pendingPaymentSession.consumeVietQrPaymentToResume();
@@ -142,7 +140,9 @@ export class VietQrPaymentPageFlowService {
   }
 
   private handlePaymentSnapshot(snapshot: VietQrPaymentSnapshot): void {
-    if (this.stateStore.snapshot.selectedMethod !== 'VIETQR') return;
+    if (this.stateStore.snapshot.selectedMethod !== PAYMENT_METHOD.VIETQR) {
+      return;
+    }
 
     this.stateStore.patch({ isLoading: false, statusMessage: '' });
     this.applySnapshot(snapshot);
@@ -151,7 +151,7 @@ export class VietQrPaymentPageFlowService {
   private handleConfirmationSnapshot(snapshot: VietQrPaymentSnapshot): void {
     this.applySnapshot(snapshot);
 
-    if (snapshot.latestTransaction?.status !== 'SUCCESS') {
+    if (snapshot.latestTransaction?.status !== PAYMENT_STATUS.SUCCESS) {
       this.stateStore.patch({
         isLoading: false,
         statusMessage:
@@ -169,12 +169,9 @@ export class VietQrPaymentPageFlowService {
   }
 
   private finishSuccessfulPayment(snapshot?: VietQrPaymentSnapshot): void {
-    this.saveOrderResult(snapshot);
-    this.cartStore.clear();
-    this.checkoutDraftService.clear();
-    this.pendingPaymentSession.clear();
-    this.vietQrPaymentFlow.clearSnapshot();
-    this.router.navigate(['/order-result']);
+    this.paymentCompletion.complete(this.buildOrderResult(snapshot), () =>
+      this.vietQrPaymentFlow.clearSnapshot(),
+    );
   }
 
   private handleStartError(err: unknown): void {
@@ -200,24 +197,23 @@ export class VietQrPaymentPageFlowService {
     });
   }
 
-  private saveOrderResult(snapshot?: VietQrPaymentSnapshot): void {
+  private buildOrderResult(
+    snapshot?: VietQrPaymentSnapshot,
+  ): OrderResultState | null {
     const successfulSnapshot =
       snapshot ??
       this.currentSnapshot ??
       this.vietQrPaymentFlow.currentSnapshot;
 
-    if (!successfulSnapshot) return;
+    if (!successfulSnapshot) return null;
 
     const transaction = successfulSnapshot.latestTransaction;
-    // Captured here (before the draft is cleared) so the order-result screen can
-    // show the customer's general order info per the spec.
-    const deliveryInfo = this.checkoutDraftService.get()?.deliveryInfo;
     const completedAt =
       transaction?.transactionDateTime || new Date().toISOString();
 
-    this.orderResultStorage.save({
-      paymentMethod: 'VIETQR',
-      status: 'SUCCESS',
+    return {
+      paymentMethod: PAYMENT_METHOD.VIETQR,
+      status: PAYMENT_STATUS.SUCCESS,
       transactionId:
         transaction?.transactionId ||
         transaction?.gatewayOrderId ||
@@ -226,15 +222,11 @@ export class VietQrPaymentPageFlowService {
       orderId: successfulSnapshot.payment.orderId,
       invoiceId: successfulSnapshot.payment.invoiceId,
       completedAt,
-      customerName: deliveryInfo?.receiverName ?? '',
-      phoneNumber: deliveryInfo?.phoneNumber ?? '',
-      province: deliveryInfo?.province ?? '',
-      streetAddress: deliveryInfo?.streetAddress ?? '',
       totalAmount: successfulSnapshot.payment.totalAmount ?? 0,
       transactionContent:
         transaction?.transactionContent || 'Purchase of Media Product',
       transactionDateTime: completedAt,
-    });
+    };
   }
 
   private listenForUpdates(): void {
@@ -245,7 +237,10 @@ export class VietQrPaymentPageFlowService {
         this.applySnapshot(snapshot);
         const status = snapshot.latestTransaction?.status;
 
-        if (status === 'FAILED' || status === 'REFUND_REQUIRED') {
+        if (
+          status === PAYMENT_STATUS.FAILED ||
+          status === PAYMENT_STATUS.REFUND_REQUIRED
+        ) {
           this.stateStore.patch({
             errorMessage: 'Payment could not be completed.',
           });
@@ -257,9 +252,10 @@ export class VietQrPaymentPageFlowService {
   private applySnapshot(snapshot: VietQrPaymentSnapshot): void {
     this.currentSnapshot = snapshot;
     this.stateStore.patch({
-      isVietQrSuccess: snapshot.latestTransaction?.status === 'SUCCESS',
+      isVietQrSuccess:
+        snapshot.latestTransaction?.status === PAYMENT_STATUS.SUCCESS,
       statusMessage:
-        snapshot.latestTransaction?.status === 'SUCCESS'
+        snapshot.latestTransaction?.status === PAYMENT_STATUS.SUCCESS
           ? ''
           : this.stateStore.snapshot.statusMessage,
     });

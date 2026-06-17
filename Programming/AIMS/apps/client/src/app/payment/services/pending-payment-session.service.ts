@@ -5,6 +5,7 @@ import {
   CheckoutDraftService,
 } from '../../place-order/services/checkout-draft.service';
 import { PlaceOrderApiService } from '../../place-order/services/place-order-api.service';
+import { PAYMENT_METHOD } from '../constants/payment.constants';
 import { PendingPaymentSession } from '../models/payment-session.models';
 import { PaymentSessionStorageService } from './payment-session-storage.service';
 
@@ -63,7 +64,7 @@ export class PendingPaymentSessionService {
         .createPayment({
           items: this.checkoutDraftService.toPlaceOrderItems(checkoutDraft),
           deliveryInfo: checkoutDraft.deliveryInfo,
-          paymentMethod: 'VIETQR',
+          paymentMethod: PAYMENT_METHOD.VIETQR,
         })
         .subscribe({
           next: (payment) => {

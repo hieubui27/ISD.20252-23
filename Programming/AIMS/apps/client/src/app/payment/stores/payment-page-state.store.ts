@@ -1,9 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import {
-  OrderSummary,
-  PaymentMethod,
-} from '../../services/payment.service';
+import { OrderSummary, PaymentMethod } from '../../services/payment.service';
+import { PAYMENT_METHOD } from '../constants/payment.constants';
 
 export interface PaymentPageState {
   isLoading: boolean;
@@ -35,7 +33,7 @@ const INITIAL_STATE: PaymentPageState = {
   cartItemCount: 0,
   qrImageUrl: '',
   isVietQrSuccess: false,
-  selectedMethod: 'VIETQR',
+  selectedMethod: PAYMENT_METHOD.VIETQR,
   paypalRedirectUrl: '',
   paypalApproved: false,
   paypalConfirmed: false,
