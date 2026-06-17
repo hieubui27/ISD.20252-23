@@ -20,18 +20,42 @@
       <p>Thank you for your purchase. Your order has been placed successfully and is now being processed.</p>
 
       <section class="order-details">
-        <h2>Order Details</h2>
+        <h2>Order Information</h2>
+        <div>
+          <span>Customer Name</span>
+          <strong>{{ customerName || '—' }}</strong>
+        </div>
+        <div>
+          <span>Phone Number</span>
+          <strong>{{ phoneNumber || '—' }}</strong>
+        </div>
+        <div>
+          <span>Province</span>
+          <strong>{{ province || '—' }}</strong>
+        </div>
+        <div>
+          <span>Address</span>
+          <strong>{{ streetAddress || '—' }}</strong>
+        </div>
+        <div>
+          <span>Total Amount</span>
+          <strong>{{ totalAmount | number: '1.0-0' }} VND</strong>
+        </div>
+      </section>
+
+      <section class="order-details">
+        <h2>Transaction Information</h2>
         <div>
           <span>Transaction ID</span>
           <strong>#{{ transactionId }}</strong>
         </div>
         <div>
-          <span>Order Date</span>
-          <strong>{{ orderDate }}</strong>
+          <span>Transaction Content</span>
+          <strong>{{ transactionContent || '—' }}</strong>
         </div>
         <div>
-          <span>Estimated Delivery</span>
-          <strong>Digital Delivery - Immediate</strong>
+          <span>Transaction Date</span>
+          <strong>{{ (transactionDate | date: 'dd/MM/yyyy') || '—' }}</strong>
         </div>
       </section>
 

@@ -209,6 +209,11 @@ export class VietQrPaymentPageFlowService {
     if (!successfulSnapshot) return;
 
     const transaction = successfulSnapshot.latestTransaction;
+    // Captured here (before the draft is cleared) so the order-result screen can
+    // show the customer's general order info per the spec.
+    const deliveryInfo = this.checkoutDraftService.get()?.deliveryInfo;
+    const completedAt =
+      transaction?.transactionDateTime || new Date().toISOString();
 
     this.orderResultStorage.save({
       paymentMethod: 'VIETQR',
@@ -220,7 +225,15 @@ export class VietQrPaymentPageFlowService {
         successfulSnapshot.payment.orderId,
       orderId: successfulSnapshot.payment.orderId,
       invoiceId: successfulSnapshot.payment.invoiceId,
-      completedAt: transaction?.transactionDateTime || new Date().toISOString(),
+      completedAt,
+      customerName: deliveryInfo?.receiverName ?? '',
+      phoneNumber: deliveryInfo?.phoneNumber ?? '',
+      province: deliveryInfo?.province ?? '',
+      streetAddress: deliveryInfo?.streetAddress ?? '',
+      totalAmount: successfulSnapshot.payment.totalAmount ?? 0,
+      transactionContent:
+        transaction?.transactionContent || 'Purchase of Media Product',
+      transactionDateTime: completedAt,
     });
   }
 

@@ -190,13 +190,25 @@ export class PaypalPaymentPageFlowService {
     paymentSession: PaypalPaymentSession,
     result: PaymentResultDto,
   ): void {
+    // Captured before the draft/session are cleared so the order-result screen
+    // can show the customer's general order info per the spec.
+    const deliveryInfo = this.checkoutDraftService.get()?.deliveryInfo;
+    const completedAt = new Date().toISOString();
+
     this.orderResultStorage.save({
       paymentMethod: 'PAYPAL',
       status: 'SUCCESS',
       transactionId: result.transactionId || paymentSession.orderId,
       orderId: paymentSession.orderId,
       invoiceId: paymentSession.invoiceId,
-      completedAt: new Date().toISOString(),
+      completedAt,
+      customerName: deliveryInfo?.receiverName ?? '',
+      phoneNumber: deliveryInfo?.phoneNumber ?? '',
+      province: deliveryInfo?.province ?? '',
+      streetAddress: deliveryInfo?.streetAddress ?? '',
+      totalAmount: this.pendingPaymentSession.session?.totalAmount ?? 0,
+      transactionContent: 'Purchase of Media Product',
+      transactionDateTime: completedAt,
     });
   }
 
