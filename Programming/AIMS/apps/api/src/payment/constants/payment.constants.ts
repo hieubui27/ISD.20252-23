@@ -13,4 +13,5 @@ export enum PaymentStatus {
   SUCCESS = 'SUCCESS',
   FAILED = 'FAILED',
   REFUND_REQUIRED = 'REFUND_REQUIRED',
+  REFUNDED = 'REFUNDED',
 }

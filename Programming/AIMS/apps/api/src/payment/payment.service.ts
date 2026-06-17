@@ -3,13 +3,13 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  PaymentMethod,
-  PaymentStatus,
-} from './constants/payment.constants';
+import { PaymentMethod, PaymentStatus } from './constants/payment.constants';
 import { ConfirmTransactionDto } from './dto/confirm-transaction.dto';
+import { CustomerRefundRequestDto } from './dto/customer-refund-request.dto';
 import { PaymentResultDto } from './dto/payment-result.dto';
 import { RequestPaymentDto } from './dto/request-payment.dto';
 import {
@@ -23,6 +23,12 @@ import { PaymentCompletionService } from './payment-completion.service';
 import { PaymentGatewayTransactionRefResolver } from './payment-gateway-transaction-ref.resolver';
 import { PaypalStaleTransactionCleanupService } from './paypal-stale-transaction-cleanup.service';
 import { PaymentGatewayOrderIdService } from './payment-gateway-order-id.service';
+
+interface RefundTokenPayload {
+  orderId: string;
+  email: string;
+  purpose: 'refund';
+}
 
 /**
  * Coupling: Data Coupling
@@ -46,6 +52,7 @@ export class PaymentService {
     private readonly transactionRefResolver: PaymentGatewayTransactionRefResolver,
     private readonly paypalStaleTransactionCleanup: PaypalStaleTransactionCleanupService,
     private readonly gatewayOrderIdService: PaymentGatewayOrderIdService,
+    private readonly jwtService: JwtService,
     @Inject(PLACE_ORDER_PAYMENT_PORT)
     private readonly placeOrderPaymentPort: PlaceOrderPaymentPort,
   ) {}
@@ -184,8 +191,8 @@ export class PaymentService {
       ? new Date(dto.transactionDateTime)
       : new Date();
 
-    const updated = await this.paymentCompletionService.completeSuccessfulPayment(
-      {
+    const updated =
+      await this.paymentCompletionService.completeSuccessfulPayment({
         transactionId: transaction.id,
         data: {
           transactionId,
@@ -193,8 +200,7 @@ export class PaymentService {
           transactionDateTime,
         },
         fallbackProviderTransactionId: transactionId,
-      },
-    );
+      });
 
     return {
       success: true,
@@ -220,6 +226,28 @@ export class PaymentService {
   }
 
   async handleRejectedOrderRefund(orderId: string, rejectReason: string) {
+    return this.refundPaidOrder(orderId, rejectReason);
+  }
+
+  async requestCustomerRefund(dto: CustomerRefundRequestDto) {
+    const payload = this.verifyRefundToken(dto.token);
+    const order = await this.prisma.order.findUnique({
+      where: { orderId: payload.orderId },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.email.toLowerCase() !== payload.email.toLowerCase()) {
+      throw new UnauthorizedException('Refund token does not match order');
+    }
+
+    const reason = dto.reason?.trim() || 'Customer requested refund';
+    return this.refundPaidOrder(payload.orderId, reason);
+  }
+
+  async refundPaidOrder(orderId: string, reason: string) {
     const transaction =
       await this.findLatestPaymentTransactionByOrderId(orderId);
     if (!transaction) {
@@ -227,6 +255,8 @@ export class PaymentService {
     }
 
     ensureCanMarkRefundRequired(transaction.status);
+
+    let refundStatus = PaymentStatus.REFUND_REQUIRED;
 
     try {
       const gateway = this.gatewayFactory.getRefundGateway(
@@ -236,20 +266,26 @@ export class PaymentService {
         transaction.transactionId || transaction.id,
         transaction.amount,
       );
+      if (transaction.paymentMethod === PaymentMethod.PAYPAL) {
+        refundStatus = PaymentStatus.REFUNDED;
+      }
     } catch {
       // Some providers, such as VietQR, require manual refund handling.
     }
 
     await this.prisma.paymentTransaction.update({
       where: { id: transaction.id },
-      data: { status: PaymentStatus.REFUND_REQUIRED },
+      data: { status: refundStatus },
     });
 
     return {
-      status: PaymentStatus.REFUND_REQUIRED,
+      status: refundStatus,
       orderId,
-      rejectReason,
-      message: 'Refund required - check payment method for processing details',
+      reason,
+      message:
+        refundStatus === PaymentStatus.REFUNDED
+          ? 'Refund processed successfully'
+          : 'Refund required - check payment method for processing details',
     };
   }
 
@@ -271,6 +307,41 @@ export class PaymentService {
     }
 
     return BigInt(invoiceId);
+  }
+
+  private verifyRefundToken(token: string): RefundTokenPayload {
+    try {
+      const payload = this.jwtService.verify<Partial<RefundTokenPayload>>(
+        token,
+        {
+          secret: this.getRefundTokenSecret(),
+        },
+      );
+
+      if (payload.purpose !== 'refund' || !payload.orderId || !payload.email) {
+        throw new UnauthorizedException('Invalid refund token');
+      }
+
+      return {
+        orderId: payload.orderId,
+        email: payload.email,
+        purpose: 'refund',
+      };
+    } catch (err) {
+      if (err instanceof UnauthorizedException) {
+        throw err;
+      }
+
+      throw new UnauthorizedException('Invalid or expired refund token');
+    }
+  }
+
+  private getRefundTokenSecret(): string {
+    return (
+      process.env.REFUND_TOKEN_SECRET ||
+      process.env.JWT_ACCESS_SECRET ||
+      'super-secret-key-change-me-in-prod'
+    );
   }
 
   private findLatestPaymentTransactionByOrderId(
@@ -300,5 +371,4 @@ export class PaymentService {
       invoiceId: transaction.invoiceId.toString(),
     };
   }
-
 }

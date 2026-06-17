@@ -1,4 +1,5 @@
 import { forwardRef, Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { PaypalModule } from '../paypal/paypal.module';
 import { MailModule } from '../mail/mail.module';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -45,6 +46,7 @@ import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
     PaypalModule,
     PrismaModule,
     MailModule,
+    JwtModule.register({}),
     PlaceOrderDomainModule,
     forwardRef(() => VietqrModule),
   ],
