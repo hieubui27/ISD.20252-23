@@ -66,20 +66,9 @@ export class ProductService {
     let finalStatus = '';
 
     if (canHardDeleteProduct(product)) {
-      try {
-        await this.repository.delete(id);
-        await this.productLogService.logAction(undefined, id, userId, 'DELETE');
-        finalStatus = 'DELETED';
-      } catch (error) {
-        await this.repository.updateStatus(id, 'DEACTIVATED');
-        await this.productLogService.logAction(
-          undefined,
-          id,
-          userId,
-          'DEACTIVATE',
-        );
-        finalStatus = 'DEACTIVATED';
-      }
+      await this.repository.updateStatus(id, 'DELETED');
+      await this.productLogService.logAction(undefined, id, userId, 'DELETE');
+      finalStatus = 'DELETED';
     } else {
       await this.repository.updateStatus(id, 'DEACTIVATED');
       await this.productLogService.logAction(
@@ -119,19 +108,33 @@ export class ProductService {
       );
     }
 
-    // N+1 Problem Resolved: Use Bulk check and Bulk operations
     await this.dailyQuotaService.checkBulkQuota(userId, ids.length);
 
-    await this.repository.deleteBulk(ids);
-
-    // Log for each deleted item
+    const results = [];
     for (const id of ids) {
-      await this.productLogService.logAction(undefined, id, userId, 'DELETE');
+      const product = await this.findOne(id);
+      let finalStatus = '';
+
+      if (canHardDeleteProduct(product)) {
+        await this.repository.updateStatus(id, 'DELETED');
+        await this.productLogService.logAction(undefined, id, userId, 'DELETE');
+        finalStatus = 'DELETED';
+      } else {
+        await this.repository.updateStatus(id, 'DEACTIVATED');
+        await this.productLogService.logAction(
+          undefined,
+          id,
+          userId,
+          'DEACTIVATE',
+        );
+        finalStatus = 'DEACTIVATED';
+      }
+      results.push({ id, status: finalStatus });
     }
 
     await this.dailyQuotaService.incrementBulkQuota(userId, ids.length);
 
-    return ids.map((id) => ({ status: 'DELETED' }));
+    return results;
   }
 
   async updateImageUrl(id: string, imageUrl: string, userId: string) {

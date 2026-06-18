@@ -118,6 +118,13 @@ export class ProductRepository {
     await this.prisma.product.delete({ where: { id: bigId } });
   }
 
+  async checkInOrders(id: string): Promise<boolean> {
+    const orderCount = await this.prisma.orderProduct.count({
+      where: { productId: BigInt(id) },
+    });
+    return orderCount > 0;
+  }
+
   async updateStatus(id: string, status: string): Promise<any> {
     const p = await this.prisma.product.update({
       where: { id: BigInt(id) },

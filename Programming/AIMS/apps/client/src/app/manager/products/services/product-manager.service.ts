@@ -16,12 +16,10 @@ export class ProductManagerService {
   private readonly http = inject(HttpClient);
 
   getProducts(): Observable<ProductListItem[]> {
-    // The catalog endpoint now returns a paginated envelope ({ items, ... }).
-    // The manager list is not paginated, so we omit paging params (the backend
-    // then returns every product) and unwrap the items. We still tolerate a
-    // plain array for backward compatibility.
     return this.http
-      .get<ProductListItem[] | { items?: ProductListItem[] }>(this.apiUrl)
+      .get<
+        ProductListItem[] | { items?: ProductListItem[] }
+      >(`${this.apiUrl}/manager`)
       .pipe(map((response) => this.unwrapItems(response)));
   }
 
