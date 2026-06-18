@@ -8,7 +8,7 @@ import { PaymentCompletionService } from '../../src/payment/payment-completion.s
 import { PaymentGatewayTransactionRefResolver } from '../../src/payment/payment-gateway-transaction-ref.resolver';
 import { PaymentGatewayOrderIdService } from '../../src/payment/payment-gateway-order-id.service';
 import { buildPaymentGatewayOrderId } from '../../src/payment/helpers/payment-reference.helper';
-import { PaypalStaleTransactionCleanupService } from '../../src/payment/paypal-stale-transaction-cleanup.service';
+import { StalePaymentTransactionCleanupService } from '../../src/payment/stale-payment-transaction-cleanup.service';
 import { VietqrService } from '../../src/vietqr/vietqr.service';
 import { VietqrCallbackService } from '../../src/vietqr/vietqr-callback.service';
 import { VietqrQrRequestBuilder } from '../../src/vietqr/builders/vietqr-qr-request.builder';
@@ -187,7 +187,7 @@ describe('PaymentService', () => {
     resolve: jest.fn(),
   };
 
-  const mockPaypalStaleTransactionCleanup = {
+  const mockStalePaymentTransactionCleanup = {
     expireStaleTransactions: jest.fn(),
   };
 
@@ -208,7 +208,7 @@ describe('PaymentService', () => {
       mockPaymentTransactionService as any,
       mockPaymentCompletionService as any,
       mockTransactionRefResolver as any,
-      mockPaypalStaleTransactionCleanup as any,
+      mockStalePaymentTransactionCleanup as any,
       mockGatewayOrderIdService as any,
       mockPlaceOrderPaymentPort,
     );
@@ -220,7 +220,7 @@ describe('PaymentService', () => {
     );
     mockPaypalService.getRefundGateway.mockReturnValue(mockPaymentGateway);
     mockPrisma.paymentTransaction.updateMany.mockResolvedValue({ count: 0 });
-    mockPaypalStaleTransactionCleanup.expireStaleTransactions.mockResolvedValue(
+    mockStalePaymentTransactionCleanup.expireStaleTransactions.mockResolvedValue(
       0,
     );
     mockGatewayOrderIdService.ensureForCreatePayment.mockResolvedValue(
@@ -278,7 +278,7 @@ describe('PaymentService', () => {
     );
     expect(mockPaymentGateway.createPayment).toHaveBeenCalled();
     expect(
-      mockPaypalStaleTransactionCleanup.expireStaleTransactions,
+      mockStalePaymentTransactionCleanup.expireStaleTransactions,
     ).toHaveBeenCalled();
     expect(
       mockGatewayOrderIdService.ensureForCreatePayment,
@@ -624,37 +624,67 @@ describe('PaymentGatewayOrderIdService', () => {
   });
 });
 
-describe('PaypalStaleTransactionCleanupService', () => {
+describe('StalePaymentTransactionCleanupService', () => {
   const mockPrisma = {
     paymentTransaction: {
       updateMany: jest.fn(),
     },
   };
 
-  let service: PaypalStaleTransactionCleanupService;
+  let service: StalePaymentTransactionCleanupService;
 
   beforeEach(() => {
-    service = new PaypalStaleTransactionCleanupService(mockPrisma as any);
+    service = new StalePaymentTransactionCleanupService(mockPrisma as any);
     jest.clearAllMocks();
+    jest.useFakeTimers().setSystemTime(new Date('2026-06-18T12:00:00.000Z'));
   });
 
-  it('should expire stale pending PayPal transactions', async () => {
-    mockPrisma.paymentTransaction.updateMany.mockResolvedValue({ count: 2 });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('should expire stale pending transactions using each payment method timeout', async () => {
+    mockPrisma.paymentTransaction.updateMany
+      .mockResolvedValueOnce({ count: 2 })
+      .mockResolvedValueOnce({ count: 3 });
 
     const result = await service.expireStaleTransactions();
 
-    expect(mockPrisma.paymentTransaction.updateMany).toHaveBeenCalledWith({
+    expect(mockPrisma.paymentTransaction.updateMany).toHaveBeenNthCalledWith(1, {
       where: {
         paymentMethod: PaymentMethod.PAYPAL,
         status: PaymentStatus.PENDING,
         createdAt: {
-          lt: expect.any(Date),
+          lt: new Date('2026-06-18T09:00:00.000Z'),
         },
       },
       data: {
         status: PaymentStatus.FAILED,
       },
     });
-    expect(result).toBe(2);
+    expect(mockPrisma.paymentTransaction.updateMany).toHaveBeenNthCalledWith(2, {
+      where: {
+        paymentMethod: PaymentMethod.VIETQR,
+        status: PaymentStatus.PENDING,
+        createdAt: {
+          lt: new Date('2026-06-18T11:30:00.000Z'),
+        },
+      },
+      data: {
+        status: PaymentStatus.FAILED,
+      },
+    });
+    expect(result).toBe(5);
+  });
+
+  it('should not expire successful or already failed transactions', async () => {
+    mockPrisma.paymentTransaction.updateMany.mockResolvedValue({ count: 0 });
+
+    await service.expireStaleTransactions();
+
+    for (const call of mockPrisma.paymentTransaction.updateMany.mock.calls) {
+      expect(call[0].where.status).toBe(PaymentStatus.PENDING);
+      expect(call[0].data.status).toBe(PaymentStatus.FAILED);
+    }
   });
 });

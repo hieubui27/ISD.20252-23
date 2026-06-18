@@ -19,7 +19,7 @@ import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
 import { PaymentTransactionService } from './payment-transaction.service';
 import { PaymentCompletionService } from './payment-completion.service';
 import { PaymentGatewayTransactionRefResolver } from './payment-gateway-transaction-ref.resolver';
-import { PaypalStaleTransactionCleanupService } from './paypal-stale-transaction-cleanup.service';
+import { StalePaymentTransactionCleanupService } from './stale-payment-transaction-cleanup.service';
 import { PaymentGatewayOrderIdService } from './payment-gateway-order-id.service';
 
 /** Order is only customer-cancellable while it is awaiting manager approval. */
@@ -46,14 +46,14 @@ export class PaymentService {
     private readonly paymentTransactionService: PaymentTransactionService,
     private readonly paymentCompletionService: PaymentCompletionService,
     private readonly transactionRefResolver: PaymentGatewayTransactionRefResolver,
-    private readonly paypalStaleTransactionCleanup: PaypalStaleTransactionCleanupService,
+    private readonly stalePaymentTransactionCleanup: StalePaymentTransactionCleanupService,
     private readonly gatewayOrderIdService: PaymentGatewayOrderIdService,
     @Inject(PLACE_ORDER_PAYMENT_PORT)
     private readonly placeOrderPaymentPort: PlaceOrderPaymentPort,
   ) {}
 
   async requestPayment(dto: RequestPaymentDto): Promise<PaymentResultDto> {
-    await this.paypalStaleTransactionCleanup.expireStaleTransactions();
+    await this.stalePaymentTransactionCleanup.expireStaleTransactions();
 
     const paymentMethod = dto.paymentMethod || PaymentMethod.VIETQR;
     const gateway = this.gatewayFactory.getCreationGateway(paymentMethod);

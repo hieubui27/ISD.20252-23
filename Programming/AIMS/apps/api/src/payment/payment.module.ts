@@ -9,7 +9,7 @@ import { PaymentService } from './payment.service';
 import { PaymentCompletionService } from './payment-completion.service';
 import { PaymentGatewayTransactionRefResolver } from './payment-gateway-transaction-ref.resolver';
 import { PaymentGatewayOrderIdService } from './payment-gateway-order-id.service';
-import { PaypalStaleTransactionCleanupService } from './paypal-stale-transaction-cleanup.service';
+import { StalePaymentTransactionCleanupService } from './stale-payment-transaction-cleanup.service';
 import { PaymentTransactionService } from './payment-transaction.service';
 import { PLACE_ORDER_PAYMENT_PORT } from './ports/place-order-payment.port';
 import { PlaceOrderPaymentAdapter } from '../place-order/infrastructure/adapter/place-order-payment.adapter';
@@ -56,7 +56,7 @@ import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
     PaymentCompletionService,
     PaymentGatewayTransactionRefResolver,
     PaymentGatewayOrderIdService,
-    PaypalStaleTransactionCleanupService,
+    StalePaymentTransactionCleanupService,
     PaymentTransactionService,
     {
       provide: PLACE_ORDER_PAYMENT_PORT,
