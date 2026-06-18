@@ -36,8 +36,8 @@
             <td>{{ order.itemsCount }}</td>
             <td class="font-medium">{{ order.invoice?.totalAmount || 0 | number }}</td>
             <td>
-              <span class="status-badge" [ngClass]="order.status.toLowerCase().replace(' ', '-')">
-                {{ order.status }}
+              <span class="status-badge" [ngClass]="order.status.toLowerCase()">
+                {{ order.status === 'CANCELLED_BY_CUSTOMER' ? 'Cancelled By Customer' : (order.status === 'REJECTED_BY_MANAGER' ? 'Rejected By Manager' : (order.status === 'APPROVED' ? 'Approved' : order.status)) }}
               </span>
             </td>
             <td>

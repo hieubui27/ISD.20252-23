@@ -126,10 +126,10 @@
                 <p class="step-time">{{ tx.transactionDateTime | date:'medium' }}</p>
               </div>
             </div>
-            <div *ngIf="order.status === 'Approved' || order.status === 'Rejected'" class="timeline-item done">
-              <div class="timeline-indicator" [style.border-color]="order.status === 'Rejected' ? '#ba1a1a' : '#1a6100'" [style.background-color]="order.status === 'Rejected' ? '#ba1a1a' : '#1a6100'"></div>
+            <div *ngIf="order.status === 'APPROVED' || order.status === 'REJECTED_BY_MANAGER' || order.status === 'CANCELLED_BY_CUSTOMER'" class="timeline-item done">
+              <div class="timeline-indicator" [style.border-color]="(order.status === 'REJECTED_BY_MANAGER' || order.status === 'CANCELLED_BY_CUSTOMER') ? '#ba1a1a' : '#1a6100'" [style.background-color]="(order.status === 'REJECTED_BY_MANAGER' || order.status === 'CANCELLED_BY_CUSTOMER') ? '#ba1a1a' : '#1a6100'"></div>
               <div class="timeline-content">
-                <p class="step-title" [style.color]="order.status === 'Rejected' ? '#ba1a1a' : '#1a1c1c'">Order {{ order.status }}</p>
+                <p class="step-title" [style.color]="(order.status === 'REJECTED_BY_MANAGER' || order.status === 'CANCELLED_BY_CUSTOMER') ? '#ba1a1a' : '#1a1c1c'">Order {{ order.status === 'REJECTED_BY_MANAGER' ? 'Rejected' : (order.status === 'CANCELLED_BY_CUSTOMER' ? 'Cancelled' : (order.status === 'APPROVED' ? 'Approved' : order.status)) }}</p>
                 <p class="step-time">{{ order.updatedAt | date:'medium' }}</p>
               </div>
             </div>
