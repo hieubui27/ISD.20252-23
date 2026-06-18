@@ -30,6 +30,11 @@ export class PaymentController {
     return this.paymentService.confirmTransaction(confirmTransactionDto);
   }
 
+  @Post('transactions/:transactionId/fail')
+  updateTransactionFailure(@Param('transactionId') transactionId: string) {
+    return this.paymentService.updateTransactionFailure(transactionId);
+  }
+
   @Post('refund/request')
   requestCustomerRefund(@Body() dto: CustomerRefundRequestDto) {
     return this.paymentService.requestCustomerRefund(dto);

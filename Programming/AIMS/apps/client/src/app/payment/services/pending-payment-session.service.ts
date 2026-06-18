@@ -107,6 +107,7 @@ export class PendingPaymentSessionService {
       checkoutKey: this.paymentSessionStorage.buildCheckoutKey(
         this.checkoutDraft,
       ),
+      paymentTransactionId: payment.paymentTransactionId,
     };
 
     this.paymentSessionStorage.savePendingPaymentSession(

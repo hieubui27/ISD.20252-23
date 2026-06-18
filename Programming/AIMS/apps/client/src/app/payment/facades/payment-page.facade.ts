@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { PaymentMethod } from '../../services/payment.service';
+import { PaymentMethod, PaymentService } from '../../services/payment.service';
 import { PAYMENT_METHOD } from '../constants/payment.constants';
 import {
   CheckoutDraft,
@@ -18,6 +18,7 @@ export class PaymentPageFacade {
   private readonly orderSummary = inject(PaymentOrderSummaryService);
   private readonly pendingPaymentSession = inject(PendingPaymentSessionService);
   private readonly paypalPageFlow = inject(PaypalPaymentPageFlowService);
+  private readonly paymentService = inject(PaymentService);
   private readonly vietQrPageFlow = inject(VietQrPaymentPageFlowService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -106,7 +107,24 @@ export class PaymentPageFacade {
   }
 
   cancelOrder(): void {
-    this.router.navigate(['/cart']);
+    const transactionId =
+      this.pendingPaymentSession.session?.paymentTransactionId;
+
+    this.vietQrPageFlow.resetSelectionState();
+    this.paypalPageFlow.discardApprovalSession();
+
+    if (!transactionId) {
+      this.finishCancelOrder();
+      return;
+    }
+
+    this.paymentService.failTransaction(transactionId).subscribe({
+      next: () => this.finishCancelOrder(),
+      error: (err) => {
+        console.error('Cancel order failed:', err);
+        this.finishCancelOrder();
+      },
+    });
   }
 
   goToProducts(): void {
@@ -151,6 +169,11 @@ export class PaymentPageFacade {
     this.vietQrPageFlow.startFresh(
       'PayPal payment was cancelled. Creating a new VietQR payment...',
     );
+  }
+
+  private finishCancelOrder(): void {
+    this.pendingPaymentSession.clear();
+    this.router.navigate(['/cart']);
   }
 
   private applyCheckoutDraft(): void {
