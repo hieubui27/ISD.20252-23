@@ -122,6 +122,12 @@
   font-weight: 700;
 }
 
+.aims-header__link--login {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .aims-header__cart-wrap {
   padding-left: 24px;
   border-left: 1px solid rgba(192, 199, 212, 0.3);
