@@ -30,6 +30,26 @@
   flex: 0 0 auto;
 }
 
+// Hidden on desktop; revealed in the mobile media query below.
+.aims-header__menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-left: -8px;
+  border: 0;
+  background: transparent;
+  color: $aims-color-text;
+  cursor: pointer;
+  flex: 0 0 auto;
+
+  svg {
+    width: 22px;
+    height: 22px;
+  }
+}
+
 .aims-header__search-icon {
   border: 0;
   background: transparent;
@@ -140,23 +160,73 @@
 }
 
 @media (max-width: 900px) {
-  .aims-header__inner,
-  .aims-header__links {
-    flex-direction: column;
-    align-items: stretch;
+  .aims-header__inner {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 12px 16px;
   }
 
-  .aims-header__search {
-    margin: 16px 0;
-    max-width: none;
+  // Top row: [hamburger] [brand centered] [cart]
+  .aims-header__menu-toggle {
+    display: inline-flex;
+    order: 1;
   }
 
-  .aims-header__links {
-    gap: 12px;
+  .aims-header__brand {
+    order: 2;
+    flex: 1 1 auto;
+    text-align: center;
+    font-size: 22px;
   }
 
   .aims-header__cart-wrap {
+    order: 3;
     padding-left: 0;
     border-left: 0;
+  }
+
+  // Second row: full-width search bar.
+  .aims-header__search {
+    order: 4;
+    flex: 1 1 100%;
+    margin: 4px 0 0;
+    max-width: none;
+    padding: 10px 14px;
+  }
+
+  // Collapsible dropdown menu, hidden until the hamburger is tapped.
+  .aims-header__links {
+    order: 5;
+    flex: 1 1 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition:
+      max-height 220ms ease,
+      opacity 180ms ease,
+      margin 220ms ease;
+  }
+
+  .aims-header__links--open {
+    max-height: 320px;
+    opacity: 1;
+    margin-top: 4px;
+    border-top: 1px solid rgba(192, 199, 212, 0.35);
+  }
+
+  .aims-header__link {
+    width: 100%;
+    text-align: left;
+    padding: 14px 4px;
+    font-size: 16px;
+    border-bottom: 1px solid rgba(192, 199, 212, 0.25);
+  }
+
+  .aims-header__link--active {
+    border-bottom: 1px solid rgba(192, 199, 212, 0.25);
+    padding-bottom: 14px;
   }
 }

@@ -1,5 +1,22 @@
 <header class="aims-header">
   <div class="aims-header__inner">
+    <button
+      type="button"
+      class="aims-header__menu-toggle"
+      [class.aims-header__menu-toggle--open]="menuOpen"
+      [attr.aria-expanded]="menuOpen"
+      aria-label="Toggle navigation menu"
+      (click)="toggleMenu()"
+    >
+      <svg viewBox="0 0 22 22" fill="none" aria-hidden="true">
+        @if (menuOpen) {
+        <path d="M4 4L18 18M18 4L4 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        } @else {
+        <path d="M3 6H19M3 11H19M3 16H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        }
+      </svg>
+    </button>
+
     <button type="button" class="aims-header__brand" (click)="handleBrandClick()">AIMS</button>
 
     <form class="aims-header__search" *ngIf="showSearch" (submit)="$event.preventDefault(); onSearchSubmit()">
@@ -18,8 +35,9 @@
       />
     </form>
 
-    <nav class="aims-header__links">
+    <nav class="aims-header__links" [class.aims-header__links--open]="menuOpen">
       <button type="button" class="aims-header__link aims-header__link--active" (click)="handleBrowseClick()">Browse</button>
+<<<<<<< Updated upstream
       <button type="button" class="aims-header__link">New Arrivals</button>
       <button type="button" class="aims-header__link">Collections</button>
       <button type="button" class="aims-header__link">Deals</button>
@@ -38,6 +56,20 @@
           <span *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
         </button>
       </div>
+=======
+      <button type="button" class="aims-header__link" (click)="closeMenu()">New Arrivals</button>
+      <button type="button" class="aims-header__link" (click)="closeMenu()">Collections</button>
+      <button type="button" class="aims-header__link" (click)="closeMenu()">Deals</button>
+>>>>>>> Stashed changes
     </nav>
+
+    <div class="aims-header__cart-wrap">
+      <button type="button" class="aims-header__cart-button" aria-label="Cart" (click)="handleCartClick()">
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M1 1H3.5L5.1 11.5C5.18 12.01 5.62 12.37 6.13 12.37H16.5C17.01 12.37 17.44 12.01 17.52 11.5L18.83 4H3.82M8 16.5C8 17.33 7.33 18 6.5 18C5.67 18 5 17.33 5 16.5C5 15.67 5.67 15 6.5 15C7.33 15 8 15.67 8 16.5ZM17 16.5C17 17.33 16.33 18 15.5 18C14.67 18 14 17.33 14 16.5C14 15.67 14.67 15 15.5 15C16.33 15 17 15.67 17 16.5Z" stroke="#1A1C1C" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+        <span *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
+      </button>
+    </div>
   </div>
 </header>

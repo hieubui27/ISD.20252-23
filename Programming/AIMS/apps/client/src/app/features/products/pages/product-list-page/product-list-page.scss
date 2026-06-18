@@ -187,13 +187,12 @@ app-status-message {
   display: block;
 }
 
-@media (max-width: 640px) {
-  .catalog-heading,
-  .catalog-layout,
-  .catalog-toolbar,
-  .catalog-toolbar__meta {
-    align-items: flex-start;
+// Tablet and below: single column stack, filters become a horizontal panel.
+@media (max-width: 900px) {
+  .catalog-layout {
     flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
   }
 
   .filters-panel,
@@ -203,17 +202,86 @@ app-status-message {
     flex-basis: auto;
   }
 
+  // Lay category options out as wrapping chips instead of a tall column.
+  .filters-panel section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .filters-panel h3 {
+    flex: 1 1 100%;
+    margin-bottom: 4px;
+  }
+
+  .filter-check {
+    margin-bottom: 0;
+    padding: 8px 12px;
+    border: 1px solid #e0e4ea;
+    border-radius: 999px;
+    background: $aims-color-page;
+  }
+
+  .filter-check--active {
+    border-color: $aims-color-primary;
+    background: rgba(0, 95, 172, 0.08);
+  }
+}
+
+// Phones.
+@media (max-width: 640px) {
   .products-page__main {
     padding: 24px 16px 40px;
   }
 
-  h1 {
-    font-size: 30px;
-    line-height: 38px;
+  .catalog-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
   }
 
+  h1 {
+    font-size: 26px;
+    line-height: 32px;
+  }
+
+  .catalog-heading p {
+    font-size: 14px;
+  }
+
+  // Keep the result count + sort control on one tidy row.
+  .catalog-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .catalog-toolbar__meta {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .catalog-toolbar label {
+    justify-content: space-between;
+  }
+
+  .catalog-toolbar select {
+    flex: 1;
+  }
+
+  // Two compact cards per row reads better than one giant card.
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+// Very narrow phones: fall back to a single column.
+@media (max-width: 400px) {
   .product-grid {
     grid-template-columns: 1fr;
-    padding-top: 24px;
   }
 }
