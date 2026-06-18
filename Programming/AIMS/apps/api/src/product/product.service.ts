@@ -11,7 +11,9 @@ import type { IDailyQuotaService } from './interfaces/daily-quota.service.interf
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductRepository } from './product.repository';
-import { canHardDeleteProduct } from './utils/product-validation.util';
+import { PRODUCT_SPECIFICATIONS } from './product.constants';
+import { IProductSpecification } from './domain/specifications/product-specification.interface';
+import { HardDeleteSpecification } from './domain/specifications/hard-delete.specification';
 
 @Injectable()
 export class ProductService {
@@ -21,9 +23,22 @@ export class ProductService {
     private readonly productLogService: IProductLogService,
     @Inject(IDailyQuotaServiceToken)
     private readonly dailyQuotaService: IDailyQuotaService,
+    @Inject(PRODUCT_SPECIFICATIONS)
+    private readonly specifications: IProductSpecification[] = [],
+    private readonly hardDeleteSpec: HardDeleteSpecification,
   ) {}
 
+  private validateProductSpecifications(productData: any) {
+    for (const spec of this.specifications) {
+      if (!spec.isSatisfiedBy(productData)) {
+        throw new BadRequestException(spec.getMessage());
+      }
+    }
+  }
+
   async create(dto: CreateProductDto, userId: string) {
+    this.validateProductSpecifications(dto);
+
     const productId = await this.repository.create(dto);
 
     await this.productLogService.logAction(
@@ -52,6 +67,10 @@ export class ProductService {
     userId: string,
     action = 'UPDATE',
   ) {
+    const existingProduct = await this.findOne(id);
+    const mergedData = { ...existingProduct, ...dto };
+    this.validateProductSpecifications(mergedData);
+
     const updatedProduct = await this.repository.update(id, dto);
 
     await this.productLogService.logAction(undefined, id, userId, action);
@@ -65,7 +84,7 @@ export class ProductService {
     const product = await this.findOne(id);
     let finalStatus = '';
 
-    if (canHardDeleteProduct(product)) {
+    if (this.hardDeleteSpec.isSatisfiedBy(product)) {
       await this.repository.updateStatus(id, 'DELETED');
       await this.productLogService.logAction(undefined, id, userId, 'DELETE');
       finalStatus = 'DELETED';
@@ -115,7 +134,7 @@ export class ProductService {
       const product = await this.findOne(id);
       let finalStatus = '';
 
-      if (canHardDeleteProduct(product)) {
+      if (this.hardDeleteSpec.isSatisfiedBy(product)) {
         await this.repository.updateStatus(id, 'DELETED');
         await this.productLogService.logAction(undefined, id, userId, 'DELETE');
         finalStatus = 'DELETED';

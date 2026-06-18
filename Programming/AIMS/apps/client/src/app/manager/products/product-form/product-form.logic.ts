@@ -5,6 +5,8 @@ import {
   FormGroup,
   Validators,
   FormControl,
+  AbstractControl,
+  ValidationErrors,
 } from '@angular/forms';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ProductManagerService } from '../services/product-manager.service';
@@ -18,6 +20,33 @@ const ALLOWED_IMAGE_TYPES = [
   'image/gif',
 ];
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+
+export const priceRatioValidator = (
+  control: AbstractControl,
+): ValidationErrors | null => {
+  const currentPrice = control.get('currentPrice')?.value;
+  const originalValue = control.get('originalValue')?.value;
+
+  const cp = Number(currentPrice);
+  const ov = Number(originalValue);
+
+  if (isNaN(cp) || isNaN(ov)) {
+    return null;
+  }
+
+  if (ov === 0) {
+    if (cp !== 0) {
+      return { invalidPriceRatio: true };
+    }
+    return null;
+  }
+
+  if (cp < 0.3 * ov || cp > 1.5 * ov) {
+    return { invalidPriceRatio: true };
+  }
+
+  return null;
+};
 
 /**
  * [SOLID Violation in Old Design]
@@ -55,18 +84,21 @@ export class ProductFormLogic {
   private productId: string | null = null;
   private pendingFile: File | null = null;
 
-  public form: FormGroup = this.fb.group({
-    title: ['', Validators.required],
-    type: ['BOOK', Validators.required],
-    description: [''],
-    currentPrice: [0, [Validators.required, Validators.min(0)]],
-    originalValue: [0, Validators.min(0)],
-    stockQuantity: [0, [Validators.required, Validators.min(0)]],
-    status: ['ACTIVE', Validators.required],
-    barcode: [''],
-    weight: [0],
-    specificInfo: this.fb.group({}),
-  });
+  public form: FormGroup = this.fb.group(
+    {
+      title: ['', Validators.required],
+      type: ['BOOK', Validators.required],
+      description: [''],
+      currentPrice: [0, [Validators.required, Validators.min(0)]],
+      originalValue: [0, Validators.min(0)],
+      stockQuantity: [0, [Validators.required, Validators.min(0)]],
+      status: ['ACTIVE', Validators.required],
+      barcode: [''],
+      weight: [0],
+      specificInfo: this.fb.group({}),
+    },
+    { validators: priceRatioValidator },
+  );
 
   public get productTypes() {
     return this.formFactory.getAllTypes();

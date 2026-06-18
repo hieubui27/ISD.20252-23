@@ -7,7 +7,8 @@ import {
 } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../auth/auth.service';
-import { Observable, map } from 'rxjs';
+import { Observable, map, filter } from 'rxjs';
+import { NavigationEnd } from '@angular/router';
 
 @Component({
   selector: 'app-manager-layout',
@@ -20,6 +21,7 @@ export class ManagerLayoutComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
   isAdmin$: Observable<boolean> = new Observable<boolean>();
+  isSidebarOpen = false;
 
   ngOnInit() {
     this.isAdmin$ = this.authService.user$.pipe(
@@ -28,6 +30,20 @@ export class ManagerLayoutComponent implements OnInit {
         return user.roles.includes('Administrator');
       }),
     );
+
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe(() => {
+        this.closeSidebar();
+      });
+  }
+
+  toggleSidebar() {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  closeSidebar() {
+    this.isSidebarOpen = false;
   }
 
   logout() {

@@ -12,7 +12,7 @@ import { PrismaProductRepository } from './infrastructure/repositories/prisma-pr
 import { PRODUCT_QUERY_REPOSITORY } from './domain/repositories/product-query.repository.interface';
 import { IProductLogServiceToken } from './interfaces/product-log.service.interface';
 import { ProductLogService } from './services/product-log.service';
-import { PRODUCT_HANDLERS } from './product.constants';
+import { PRODUCT_HANDLERS, PRODUCT_SPECIFICATIONS } from './product.constants';
 import { BookHandler } from './product-handler/book.handler';
 import { CdHandler } from './product-handler/cd.handler';
 import { DvdHandler } from './product-handler/dvd.handler';
@@ -22,6 +22,8 @@ import { DailyQuotaRepository } from './services/daily-quota.repository';
 import { IDailyQuotaServiceToken } from './interfaces/daily-quota.service.interface';
 import { IDailyQuotaRepositoryToken } from './interfaces/daily-quota.repository.interface';
 import { ProductRepository } from './product.repository';
+import { PriceRatioSpecification } from './domain/specifications/price-ratio.specification';
+import { HardDeleteSpecification } from './domain/specifications/hard-delete.specification';
 
 /**
  * Module: ProductModule
@@ -74,6 +76,13 @@ import { ProductRepository } from './product.repository';
       provide: PRODUCT_HANDLERS,
       useFactory: (...handlers: any[]) => handlers,
       inject: [BookHandler, CdHandler, DvdHandler, NewspaperHandler],
+    },
+    PriceRatioSpecification,
+    HardDeleteSpecification,
+    {
+      provide: PRODUCT_SPECIFICATIONS,
+      useFactory: (...specs: any[]) => specs,
+      inject: [PriceRatioSpecification],
     },
   ],
 })
