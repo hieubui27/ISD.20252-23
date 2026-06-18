@@ -24,8 +24,6 @@ export interface ShippingContext {
 }
 
 export interface ShippingBreakdown {
-  shippingFeeBeforeDiscount: number;
-  shippingDiscount: number;
   finalShippingFee: number;
 }
 

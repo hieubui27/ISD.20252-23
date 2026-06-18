@@ -16,13 +16,11 @@ import { IllegalOrderTransitionError } from '../errors/illegal-order-transition.
  * implemented here because they are not part of the current source code.
  */
 export interface StateTransitionResult {
-  nextStatus: string;
   /** True when the requested transition is a no-op (already in target state). */
   alreadyInTarget: boolean;
 }
 
 export interface IOrderState {
-  getStatus(): string;
   confirmPayment(): StateTransitionResult;
 }
 
@@ -42,10 +40,7 @@ export class PendingPaymentState extends BaseOrderState {
   }
 
   override confirmPayment(): StateTransitionResult {
-    return {
-      nextStatus: ORDER_STATUS_PENDING_PROCESSING,
-      alreadyInTarget: false,
-    };
+    return { alreadyInTarget: false };
   }
 }
 
@@ -56,9 +51,6 @@ export class PendingProcessingState extends BaseOrderState {
 
   // Idempotent: a payment callback fired twice must not decrement stock twice.
   override confirmPayment(): StateTransitionResult {
-    return {
-      nextStatus: ORDER_STATUS_PENDING_PROCESSING,
-      alreadyInTarget: true,
-    };
+    return { alreadyInTarget: true };
   }
 }

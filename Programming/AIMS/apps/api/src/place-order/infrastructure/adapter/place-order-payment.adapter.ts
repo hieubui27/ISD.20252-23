@@ -10,7 +10,7 @@ import {
   PaymentContextLookup,
   PlaceOrderPaymentPort,
 } from '../../../payment/ports/place-order-payment.port';
-import { OrderSuccessDto } from '../../dto/order-success.dto';
+import { OrderSuccessMapper } from '../../domain/factories/order-success.mapper';
 import {
   IOrderEventPublisher,
   ORDER_EVENT_PUBLISHER,
@@ -102,16 +102,15 @@ export class PlaceOrderPaymentAdapter implements PlaceOrderPaymentPort {
       return;
     }
 
-    const successDto: OrderSuccessDto = {
-      customerName: order.customerName,
-      phoneNumber: order.phoneNumber,
-      province: order.province,
-      streetAddress: order.streetAddress,
-      totalAmount: order.invoice.totalAmount,
-      transactionId: context.transactionId,
-      transactionContent: context.transactionContent || context.transactionId,
-      transactionDate: context.transactionDateTime || new Date(),
-    };
+    const successDto = OrderSuccessMapper.fromPersistedOrder(
+      order,
+      order.invoice.totalAmount,
+      {
+        transactionId: context.transactionId,
+        transactionContent: context.transactionContent || context.transactionId,
+        transactionDate: context.transactionDateTime || new Date(),
+      },
+    );
 
     await this.eventPublisher.publish({
       recipientEmail: order.email,
