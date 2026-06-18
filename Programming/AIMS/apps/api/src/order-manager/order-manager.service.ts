@@ -136,7 +136,7 @@ export class OrderManagerService implements IOrderManagerService {
     // Let's use 'Completed' as requested by the user flow or we can define standard ones.
     const updatedOrder = await this.prisma.order.update({
       where: { id: BigInt(id) },
-      data: { status: 'Approved', updatedAt: new Date() },
+      data: { status: 'APPROVED', updatedAt: new Date() },
     });
 
     if (order.email) {
@@ -168,7 +168,7 @@ export class OrderManagerService implements IOrderManagerService {
 
     const updatedOrder = await this.prisma.order.update({
       where: { id: BigInt(id) },
-      data: { status: 'Rejected', updatedAt: new Date() },
+      data: { status: 'REJECTED_BY_MANAGER', updatedAt: new Date() },
     });
 
     // We should also restore stock if order is cancelled
@@ -205,5 +205,90 @@ export class OrderManagerService implements IOrderManagerService {
       message: 'Order rejected successfully',
       status: updatedOrder.status,
     };
+  }
+
+  async getRefundOrder(
+    dto: GetOrdersDto,
+  ): Promise<{ data: unknown[]; total: number }> {
+    const { search, page = 1, limit = 10, status } = dto;
+
+    const where: any = {};
+    where.paymentTransactions = {
+      some: {
+        status: { in: ['REFUND_REQUIRED', 'REFUNDED'] },
+      },
+    };
+    if (status) {
+      where.status = status;
+    }
+    if (search) {
+      where.OR = [
+        { orderId: { contains: search, mode: 'insensitive' } },
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          invoice: true,
+          orderProducts: {
+            include: { product: true },
+            take: 1,
+          },
+          paymentTransactions: true,
+          _count: {
+            select: { orderProducts: true },
+          },
+        },
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    // Map BigInt to string to avoid serialization issues
+    const mappedData = data.map((order) => ({
+      ...order,
+      id: order.id.toString(),
+      subtotal: order.subtotal.toNumber(),
+      deliveryFee: order.deliveryFee.toNumber(),
+      invoice: order.invoice
+        ? {
+            ...order.invoice,
+            id: order.invoice.id.toString(),
+            orderId: order.invoice.orderId.toString(),
+            totalAmount: order.invoice.totalAmount.toNumber(),
+            vatSubtotal: order.invoice.vatSubtotal.toNumber(),
+          }
+        : null,
+      orderProducts:
+        order.orderProducts?.map((op: any) => ({
+          ...op,
+          orderId: op.orderId.toString(),
+          productId: op.productId.toString(),
+          price: op.price.toNumber(),
+          product: op.product
+            ? {
+                ...op.product,
+                id: op.product.id.toString(),
+                originalValue: op.product.originalValue.toNumber(),
+                currentPrice: op.product.currentPrice.toNumber(),
+                weight: op.product.weight.toNumber(),
+              }
+            : undefined,
+        })) || [],
+      paymentTransactions:
+        order.paymentTransactions?.map((pt: any) => ({
+          ...pt,
+          invoiceId: pt.invoiceId?.toString(),
+        })) || [],
+      itemsCount: order._count.orderProducts,
+    }));
+
+    return { data: mappedData, total };
   }
 }

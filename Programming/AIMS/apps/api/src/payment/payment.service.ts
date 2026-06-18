@@ -24,7 +24,7 @@ import { PaymentGatewayOrderIdService } from './payment-gateway-order-id.service
 
 /** Order is only customer-cancellable while it is awaiting manager approval. */
 const ORDER_STATUS_PENDING_PROCESSING = 'PENDING_PROCESSING';
-const ORDER_STATUS_CANCELLED = 'CANCELLED';
+const ORDER_STATUS_CANCELLED = 'CANCELLED_BY_CUSTOMER';
 
 /**
  * Coupling: Data Coupling

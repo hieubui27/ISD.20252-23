@@ -25,6 +25,11 @@ export class OrderManagerController {
     return this.orderManagerService.getAllOrders(dto);
   }
 
+  @Get('orders/refund-requests')
+  async getRefundOrder(@Query() dto: GetOrdersDto) {
+    return this.orderManagerService.getRefundOrder(dto);
+  }
+
   @Get('orders/:id')
   async getOrderById(@Param('id') id: string) {
     return this.orderManagerService.getOrderById(id);

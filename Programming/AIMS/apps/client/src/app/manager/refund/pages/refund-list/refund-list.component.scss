@@ -345,7 +345,9 @@
       color: #bf360c;
     }
     &.rejected-request,
-    &.rejected-requests {
+    &.rejected-requests,
+    &.cancelled_by_customer,
+    &.rejected_by_manager {
       background: #ffebee;
       color: #c62828;
     }

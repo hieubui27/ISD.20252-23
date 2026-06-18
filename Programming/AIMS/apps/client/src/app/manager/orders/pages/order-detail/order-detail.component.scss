@@ -120,7 +120,7 @@
         background: #e8f5e9;
         color: #1a6100;
       }
-      &.cancelled, &.rejected {
+      &.cancelled, &.rejected, &.cancelled_by_customer, &.rejected_by_manager {
         background: #ffebee;
         color: #c62828;
       }

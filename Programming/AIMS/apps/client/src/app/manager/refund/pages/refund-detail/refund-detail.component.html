@@ -9,28 +9,12 @@
         <div class="header-section">
             <div class="title-area">
                 <p class="subtitle">Refunds</p>
-                <h1 class="title">{{ refund.rmaNumber }}</h1>
+                <h1 class="title">Order #{{ refund.orderDisplayId }}</h1>
             </div>
-            <div class="actions"
-                *ngIf="refund.status === 'Pending request' || refund.status === 'Shipment received'">
-                <button class="btn-approve" (click)="approveRefund()" [disabled]="isProcessing">
-                    <span *ngIf="isProcessing" class="spinner"></span>
-                    {{ isProcessing ? 'Processing...' : 'Approve Refund' }}
-                </button>
-                <button class="btn-reject" (click)="rejectRefund()" [disabled]="isProcessing">
-                    <span *ngIf="isProcessing" class="spinner"></span>
-                    {{ isProcessing ? 'Processing...' : 'Reject' }}
-                </button>
-            </div>
-            <div class="actions" *ngIf="refund.status === 'Approved request'">
-                <button class="btn-done" (click)="markAsDone()" [disabled]="isProcessing">
-                    <span *ngIf="isProcessing" class="spinner"></span>
-                    {{ isProcessing ? 'Processing...' : 'Mark as Done' }}
-                </button>
-            </div>
-            <div class="actions"
-                *ngIf="refund.status !== 'Pending request' && refund.status !== 'Shipment received' && refund.status !== 'Approved request'">
-                <span class="status-badge" [ngClass]="getStatusClass(refund.status)">{{ refund.status }}</span>
+            <div class="actions">
+                <span class="status-badge" [ngClass]="getStatusClass(refund.status)">
+                    {{ refund.status === 'CANCELLED_BY_CUSTOMER' ? 'Cancelled By Customer' : (refund.status === 'REJECTED_BY_MANAGER' ? 'Rejected By Manager' : refund.status) }}
+                </span>
             </div>
         </div>
 
@@ -42,10 +26,6 @@
                     <h3 class="card-title">Refund Information</h3>
                     <div class="info-grid">
                         <div class="info-item">
-                            <label>RMA Number</label>
-                            <p>{{ refund.rmaNumber }}</p>
-                        </div>
-                        <div class="info-item">
                             <label>Order ID</label>
                             <p>
                                 <a [routerLink]="['/manager/orders', refund.orderId]"
@@ -53,16 +33,12 @@
                             </p>
                         </div>
                         <div class="info-item">
-                            <label>Resolution</label>
-                            <p>{{ refund.resolution }}</p>
+                            <label>Payment Method</label>
+                            <p class="font-medium">{{ refund.paymentMethod }}</p>
                         </div>
-                        <div class="info-item">
-                            <label>Reason</label>
-                            <p>{{ refund.reason }}</p>
-                        </div>
-                        <div class="info-item">
-                            <label>Refund Method</label>
-                            <p>{{ refund.refundMethod }}</p>
+                        <div class="info-item" *ngIf="refund.paymentMethod === 'VIETQR'">
+                            <label>Manual Contact Required</label>
+                            <p style="color: #ba1a1a;">{{ refund.contactMethod }}</p>
                         </div>
                         <div class="info-item">
                             <label>Refund Amount</label>
@@ -129,16 +105,12 @@
                     <h3 class="card-title">Refund Summary</h3>
                     <div class="summary-list">
                         <div class="summary-item">
+                            <span>Payment Method</span>
+                            <span class="font-medium">{{ refund.paymentMethod }}</span>
+                        </div>
+                        <div class="summary-item">
                             <span>Items</span>
                             <span>{{ refund.items.length }}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span>Resolution</span>
-                            <span>{{ refund.resolution }}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span>Refund Method</span>
-                            <span>{{ refund.refundMethod }}</span>
                         </div>
                         <div class="summary-total">
                             <span>Refund Amount</span>
@@ -149,16 +121,11 @@
 
                 <!-- Activity Timeline -->
                 <div class="card">
-                    <h3 class="card-title">Activity Timeline</h3>
-                    <div class="timeline">
-                        <div class="timeline-item" *ngFor="let event of refund.timeline"
-                            [ngClass]="{'done': true}">
-                            <div class="timeline-indicator"></div>
-                            <div class="timeline-content">
-                                <p class="step-title">{{ event.action }}</p>
-                                <p class="step-time">{{ event.date | date:'medium' }}</p>
-                                <p class="step-actor" *ngIf="event.actor">by {{ event.actor }}</p>
-                            </div>
+                    <div class="timeline-item done">
+                        <div class="timeline-indicator" style="border-color: #1a6100; background-color: #1a6100;"></div>
+                        <div class="timeline-content">
+                            <p class="step-title">Order {{ refund.status === 'REJECTED_BY_MANAGER' ? 'Rejected' : (refund.status === 'CANCELLED_BY_CUSTOMER' ? 'Cancelled' : refund.status) }}</p>
+                            <p class="step-time">{{ refund.updatedAt | date:'medium' }}</p>
                         </div>
                     </div>
                 </div>
