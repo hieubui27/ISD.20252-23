@@ -138,6 +138,13 @@ export class ProductController {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
   }
 
+  @Get('manager')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Product Manager')
+  async findAllForManager() {
+    return this.productService.findAll();
+  }
+
   @Get('logs')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Product Manager')
