@@ -90,11 +90,10 @@ export class PrismaOrderRepository implements IOrderRepository {
       const order = await this.insertOrderWithLinesAndInvoice(tx, input);
 
       for (const line of input.lines) {
-        await this.decrementStockOrThrow(
+        await this.decrementStockForOrderCreation(
           tx,
           line.productId,
           line.quantity,
-          true,
         );
       }
 
@@ -140,11 +139,10 @@ export class PrismaOrderRepository implements IOrderRepository {
 
         if (claimed.count === 1) {
           for (const orderProduct of order.orderProducts) {
-            await this.decrementStockOrThrow(
+            await this.decrementStockForPaidCallback(
               tx,
               Number(orderProduct.productId),
               orderProduct.quantity,
-              false,
             );
           }
         }
@@ -205,29 +203,32 @@ export class PrismaOrderRepository implements IOrderRepository {
 
   /**
    * Atomic conditional decrement (guards against overselling under concurrency).
-   * @param useInvalidQuantity when true, throws InvalidQuantityException with the
-   *   latest available amount (order-create flow); otherwise a BadRequestException
-   *   (paid-callback flow).
+   * Returns false when there isn't enough stock – the caller decides how to react.
    */
-  private async decrementStockOrThrow(
+  private async tryDecrementStock(
     tx: PrismaClientLike,
     productId: number,
     quantity: number,
-    useInvalidQuantity: boolean,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const result = await tx.product.updateMany({
       where: { id: BigInt(productId), quantity: { gte: quantity } },
       data: { quantity: { decrement: quantity } },
     });
 
-    if (result.count > 0) {
-      return;
-    }
+    return result.count > 0;
+  }
 
-    if (!useInvalidQuantity) {
-      throw new BadRequestException(
-        `Insufficient stock for product ${productId}`,
-      );
+  /**
+   * Order-create flow: a shortage is a customer-facing problem, so report the
+   * latest available amount via InvalidQuantityException.
+   */
+  private async decrementStockForOrderCreation(
+    tx: PrismaClientLike,
+    productId: number,
+    quantity: number,
+  ): Promise<void> {
+    if (await this.tryDecrementStock(tx, productId, quantity)) {
+      return;
     }
 
     const latest = await tx.product.findUnique({
@@ -237,6 +238,24 @@ export class PrismaOrderRepository implements IOrderRepository {
     throw new InvalidQuantityException([
       { productId, requested: quantity, available: latest?.quantity ?? 0 },
     ]);
+  }
+
+  /**
+   * Paid-callback flow: stock was already reserved, so a shortage here is an
+   * internal inconsistency rather than a customer input error.
+   */
+  private async decrementStockForPaidCallback(
+    tx: PrismaClientLike,
+    productId: number,
+    quantity: number,
+  ): Promise<void> {
+    if (await this.tryDecrementStock(tx, productId, quantity)) {
+      return;
+    }
+
+    throw new BadRequestException(
+      `Insufficient stock for product ${productId}`,
+    );
   }
 
   private toProductSnapshot(product: any): ProductSnapshot {

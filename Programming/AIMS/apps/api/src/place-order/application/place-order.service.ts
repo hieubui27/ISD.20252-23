@@ -11,6 +11,7 @@ import {
   PAYMENT_STATUS_SUCCESS,
   PAYMENT_TRANSACTION_PROVIDER_PLACE_ORDER,
 } from '../constants/place-order.constants';
+import { CartItemDto } from '../dto/cart-item.dto';
 import { ConfirmOrderDto } from '../dto/confirm-order.dto';
 import { DeliveryInfoDto } from '../dto/delivery-info.dto';
 import { InvoicePreviewDto } from '../dto/invoice-preview.dto';
@@ -22,6 +23,7 @@ import { StockCheckResultDto } from '../dto/stock-check-result.dto';
 import { SubmitDeliveryInfoDto } from '../dto/submit-delivery-info.dto';
 import { InvalidQuantityException } from '../exceptions/invalid-quantity.exception';
 import { OrderFactory } from '../domain/factories/order.factory';
+import { OrderSuccessMapper } from '../domain/factories/order-success.mapper';
 import {
   IOrderEventPublisher,
   ORDER_EVENT_PUBLISHER,
@@ -74,13 +76,7 @@ export class PlaceOrderBeService {
   ): Promise<InvoicePreviewDto> {
     this.validation.validateDeliveryInfo(dto.deliveryInfo);
 
-    const items = this.validation.normalizeItems(dto.items);
-    const products = await this.repository.findProductsByIds(
-      items.map((item) => item.productId),
-    );
-    this.ensureSufficientStock(items, products);
-
-    return this.invoiceCalculator.build(items, products, dto.deliveryInfo);
+    return this.priceOrder(dto.items, dto.deliveryInfo);
   }
 
   async createPayment(
@@ -92,17 +88,7 @@ export class PlaceOrderBeService {
 
     this.validation.validateDeliveryInfoForOrder(dto.deliveryInfo);
 
-    const items = this.validation.normalizeItems(dto.items);
-    const products = await this.repository.findProductsByIds(
-      items.map((item) => item.productId),
-    );
-    this.ensureSufficientStock(items, products);
-
-    const invoice = this.invoiceCalculator.build(
-      items,
-      products,
-      dto.deliveryInfo,
-    );
+    const invoice = await this.priceOrder(dto.items, dto.deliveryInfo);
     const createInput = this.orderFactory.buildCreateOrderInput(
       invoice,
       dto.deliveryInfo,
@@ -144,17 +130,7 @@ export class PlaceOrderBeService {
       return this.buildSuccessFromExistingTransaction(existing);
     }
 
-    const items = this.validation.normalizeItems(dto.items);
-    const products = await this.repository.findProductsByIds(
-      items.map((item) => item.productId),
-    );
-    this.ensureSufficientStock(items, products);
-
-    const invoice = this.invoiceCalculator.build(
-      items,
-      products,
-      dto.deliveryInfo,
-    );
+    const invoice = await this.priceOrder(dto.items, dto.deliveryInfo);
     const transactionDate = dto.transactionDate
       ? new Date(dto.transactionDate)
       : new Date();
@@ -175,12 +151,14 @@ export class PlaceOrderBeService {
       transactionDateTime: transactionDate,
     });
 
-    const successDto = this.toOrderSuccessDto(
+    const successDto = OrderSuccessMapper.fromDeliveryInfo(
       dto.deliveryInfo,
       invoice.totalAmount,
-      dto.transactionId,
-      transactionContent,
-      transactionDate,
+      {
+        transactionId: dto.transactionId,
+        transactionContent,
+        transactionDate,
+      },
     );
 
     await this.eventPublisher.publish({
@@ -191,6 +169,29 @@ export class PlaceOrderBeService {
     });
 
     return successDto;
+  }
+
+  /**
+   * Shared pricing pipeline: normalise items, load their products, guarantee
+   * stock, then build the priced invoice. Used by processDeliveryInfo /
+   * createPayment / confirmOrder so this four-step sequence lives in exactly one
+   * place (DRY).
+   */
+  private async priceOrder(
+    items: CartItemDto[],
+    deliveryInfo: DeliveryInfoDto,
+  ): Promise<InvoicePreviewDto> {
+    const normalizedItems = this.validation.normalizeItems(items);
+    const products = await this.repository.findProductsByIds(
+      normalizedItems.map((item) => item.productId),
+    );
+    this.ensureSufficientStock(normalizedItems, products);
+
+    return this.invoiceCalculator.build(
+      normalizedItems,
+      products,
+      deliveryInfo,
+    );
   }
 
   private ensureSufficientStock(
@@ -218,34 +219,15 @@ export class PlaceOrderBeService {
 
     const transactionId = transaction.transactionId ?? '';
 
-    return {
-      customerName: order.customerName,
-      phoneNumber: order.phoneNumber,
-      province: order.province,
-      streetAddress: order.streetAddress,
-      totalAmount: order.invoice.totalAmount,
-      transactionId,
-      transactionContent: transaction.transactionContent || transactionId,
-      transactionDate: transaction.transactionDateTime || transaction.createdAt,
-    };
-  }
-
-  private toOrderSuccessDto(
-    deliveryInfo: DeliveryInfoDto,
-    totalAmount: number,
-    transactionId: string,
-    transactionContent: string,
-    transactionDate: Date,
-  ): OrderSuccessDto {
-    return {
-      customerName: deliveryInfo.receiverName.trim(),
-      phoneNumber: deliveryInfo.phoneNumber,
-      province: deliveryInfo.province.trim(),
-      streetAddress: deliveryInfo.streetAddress.trim(),
-      totalAmount,
-      transactionId,
-      transactionContent,
-      transactionDate,
-    };
+    return OrderSuccessMapper.fromPersistedOrder(
+      order,
+      order.invoice.totalAmount,
+      {
+        transactionId,
+        transactionContent: transaction.transactionContent || transactionId,
+        transactionDate:
+          transaction.transactionDateTime || transaction.createdAt,
+      },
+    );
   }
 }

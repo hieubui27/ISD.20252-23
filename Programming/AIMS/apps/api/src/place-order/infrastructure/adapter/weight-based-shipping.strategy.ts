@@ -1,45 +1,33 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import {
   IShippingFeeCalculator,
   ShippingBreakdown,
   ShippingContext,
 } from '../../domain/ports/shipping-fee-calculator.port';
+import {
+  DEFAULT_SHIPPING_FEE_CONFIG,
+  SHIPPING_FEE_CONFIG,
+  ShippingFeeConfig,
+  ShippingZone,
+} from './shipping-fee.config';
 
 /**
- * Concrete Strategy – the current AIMS rule: fee based on total ACTUAL weight.
+ * Concrete Strategy – fee based on total ACTUAL weight.
  *
- * Tiers (shipping is VAT-free):
- *  - Ha Noi / HCMC: 22,000 VND for the first 3 kg.
- *  - Other provinces: 30,000 VND for the first 0.5 kg.
- *  - +2,500 VND per extra 0.5 kg block.
- *  - Free-ship discount up to 25,000 VND when item value exceeds 100,000 VND.
+ * The pricing data (zones, base fees, discount thresholds) lives entirely in the
+ * injected ShippingFeeConfig, so this algorithm is closed for modification:
+ * adding a city or a new zone changes the DATA only, never this class (OCP).
  *
- * Adding another rule (e.g. volumetric weight) = a new IShippingFeeCalculator
- * implementation, without touching this class (OCP).
+ * Switching to a different rule (e.g. volumetric weight) = a new
+ * IShippingFeeCalculator implementation, without touching this class either.
  */
 @Injectable()
 export class WeightBasedShippingStrategy implements IShippingFeeCalculator {
-  private static readonly majorCityBaseFee = 22000;
-  private static readonly otherProvinceBaseFee = 30000;
-  private static readonly majorCityBaseWeightKg = 3;
-  private static readonly otherProvinceBaseWeightKg = 0.5;
-  private static readonly extraWeightBlockKg = 0.5;
-  private static readonly extraWeightBlockFee = 2500;
-  private static readonly freeShippingThreshold = 100000;
-  private static readonly maxFreeShippingDiscount = 25000;
-  private static readonly majorCityProvinces = [
-    'Hanoi',
-    'Ha Noi',
-    'Hà Nội',
-    'Ho Chi Minh City',
-    'Ho Chi Minh',
-    'TP Ho Chi Minh',
-    'TP HCM',
-    'HCM',
-    'Hồ Chí Minh',
-    'TP Hồ Chí Minh',
-    'TP. Hồ Chí Minh',
-  ];
+  constructor(
+    @Optional()
+    @Inject(SHIPPING_FEE_CONFIG)
+    private readonly config: ShippingFeeConfig = DEFAULT_SHIPPING_FEE_CONFIG,
+  ) {}
 
   calculate(context: ShippingContext): ShippingBreakdown {
     const totalWeightKg = context.items.reduce(
@@ -47,72 +35,57 @@ export class WeightBasedShippingStrategy implements IShippingFeeCalculator {
       0,
     );
 
-    const rawShippingFee = this.calculateRawShippingFee(
-      context.province,
-      totalWeightKg,
-    );
+    const zone = this.resolveZone(context.province);
+    const rawShippingFee = this.calculateRawShippingFee(zone, totalWeightKg);
     const discount = this.calculateDiscount(
       rawShippingFee,
       context.subtotalBeforeVat,
     );
 
     return {
-      shippingFeeBeforeDiscount: rawShippingFee,
-      shippingDiscount: discount,
       finalShippingFee: Math.max(0, rawShippingFee - discount),
     };
   }
 
+  /** Finds the first configured zone the province belongs to, else the default. */
+  private resolveZone(province: string): Omit<ShippingZone, 'provinces'> {
+    const normalizedProvince = this.normalizeProvinceName(province);
+
+    const matched = this.config.zones.find((zone) =>
+      zone.provinces.some(
+        (candidate) =>
+          this.normalizeProvinceName(candidate) === normalizedProvince,
+      ),
+    );
+
+    return matched ?? this.config.defaultZone;
+  }
+
   private calculateRawShippingFee(
-    province: string,
+    zone: Omit<ShippingZone, 'provinces'>,
     totalWeightKg: number,
   ): number {
-    const isMajorCity = this.isMajorCity(province);
-    const baseFee = isMajorCity
-      ? WeightBasedShippingStrategy.majorCityBaseFee
-      : WeightBasedShippingStrategy.otherProvinceBaseFee;
-    const baseWeightKg = isMajorCity
-      ? WeightBasedShippingStrategy.majorCityBaseWeightKg
-      : WeightBasedShippingStrategy.otherProvinceBaseWeightKg;
-
-    if (totalWeightKg <= baseWeightKg) {
-      return baseFee;
+    if (totalWeightKg <= zone.baseWeightKg) {
+      return zone.baseFee;
     }
 
-    const extraWeightKg = totalWeightKg - baseWeightKg;
+    const extraWeightKg = totalWeightKg - zone.baseWeightKg;
     const extraBlocks = Math.ceil(
-      extraWeightKg / WeightBasedShippingStrategy.extraWeightBlockKg,
+      extraWeightKg / this.config.extraWeightBlockKg,
     );
 
-    return (
-      baseFee + extraBlocks * WeightBasedShippingStrategy.extraWeightBlockFee
-    );
+    return zone.baseFee + extraBlocks * this.config.extraWeightBlockFee;
   }
 
   private calculateDiscount(
     rawShippingFee: number,
     totalItemsValueBeforeVAT: number,
   ): number {
-    if (
-      totalItemsValueBeforeVAT <=
-      WeightBasedShippingStrategy.freeShippingThreshold
-    ) {
+    if (totalItemsValueBeforeVAT <= this.config.freeShippingThreshold) {
       return 0;
     }
 
-    return Math.min(
-      rawShippingFee,
-      WeightBasedShippingStrategy.maxFreeShippingDiscount,
-    );
-  }
-
-  private isMajorCity(province: string): boolean {
-    const normalizedProvince = this.normalizeProvinceName(province);
-
-    return WeightBasedShippingStrategy.majorCityProvinces.some(
-      (majorCity) =>
-        this.normalizeProvinceName(majorCity) === normalizedProvince,
-    );
+    return Math.min(rawShippingFee, this.config.maxFreeShippingDiscount);
   }
 
   private normalizeProvinceName(province: string): string {

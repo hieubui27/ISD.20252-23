@@ -18,6 +18,10 @@ import {
   DeliveryInfoValidator,
 } from './domain/validators/delivery-info.validator';
 import { EmailNotificationObserver } from './infrastructure/adapter/email-notification.observer';
+import {
+  DEFAULT_SHIPPING_FEE_CONFIG,
+  SHIPPING_FEE_CONFIG,
+} from './infrastructure/adapter/shipping-fee.config';
 import { WeightBasedShippingStrategy } from './infrastructure/adapter/weight-based-shipping.strategy';
 import { PrismaOrderRepository } from './infrastructure/repositories/prisma-order.repository';
 
@@ -34,6 +38,9 @@ import { PrismaOrderRepository } from './infrastructure/repositories/prisma-orde
   imports: [PrismaModule, MailModule],
   providers: [
     // ── Strategy: shipping fee. Swap implementation here only. ──
+    // Pricing DATA (zones/cities/fees) is injected; add a city by editing
+    // DEFAULT_SHIPPING_FEE_CONFIG, or override this token per environment.
+    { provide: SHIPPING_FEE_CONFIG, useValue: DEFAULT_SHIPPING_FEE_CONFIG },
     { provide: SHIPPING_FEE_CALCULATOR, useClass: WeightBasedShippingStrategy },
 
     { provide: ORDER_REPOSITORY, useClass: PrismaOrderRepository },
