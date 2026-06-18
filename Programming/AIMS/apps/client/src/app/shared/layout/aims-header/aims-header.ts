@@ -15,6 +15,17 @@ export class AimsHeaderComponent {
   @Input() showSearch = true;
   @Input() searchTerm = '';
 
+  /** Controls the collapsible navigation menu on small screens. */
+  menuOpen = false;
+
+  toggleMenu(): void {
+    this.menuOpen = !this.menuOpen;
+  }
+
+  closeMenu(): void {
+    this.menuOpen = false;
+  }
+
   @Output() brandClicked = new EventEmitter<void>();
   @Output() browseClicked = new EventEmitter<void>();
   @Output() cartClicked = new EventEmitter<void>();
@@ -36,14 +47,17 @@ export class AimsHeaderComponent {
   }
 
   handleBrandClick(): void {
+    this.closeMenu();
     this.brandClicked.emit();
   }
 
   handleBrowseClick(): void {
+    this.closeMenu();
     this.browseClicked.emit();
   }
 
   handleCartClick(): void {
+    this.closeMenu();
     this.cartClicked.emit();
   }
 
