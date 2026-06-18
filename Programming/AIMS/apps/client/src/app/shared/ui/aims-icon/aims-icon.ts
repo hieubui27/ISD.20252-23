@@ -13,7 +13,8 @@ export type AimsIconName =
   | 'eye-off'
   | 'close'
   | 'upload'
-  | 'arrow-right';
+  | 'arrow-right'
+  | 'trash';
 
 @Component({
   selector: 'app-aims-icon',
@@ -58,6 +59,7 @@ export class AimsIconComponent {
       close: 'fa-solid fa-xmark',
       upload: 'fa-solid fa-upload',
       'arrow-right': 'fa-solid fa-arrow-right',
+      trash: 'fa-solid fa-trash',
     };
     return map[this.name] || 'fa-solid fa-circle-question';
   }

@@ -1,5 +1,22 @@
 <div class="manager-layout">
-  <aside class="sidebar">
+  <!-- Mobile Topbar -->
+  <div class="mobile-topbar">
+    <button class="hamburger-btn" (click)="toggleSidebar()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+    <div class="mobile-brand">
+      <span class="logo">AIMS</span>
+    </div>
+  </div>
+
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" [class.open]="isSidebarOpen" (click)="closeSidebar()"></div>
+
+  <aside class="sidebar" [class.open]="isSidebarOpen">
     <div class="sidebar-header">
       <span class="logo">AIMS</span>
       <span class="title">Product Manager</span>
@@ -10,7 +27,7 @@
       <ng-container *ngIf="isAdmin$ | async; else managerMenu">
         <!-- Administrator Menu -->
         <a routerLink="/manager/dashboard" class="menu-item" routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }">
+          [routerLinkActiveOptions]="{ exact: true }" (click)="closeSidebar()">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <rect x="1" y="1" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.4" />
             <rect x="10" y="1" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.4" />
@@ -21,7 +38,7 @@
         </a>
 
         <a routerLink="/manager/admin/users" class="menu-item product-menu" routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: false }">
+          [routerLinkActiveOptions]="{ exact: false }" (click)="closeSidebar()">
           <div class="menu-inner">
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <circle cx="9" cy="6" r="3" stroke="currentColor" stroke-width="1.4" />
@@ -32,7 +49,7 @@
           </div>
         </a>
 
-        <a class="menu-item" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <a class="menu-item" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeSidebar()">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <rect x="2" y="2" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.4" />
             <path d="M5 6h8M5 9h6M5 12h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
@@ -44,7 +61,7 @@
       <ng-template #managerMenu>
         <!-- Manager Menu -->
         <a routerLink="/manager/dashboard" class="menu-item" routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }">
+          [routerLinkActiveOptions]="{ exact: true }" (click)="closeSidebar()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
             <rect width="7" height="9" x="3" y="3" rx="1" />
@@ -56,7 +73,7 @@
         </a>
 
         <a routerLink="/manager/products" class="menu-item product-menu" routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }">
+          [routerLinkActiveOptions]="{ exact: true }" (click)="closeSidebar()">
           <div class="menu-inner">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
@@ -71,7 +88,7 @@
         </a>
 
         <a routerLink="/manager/orders" class="menu-item order-menu" routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }">
+          [routerLinkActiveOptions]="{ exact: true }" (click)="closeSidebar()">
           <div class="menu-inner">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
@@ -84,7 +101,7 @@
         </a>
 
         <a routerLink="/manager/refunds" class="menu-item" routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: false }">
+          [routerLinkActiveOptions]="{ exact: false }" (click)="closeSidebar()">
           <div class="menu-inner">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
@@ -96,7 +113,7 @@
         </a>
 
         <a routerLink="/manager/products/history" class="menu-item" routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }">
+          [routerLinkActiveOptions]="{ exact: true }" (click)="closeSidebar()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10" />

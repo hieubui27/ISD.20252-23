@@ -2,7 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { ProductManagerService } from '../services/product-manager.service';
 import { ProductListItem } from '../../../features/products/models/product.model';
-import { BehaviorSubject, Observable, forkJoin } from 'rxjs';
+import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ConfirmDialogService } from '../../../shared/ui/confirm-dialog/confirm-dialog.service';
 import { ToastService } from '../../../shared/ui/toast/toast.service';
 
@@ -13,9 +14,23 @@ export class ProductListLogic {
   private confirmDialogService = inject(ConfirmDialogService);
   private toastService = inject(ToastService);
 
-  private productsSubject = new BehaviorSubject<ProductListItem[]>([]);
-  public products$: Observable<ProductListItem[]> =
-    this.productsSubject.asObservable();
+  private allProductsSubject = new BehaviorSubject<ProductListItem[]>([]);
+  public currentPageSubject = new BehaviorSubject<number>(1);
+  public itemsPerPage = 20;
+
+  public products$: Observable<ProductListItem[]> = combineLatest([
+    this.allProductsSubject,
+    this.currentPageSubject,
+  ]).pipe(
+    map(([products, page]) => {
+      const start = (page - 1) * this.itemsPerPage;
+      return products.slice(start, start + this.itemsPerPage);
+    }),
+  );
+
+  public totalPages$: Observable<number> = this.allProductsSubject.pipe(
+    map((products) => Math.ceil(products.length / this.itemsPerPage) || 1),
+  );
 
   private loadingSubject = new BehaviorSubject<boolean>(false);
   public loading$: Observable<boolean> = this.loadingSubject.asObservable();
@@ -36,10 +51,17 @@ export class ProductListLogic {
 
   public toggleAll(event: any): void {
     const isChecked = event.target.checked;
+    const page = this.currentPageSubject.value;
+    const start = (page - 1) * this.itemsPerPage;
+    const currentProducts = this.allProductsSubject.value.slice(
+      start,
+      start + this.itemsPerPage,
+    );
+
     if (isChecked) {
-      this.productsSubject.value.forEach((p) => this.selectedIds.add(p.id));
+      currentProducts.forEach((p) => this.selectedIds.add(p.id));
     } else {
-      this.selectedIds.clear();
+      currentProducts.forEach((p) => this.selectedIds.delete(p.id));
     }
   }
 
@@ -94,7 +116,7 @@ export class ProductListLogic {
     this.loadingSubject.next(true);
     this.productManagerService.getProducts().subscribe({
       next: (data) => {
-        this.productsSubject.next(data);
+        this.allProductsSubject.next(data);
         this.loadingSubject.next(false);
       },
       error: (err) => {
@@ -114,5 +136,10 @@ export class ProductListLogic {
 
   public navigateToEditProduct(id: string): void {
     this.router.navigate(['/manager/products/edit', id]);
+  }
+
+  public changePage(page: number): void {
+    this.currentPageSubject.next(page);
+    this.selectedIds.clear(); // Clear selection when page changes
   }
 }

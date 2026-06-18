@@ -117,10 +117,13 @@
               <input type="number" formControlName="originalValue" placeholder="0" class="form-input" />
             </div>
           </div>
+          <p *ngIf="form.errors?.['invalidPriceRatio']" class="error-text" style="color: red; font-size: 0.875rem; margin-top: 0.5rem;">
+            Giá bán hiện tại phải nằm trong khoảng từ 30% đến 150% giá trị gốc.
+          </p>
         </div>
 
         <!-- Inventory -->
-        <div class="section-card">
+        <div class="section-card" *ngIf="!(isEditMode$ | async)">
           <h3 class="section-title">Inventory</h3>
           <div class="form-group">
             <label class="form-label">Stock Quantity</label>

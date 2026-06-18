@@ -38,6 +38,16 @@
         background-color: $aims-color-page;
       }
 
+      &:focus {
+        outline: none;
+        color: $aims-color-text; /* Fix white text on focus */
+        border-color: $aims-color-primary;
+      }
+
+      &:active {
+        background-color: $aims-color-page;
+      }
+
       &:disabled {
         opacity: $aims-disabled-opacity;
         cursor: not-allowed;
@@ -47,6 +57,10 @@
         background-color: $aims-color-primary;
         color: white;
         border-color: $aims-color-primary;
+
+        &:focus {
+          color: white;
+        }
       }
     }
 

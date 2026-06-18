@@ -1,33 +1,17 @@
-<div class="top-bar">
-  <div class="search-container">
-    <div class="input-wrap">
-      <input type="text" placeholder="Search..." class="search-input" />
-      <app-aims-icon name="search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #414752"></app-aims-icon>
-    </div>
-  </div>
-  <div class="actions">
-    <app-aims-button variant="ghost" [iconOnly]="true" size="sm">
-      <app-aims-icon name="menu"></app-aims-icon>
-    </app-aims-button>
-    <div class="avatar">
-      <img src="assets/avatar.png" alt="avatar" />
-    </div>
-  </div>
-</div>
-
 <div class="page-content">
   <div class="page-header">
     <div class="title-group">
       <p class="subtitle">Catalog</p>
       <h1 class="title">Product Overview</h1>
     </div>
-    <div style="display: flex; gap: 12px;" *ngIf="authService.hasRole('Product Manager')">
+    <div class="header-actions" *ngIf="authService.hasRole('Product Manager')">
       <app-aims-button variant="danger" *ngIf="logic.selectedIds.size > 0" (pressed)="logic.deleteSelected()">
-        Delete Selected
+        <app-aims-icon name="trash"></app-aims-icon>
+        <span class="hide-text-mobile">Delete Selected</span>
       </app-aims-button>
       <app-aims-button variant="primary" (pressed)="logic.navigateToAddProduct()">
         <app-aims-icon name="plus"></app-aims-icon>
-        <span>Add New Product</span>
+        <span class="hide-text-mobile">Add New Product</span>
       </app-aims-button>
     </div>
   </div>
@@ -40,17 +24,19 @@
             <input type="checkbox" (change)="logic.toggleAll($event)" />
           </th>
           <th>PRODUCT</th>
-          <th>CATEGORY</th>
+          <th class="hide-on-mobile">CATEGORY</th>
           <th>PRICE (VND)</th>
-          <th>STOCK</th>
-          <th>STATUS</th>
+          <th class="hide-on-mobile">STOCK</th>
+          <th class="hide-on-mobile">STATUS</th>
           <th>ACTIONS</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let product of (products$ | async) || []" (click)="logic.navigateToViewProduct(product.id)" style="cursor: pointer">
+        <tr *ngFor="let product of (products$ | async) || []" (click)="logic.navigateToViewProduct(product.id)"
+          style="cursor: pointer">
           <td (click)="$event.stopPropagation()">
-            <input type="checkbox" [checked]="logic.isSelected(product.id)" (change)="logic.toggleSelection(product.id)" />
+            <input type="checkbox" [checked]="logic.isSelected(product.id)"
+              (change)="logic.toggleSelection(product.id)" />
           </td>
           <td>
             <div class="product-info">
@@ -63,24 +49,29 @@
               </div>
             </div>
           </td>
-          <td>{{ product.type }}</td>
+          <td class="hide-on-mobile">{{ product.type }}</td>
           <td class="price">{{ product.currentPrice | number }}</td>
-          <td>{{ product.stockQuantity }}</td>
-          <td>
+          <td class="hide-on-mobile">{{ product.stockQuantity }}</td>
+          <td class="hide-on-mobile">
             <span class="status-badge" [ngClass]="product.status.toLowerCase()">{{ product.status }}</span>
           </td>
           <td class="actions-cell" (click)="$event.stopPropagation()">
-            <button class="action-btn" *ngIf="authService.hasRole('Product Manager')" (click)="logic.navigateToEditProduct(product.id)">Edit</button>
+            <button class="action-btn" *ngIf="authService.hasRole('Product Manager')"
+              (click)="logic.navigateToEditProduct(product.id)">Edit</button>
           </td>
         </tr>
-        
+
         <!-- Empty state or loading -->
         <tr *ngIf="(products$ | async)?.length === 0">
           <td colspan="7" class="empty-state">No products found.</td>
         </tr>
       </tbody>
     </table>
-    
-    <app-aims-pagination [currentPage]="1" [totalPages]="1"></app-aims-pagination>
+
+    <app-aims-pagination
+      [currentPage]="(logic.currentPageSubject | async) || 1"
+      [totalPages]="(logic.totalPages$ | async) || 1"
+      (pageChange)="logic.changePage($event)">
+    </app-aims-pagination>
   </div>
 </div>
