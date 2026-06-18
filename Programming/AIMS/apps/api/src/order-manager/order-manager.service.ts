@@ -6,6 +6,7 @@ import { MailService } from '../mail/mail.service';
 import { PaymentService } from '../payment/payment.service';
 import { getOrderApprovedTemplate } from '../mail/templates/order-approved.template';
 import { getOrderRejectedTemplate } from '../mail/templates/order-rejected.template';
+import { getOrderRefundConfirmedTemplate } from '../mail/templates/order-refund-confirmed.template';
 
 @Injectable()
 export class OrderManagerService implements IOrderManagerService {
@@ -207,19 +208,56 @@ export class OrderManagerService implements IOrderManagerService {
     };
   }
 
+  async confirmManualRefund(id: string): Promise<unknown> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: BigInt(id) },
+      include: { invoice: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const updatedTransaction =
+      await this.paymentService.markTransactionAsRefunded(order.orderId);
+
+    if (order.email) {
+      const refundAmount =
+        order.invoice?.totalAmount.toNumber() || order.subtotal.toNumber();
+      const htmlContent = getOrderRefundConfirmedTemplate(
+        order.orderId,
+        order.customerName,
+        refundAmount,
+      );
+      await this.mailService.sendMail({
+        recipientEmail: [order.email],
+        subject: `[AIMS] Xác nhận hoàn tiền đơn hàng #${order.orderId}`,
+        html: htmlContent,
+      });
+    }
+
+    return {
+      message: 'Refund confirmed successfully',
+      status: updatedTransaction.status,
+    };
+  }
+
   async getRefundOrder(
     dto: GetOrdersDto,
   ): Promise<{ data: unknown[]; total: number }> {
     const { search, page = 1, limit = 10, status } = dto;
 
     const where: any = {};
-    where.paymentTransactions = {
-      some: {
-        status: { in: ['REFUND_REQUIRED', 'REFUNDED'] },
-      },
-    };
     if (status) {
-      where.status = status;
+      where.paymentTransactions = {
+        some: { status },
+      };
+    } else {
+      where.paymentTransactions = {
+        some: {
+          status: { in: ['REFUND_REQUIRED', 'REFUNDED'] },
+        },
+      };
     }
     if (search) {
       where.OR = [
@@ -241,7 +279,9 @@ export class OrderManagerService implements IOrderManagerService {
             include: { product: true },
             take: 1,
           },
-          paymentTransactions: true,
+          paymentTransactions: {
+            orderBy: { createdAt: 'desc' },
+          },
           _count: {
             select: { orderProducts: true },
           },

@@ -336,6 +336,24 @@ export class PaymentService {
     return transaction ? this.serializePaymentTransaction(transaction) : null;
   }
 
+  async markTransactionAsRefunded(orderId: string) {
+    const transaction =
+      await this.findLatestPaymentTransactionByOrderId(orderId);
+    if (!transaction) {
+      throw new NotFoundException('Payment transaction not found');
+    }
+    if (transaction.status !== PaymentStatus.REFUND_REQUIRED) {
+      throw new BadRequestException(
+        'Transaction is not pending a manual refund',
+      );
+    }
+
+    return this.prisma.paymentTransaction.update({
+      where: { id: transaction.id },
+      data: { status: PaymentStatus.REFUNDED },
+    });
+  }
+
   private parseInvoiceId(invoiceId: string): bigint {
     if (!/^\d+$/.test(invoiceId)) {
       throw new BadRequestException('Invoice id must be a numeric string');
