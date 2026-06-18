@@ -106,8 +106,7 @@ export class PaymentPageFacade {
   }
 
   cancelOrder(): void {
-    if (!confirm('Are you sure you want to cancel this order?')) return;
-    // TODO: Implement cancel order via order service.
+    this.router.navigate(['/cart']);
   }
 
   goToProducts(): void {
