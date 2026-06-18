@@ -76,4 +76,11 @@ export class PaymentService {
   requestPayment(dto: RequestPaymentDto): Observable<PaymentResultDto> {
     return this.http.post<PaymentResultDto>(`${this.apiUrl}/request`, dto);
   }
+
+  failTransaction(transactionId: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl}/transactions/${transactionId}/fail`,
+      {},
+    );
+  }
 }
