@@ -23,6 +23,13 @@
       <button type="button" class="aims-header__link">New Arrivals</button>
       <button type="button" class="aims-header__link">Collections</button>
       <button type="button" class="aims-header__link">Deals</button>
+      <button type="button" class="aims-header__link" style="display: inline-flex; align-items: center; gap: 4px;" (click)="handleLoginClick()" title="Manager Login">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        Login
+      </button>
       <div class="aims-header__cart-wrap">
         <button type="button" class="aims-header__cart-button" aria-label="Cart" (click)="handleCartClick()">
           <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">

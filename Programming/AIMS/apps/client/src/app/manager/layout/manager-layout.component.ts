@@ -1,5 +1,10 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import {
+  RouterOutlet,
+  RouterLink,
+  RouterLinkActive,
+  Router,
+} from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../auth/auth.service';
 import { Observable, map } from 'rxjs';
@@ -13,6 +18,7 @@ import { Observable, map } from 'rxjs';
 })
 export class ManagerLayoutComponent implements OnInit {
   private authService = inject(AuthService);
+  private router = inject(Router);
   isAdmin$: Observable<boolean> = new Observable<boolean>();
 
   ngOnInit() {
@@ -22,5 +28,20 @@ export class ManagerLayoutComponent implements OnInit {
         return user.roles.includes('Administrator');
       }),
     );
+  }
+
+  logout() {
+    this.authService.logout().subscribe({
+      next: () => {
+        this.authService.logoutLocal();
+        this.router.navigate(['/auth/login']);
+      },
+      error: (err) => {
+        console.error('Logout failed', err);
+        // Fallback to local logout
+        this.authService.logoutLocal();
+        this.router.navigate(['/auth/login']);
+      },
+    });
   }
 }
