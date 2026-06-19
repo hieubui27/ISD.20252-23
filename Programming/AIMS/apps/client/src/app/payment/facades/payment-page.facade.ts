@@ -29,9 +29,8 @@ export class PaymentPageFacade {
   private checkoutDraft: CheckoutDraft | null = null;
 
   initialize(): void {
-    this.vietQrPageFlow.onPaymentExpired(() =>
-      this.cancelCurrentOrderAndReturnToCart(),
-    );
+    this.vietQrPageFlow.onPaymentExpired(() => this.handlePaymentExpired());
+    this.paypalPageFlow.onPaymentExpired(() => this.handlePaymentExpired());
     this.checkoutDraft = this.checkoutDraftService.get();
     this.pendingPaymentSession.initialize(this.checkoutDraft);
 
@@ -131,6 +130,11 @@ export class PaymentPageFacade {
         this.finishCancelOrder();
       },
     });
+  }
+
+  private handlePaymentExpired(): void {
+    this.paypalPageFlow.discardApprovalSession();
+    this.cancelCurrentOrderAndReturnToCart();
   }
 
   goToProducts(): void {
