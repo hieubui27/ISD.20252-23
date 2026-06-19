@@ -324,6 +324,8 @@ export class PaymentService {
     orderId: string,
     paymentMethod?: PaymentMethod,
   ) {
+    await this.stalePaymentTransactionCleanup.expireStaleTransactions();
+
     const transaction = await this.findLatestPaymentTransactionByOrderId(
       orderId,
       paymentMethod,
