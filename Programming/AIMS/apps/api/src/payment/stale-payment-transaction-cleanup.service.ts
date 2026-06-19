@@ -4,7 +4,7 @@ import { PaymentMethod, PaymentStatus } from './constants/payment.constants';
 
 const STALE_PAYMENT_TIMEOUT_MS: Partial<Record<PaymentMethod, number>> = {
   [PaymentMethod.PAYPAL]: 3 * 60 * 60 * 1000,
-  [PaymentMethod.VIETQR]: 1 * 60 * 1000,
+  [PaymentMethod.VIETQR]: 30 * 60 * 1000,
 };
 
 @Injectable()
