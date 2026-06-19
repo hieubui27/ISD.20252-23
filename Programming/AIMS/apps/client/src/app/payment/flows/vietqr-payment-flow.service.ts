@@ -166,6 +166,11 @@ export class VietQrPaymentFlowService
           const current = this.latestSnapshot$.value;
           if (!current) return;
 
+          if (latestTransaction.status === PAYMENT_STATUS.FAILED) {
+            this.stop();
+            return;
+          }
+
           this.setLatestTransaction(current, latestTransaction);
 
           if (this.isTerminalStatus(latestTransaction.status)) {
