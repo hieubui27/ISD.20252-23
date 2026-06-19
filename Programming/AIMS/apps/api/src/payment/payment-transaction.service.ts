@@ -196,6 +196,7 @@ export class PaymentTransactionService {
         paymentMethod: input.paymentMethod,
         provider: this.resolveProvider(input.paymentMethod),
         status: PaymentStatus.PENDING,
+        createdAt: new Date(),
       },
     });
   }

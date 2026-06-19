@@ -633,27 +633,16 @@ describe('PaymentGatewayOrderIdService', () => {
 describe('StalePaymentTransactionCleanupService', () => {
   const mockPrisma = {
     paymentTransaction: {
-      findMany: jest.fn(),
       updateMany: jest.fn(),
     },
-  };
-  const mockOrderPaymentCancellation = {
-    cancelPendingPaymentOrdersWithOnlyFailedTransactions: jest.fn(),
   };
 
   let service: StalePaymentTransactionCleanupService;
 
   beforeEach(() => {
-    service = new StalePaymentTransactionCleanupService(
-      mockPrisma as any,
-      mockOrderPaymentCancellation as any,
-    );
+    service = new StalePaymentTransactionCleanupService(mockPrisma as any);
     jest.clearAllMocks();
     jest.useFakeTimers().setSystemTime(new Date('2026-06-18T12:00:00.000Z'));
-    mockPrisma.paymentTransaction.findMany.mockResolvedValue([]);
-    mockOrderPaymentCancellation.cancelPendingPaymentOrdersWithOnlyFailedTransactions.mockResolvedValue(
-      0,
-    );
   });
 
   afterEach(() => {
@@ -664,28 +653,9 @@ describe('StalePaymentTransactionCleanupService', () => {
     mockPrisma.paymentTransaction.updateMany
       .mockResolvedValueOnce({ count: 2 })
       .mockResolvedValueOnce({ count: 3 });
-    mockPrisma.paymentTransaction.findMany
-      .mockResolvedValueOnce([{ orderId: 'ORDER-1' }, { orderId: 'ORDER-2' }])
-      .mockResolvedValueOnce([
-        { orderId: 'ORDER-3' },
-        { orderId: 'ORDER-4' },
-        { orderId: 'ORDER-5' },
-      ]);
 
     const result = await service.expireStaleTransactions();
 
-    expect(mockPrisma.paymentTransaction.findMany).toHaveBeenNthCalledWith(1, {
-      where: {
-        paymentMethod: PaymentMethod.PAYPAL,
-        status: PaymentStatus.PENDING,
-        createdAt: {
-          lt: new Date('2026-06-18T09:00:00.000Z'),
-        },
-      },
-      select: {
-        orderId: true,
-      },
-    });
     expect(mockPrisma.paymentTransaction.updateMany).toHaveBeenNthCalledWith(1, {
       where: {
         paymentMethod: PaymentMethod.PAYPAL,
@@ -698,39 +668,18 @@ describe('StalePaymentTransactionCleanupService', () => {
         status: PaymentStatus.FAILED,
       },
     });
-    expect(mockPrisma.paymentTransaction.findMany).toHaveBeenNthCalledWith(2, {
-      where: {
-        paymentMethod: PaymentMethod.VIETQR,
-        status: PaymentStatus.PENDING,
-        createdAt: {
-          lt: new Date('2026-06-18T11:30:00.000Z'),
-        },
-      },
-      select: {
-        orderId: true,
-      },
-    });
     expect(mockPrisma.paymentTransaction.updateMany).toHaveBeenNthCalledWith(2, {
       where: {
         paymentMethod: PaymentMethod.VIETQR,
         status: PaymentStatus.PENDING,
         createdAt: {
-          lt: new Date('2026-06-18T11:30:00.000Z'),
+          lt: new Date('2026-06-18T11:59:00.000Z'),
         },
       },
       data: {
         status: PaymentStatus.FAILED,
       },
     });
-    expect(
-      mockOrderPaymentCancellation.cancelPendingPaymentOrdersWithOnlyFailedTransactions,
-    ).toHaveBeenCalledWith([
-      'ORDER-1',
-      'ORDER-2',
-      'ORDER-3',
-      'ORDER-4',
-      'ORDER-5',
-    ]);
     expect(result).toBe(5);
   });
 
@@ -743,8 +692,5 @@ describe('StalePaymentTransactionCleanupService', () => {
       expect(call[0].where.status).toBe(PaymentStatus.PENDING);
       expect(call[0].data.status).toBe(PaymentStatus.FAILED);
     }
-    expect(
-      mockOrderPaymentCancellation.cancelPendingPaymentOrdersWithOnlyFailedTransactions,
-    ).toHaveBeenCalledWith([]);
   });
 });
