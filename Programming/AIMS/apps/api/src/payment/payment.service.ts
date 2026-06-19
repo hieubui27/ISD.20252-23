@@ -21,9 +21,9 @@ import { PaymentCompletionService } from './payment-completion.service';
 import { PaymentGatewayTransactionRefResolver } from './payment-gateway-transaction-ref.resolver';
 import { StalePaymentTransactionCleanupService } from './stale-payment-transaction-cleanup.service';
 import { PaymentGatewayOrderIdService } from './payment-gateway-order-id.service';
+import { OrderPaymentCancellationService } from './order-payment-cancellation.service';
 
 /** Order is only customer-cancellable while it is awaiting manager approval. */
-const ORDER_STATUS_PENDING_PAYMENT = 'PENDING_PAYMENT';
 const ORDER_STATUS_PENDING_PROCESSING = 'PENDING_PROCESSING';
 const ORDER_STATUS_CANCELLED = 'CANCELLED_BY_CUSTOMER';
 
@@ -49,6 +49,7 @@ export class PaymentService {
     private readonly transactionRefResolver: PaymentGatewayTransactionRefResolver,
     private readonly stalePaymentTransactionCleanup: StalePaymentTransactionCleanupService,
     private readonly gatewayOrderIdService: PaymentGatewayOrderIdService,
+    private readonly orderPaymentCancellation: OrderPaymentCancellationService,
     @Inject(PLACE_ORDER_PAYMENT_PORT)
     private readonly placeOrderPaymentPort: PlaceOrderPaymentPort,
   ) {}
@@ -210,53 +211,9 @@ export class PaymentService {
   }
 
   async cancelPendingTransaction(transactionId: string) {
-    const transaction = await this.prisma.paymentTransaction.findUnique({
-      where: { id: transactionId },
-    });
-
-    if (!transaction) {
-      throw new NotFoundException('Payment transaction not found');
-    }
-
-    if (
-      transaction.status !== PaymentStatus.PENDING &&
-      transaction.status !== PaymentStatus.FAILED
-    ) {
-      throw new BadRequestException(
-        `Cannot cancel transaction from ${transaction.status}`,
-      );
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      const updatedTransaction =
-        transaction.status === PaymentStatus.PENDING
-          ? await tx.paymentTransaction.update({
-              where: { id: transaction.id },
-              data: { status: PaymentStatus.FAILED },
-            })
-          : transaction;
-
-      const updatedOrder = await tx.order.updateMany({
-        where: {
-          orderId: transaction.orderId,
-          status: ORDER_STATUS_PENDING_PAYMENT,
-        },
-        data: { status: ORDER_STATUS_CANCELLED, updatedAt: new Date() },
-      });
-
-      if (updatedOrder.count === 0) {
-        throw new BadRequestException(
-          'Only pending payment orders can be cancelled from payment page',
-        );
-      }
-
-      return {
-        orderId: transaction.orderId,
-        orderStatus: ORDER_STATUS_CANCELLED,
-        transactionId: updatedTransaction.id,
-        transactionStatus: updatedTransaction.status,
-      };
-    });
+    return this.orderPaymentCancellation.cancelPendingPaymentOrderForTransaction(
+      transactionId,
+    );
   }
 
   async requestCustomerRefund(dto: CustomerRefundRequestDto) {

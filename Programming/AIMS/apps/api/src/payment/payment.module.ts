@@ -11,6 +11,7 @@ import { PaymentGatewayTransactionRefResolver } from './payment-gateway-transact
 import { PaymentGatewayOrderIdService } from './payment-gateway-order-id.service';
 import { StalePaymentTransactionCleanupService } from './stale-payment-transaction-cleanup.service';
 import { PaymentTransactionService } from './payment-transaction.service';
+import { OrderPaymentCancellationService } from './order-payment-cancellation.service';
 import { PLACE_ORDER_PAYMENT_PORT } from './ports/place-order-payment.port';
 import { PlaceOrderPaymentAdapter } from '../place-order/infrastructure/adapter/place-order-payment.adapter';
 import { PlaceOrderDomainModule } from '../place-order/place-order-domain.module';
@@ -58,6 +59,7 @@ import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
     PaymentGatewayOrderIdService,
     StalePaymentTransactionCleanupService,
     PaymentTransactionService,
+    OrderPaymentCancellationService,
     {
       provide: PLACE_ORDER_PAYMENT_PORT,
       useClass: PlaceOrderPaymentAdapter,

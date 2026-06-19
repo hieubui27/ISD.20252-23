@@ -108,12 +108,15 @@ export class VietQrPaymentFlowService
         tap((latestTransaction) => {
           this.setLatestTransaction(snapshot, latestTransaction);
         }),
-        switchMap((latestTransaction) =>
-          this.requestSandboxCallback({
-            ...snapshot,
-            latestTransaction,
-          }),
-        ),
+        switchMap((latestTransaction) => {
+          const latestSnapshot = { ...snapshot, latestTransaction };
+
+          if (latestTransaction.status === PAYMENT_STATUS.FAILED) {
+            return of(latestSnapshot);
+          }
+
+          return this.requestSandboxCallback(latestSnapshot);
+        }),
       );
   }
 

@@ -23,6 +23,12 @@ export class VietQrPaymentPageFlowService {
 
   private currentSnapshot: VietQrPaymentSnapshot | null = null;
   private snapshotSubscription?: Subscription;
+  private paymentExpiredHandler?: () => void;
+  private isHandlingExpiredPayment = false;
+
+  onPaymentExpired(handler: () => void): void {
+    this.paymentExpiredHandler = handler;
+  }
 
   resumeCurrentPaymentIfMatchesPendingSession(): boolean {
     const existingSnapshot = this.vietQrPaymentFlow.currentSnapshot;
@@ -94,6 +100,7 @@ export class VietQrPaymentPageFlowService {
   }
 
   private prepareStart(statusMessage = ''): void {
+    this.isHandlingExpiredPayment = false;
     this.stateStore.patch({
       isLoading: true,
       errorMessage: '',
@@ -150,6 +157,11 @@ export class VietQrPaymentPageFlowService {
 
   private handleConfirmationSnapshot(snapshot: VietQrPaymentSnapshot): void {
     this.applySnapshot(snapshot);
+
+    if (snapshot.latestTransaction?.status === PAYMENT_STATUS.FAILED) {
+      this.handleExpiredPayment();
+      return;
+    }
 
     if (snapshot.latestTransaction?.status !== PAYMENT_STATUS.SUCCESS) {
       this.stateStore.patch({
@@ -237,16 +249,33 @@ export class VietQrPaymentPageFlowService {
         this.applySnapshot(snapshot);
         const status = snapshot.latestTransaction?.status;
 
-        if (
-          status === PAYMENT_STATUS.FAILED ||
-          status === PAYMENT_STATUS.REFUND_REQUIRED
-        ) {
+        if (status === PAYMENT_STATUS.FAILED) {
+          this.handleExpiredPayment();
+          return;
+        }
+
+        if (status === PAYMENT_STATUS.REFUND_REQUIRED) {
           this.stateStore.patch({
             errorMessage: 'Payment could not be completed.',
           });
         }
       },
     );
+  }
+
+  private handleExpiredPayment(): void {
+    if (this.isHandlingExpiredPayment) return;
+
+    this.isHandlingExpiredPayment = true;
+    this.vietQrPaymentFlow.stop();
+    this.stateStore.patch({
+      isLoading: false,
+      statusMessage:
+        'The QR code has expired. This order will be cancelled and you will be returned to your cart.',
+      errorMessage: '',
+    });
+
+    window.setTimeout(() => this.paymentExpiredHandler?.(), 1800);
   }
 
   private applySnapshot(snapshot: VietQrPaymentSnapshot): void {
