@@ -1,5 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { of } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 import { PlaceOrderPaymentResult } from '../../place-order/models/place-order.models';
 import { PaymentResultDto } from '../../services/payment.service';
 import { PAYMENT_METHOD, PAYMENT_STATUS } from '../constants/payment.constants';
@@ -9,6 +11,7 @@ import {
 } from '../models/payment-session.models';
 import { PaymentCompletionService } from '../services/payment-completion.service';
 import { PendingPaymentSessionService } from '../services/pending-payment-session.service';
+import { PaymentStatusApiService } from '../services/payment-status-api.service';
 import { readPaymentErrorMessage } from '../services/payment-result.utils';
 import { PaymentPageStateStore } from '../stores/payment-page-state.store';
 import { PaypalPaymentFlowService } from './paypal-payment-flow.service';
@@ -20,11 +23,18 @@ const PAYPAL_APPROVED_MESSAGE =
 export class PaypalPaymentPageFlowService {
   private readonly paymentCompletion = inject(PaymentCompletionService);
   private readonly paypalPaymentFlow = inject(PaypalPaymentFlowService);
+  private readonly paymentStatusApi = inject(PaymentStatusApiService);
   private readonly pendingPaymentSession = inject(PendingPaymentSessionService);
   private readonly router = inject(Router);
   private readonly stateStore = inject(PaymentPageStateStore);
 
   private paypalPaymentSession: PaypalPaymentSession | null = null;
+  private paymentExpiredHandler?: () => void;
+  private isHandlingExpiredPayment = false;
+
+  onPaymentExpired(handler: () => void): void {
+    this.paymentExpiredHandler = handler;
+  }
 
   start(hasCheckoutDraft: boolean): void {
     if (!hasCheckoutDraft && !this.pendingPaymentSession.session) return;
@@ -82,7 +92,7 @@ export class PaypalPaymentPageFlowService {
 
     const paypalUrl = this.stateStore.snapshot.paypalRedirectUrl;
     if (paypalUrl) {
-      window.location.href = paypalUrl;
+      this.redirectIfPaymentIsStillPending(paypalUrl);
     } else {
       this.stateStore.patch({
         statusMessage: 'PayPal redirect URL is not available yet.',
@@ -160,16 +170,88 @@ export class PaypalPaymentPageFlowService {
       statusMessage: 'Confirming your PayPal payment...',
     });
 
-    this.paypalPaymentFlow.capture(paymentSession).subscribe({
+    this.paymentStatusApi
+      .getLatestByOrderId(paymentSession.orderId, PAYMENT_METHOD.PAYPAL)
+      .pipe(
+        switchMap((transaction) => {
+          if (transaction.status === PAYMENT_STATUS.FAILED) {
+            return of(null);
+          }
+
+          return this.paypalPaymentFlow.capture(paymentSession).pipe(
+            catchError((err) =>
+              this.paymentStatusApi
+                .getLatestByOrderId(
+                  paymentSession.orderId,
+                  PAYMENT_METHOD.PAYPAL,
+                )
+                .pipe(
+                  switchMap((latestTransaction) => {
+                    if (latestTransaction.status === PAYMENT_STATUS.FAILED) {
+                      return of(null);
+                    }
+
+                    throw err;
+                  }),
+                ),
+            ),
+          );
+        }),
+      )
+      .subscribe({
       next: (result) => this.handleCaptureResult(paymentSession, result),
       error: (err) => this.handleCaptureError(err),
     });
   }
 
+  private redirectIfPaymentIsStillPending(paypalUrl: string): void {
+    const session = this.pendingPaymentSession.session;
+
+    if (!session?.orderId) {
+      window.location.href = paypalUrl;
+      return;
+    }
+
+    this.stateStore.patch({
+      isLoading: true,
+      errorMessage: '',
+      statusMessage: 'Checking your PayPal payment...',
+    });
+
+    this.paymentStatusApi
+      .getLatestByOrderId(session.orderId, PAYMENT_METHOD.PAYPAL)
+      .subscribe({
+        next: (transaction) => {
+          if (transaction.status === PAYMENT_STATUS.FAILED) {
+            this.handleExpiredPayment();
+            return;
+          }
+
+          window.location.href = paypalUrl;
+        },
+        error: (err) => {
+          console.error('PayPal status check failed:', err);
+          this.stateStore.patch({
+            isLoading: false,
+            errorMessage: readPaymentErrorMessage(
+              err,
+              'Unable to check PayPal payment status.',
+            ),
+            statusMessage: '',
+          });
+        },
+      });
+  }
+
   private handleCaptureResult(
     paymentSession: PaypalPaymentSession,
-    result: PaymentResultDto,
+    result: PaymentResultDto | null,
   ): void {
+    if (!result) {
+      this.handleExpiredPayment();
+      return;
+    }
+
     if (!result.success || result.status !== PAYMENT_STATUS.SUCCESS) {
       this.handleCaptureFailed(result);
       return;
@@ -222,5 +304,20 @@ export class PaypalPaymentPageFlowService {
       ),
       statusMessage: '',
     });
+  }
+
+  private handleExpiredPayment(): void {
+    if (this.isHandlingExpiredPayment) return;
+
+    this.isHandlingExpiredPayment = true;
+    this.stateStore.patch({
+      isLoading: false,
+      paypalApproved: false,
+      statusMessage:
+        'The PayPal payment has expired. This order will be cancelled and you will be returned to your cart.',
+      errorMessage: '',
+    });
+
+    window.setTimeout(() => this.paymentExpiredHandler?.(), 1800);
   }
 }

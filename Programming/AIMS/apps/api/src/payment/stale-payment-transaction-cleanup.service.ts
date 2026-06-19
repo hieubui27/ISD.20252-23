@@ -5,7 +5,7 @@ import { OrderPaymentCancellationService } from './order-payment-cancellation.se
 
 const STALE_PAYMENT_TIMEOUT_MS: Partial<Record<PaymentMethod, number>> = {
   [PaymentMethod.PAYPAL]: 3 * 60 * 60 * 1000,
-  [PaymentMethod.VIETQR]: 2 * 60 * 1000,
+  [PaymentMethod.VIETQR]: 1 * 60 * 1000,
 };
 
 @Injectable()

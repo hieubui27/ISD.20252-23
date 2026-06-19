@@ -249,11 +249,6 @@ export class VietQrPaymentPageFlowService {
         this.applySnapshot(snapshot);
         const status = snapshot.latestTransaction?.status;
 
-        if (status === PAYMENT_STATUS.FAILED) {
-          this.handleExpiredPayment();
-          return;
-        }
-
         if (status === PAYMENT_STATUS.REFUND_REQUIRED) {
           this.stateStore.patch({
             errorMessage: 'Payment could not be completed.',
