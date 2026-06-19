@@ -80,6 +80,10 @@ import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
     },
     PaymentGatewayFactory,
   ],
-  exports: [PaymentService, PaymentCompletionService],
+  exports: [
+    PaymentService,
+    PaymentCompletionService,
+    StalePaymentTransactionCleanupService,
+  ],
 })
 export class PaymentModule {}
