@@ -118,7 +118,7 @@ export class PaymentPageFacade {
       return;
     }
 
-    this.paymentService.failTransaction(transactionId).subscribe({
+    this.paymentService.cancelTransaction(transactionId).subscribe({
       next: () => this.finishCancelOrder(),
       error: (err) => {
         console.error('Cancel order failed:', err);

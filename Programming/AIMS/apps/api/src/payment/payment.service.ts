@@ -23,6 +23,7 @@ import { PaypalStaleTransactionCleanupService } from './paypal-stale-transaction
 import { PaymentGatewayOrderIdService } from './payment-gateway-order-id.service';
 
 /** Order is only customer-cancellable while it is awaiting manager approval. */
+const ORDER_STATUS_PENDING_PAYMENT = 'PENDING_PAYMENT';
 const ORDER_STATUS_PENDING_PROCESSING = 'PENDING_PROCESSING';
 const ORDER_STATUS_CANCELLED = 'CANCELLED_BY_CUSTOMER';
 
@@ -208,7 +209,7 @@ export class PaymentService {
     };
   }
 
-  async updateTransactionFailure(transactionId: string): Promise<void> {
+  async cancelPendingTransaction(transactionId: string) {
     const transaction = await this.prisma.paymentTransaction.findUnique({
       where: { id: transactionId },
     });
@@ -217,7 +218,45 @@ export class PaymentService {
       throw new NotFoundException('Payment transaction not found');
     }
 
-    await this.paymentTransactionService.markFailed(transactionId);
+    if (
+      transaction.status !== PaymentStatus.PENDING &&
+      transaction.status !== PaymentStatus.FAILED
+    ) {
+      throw new BadRequestException(
+        `Cannot cancel transaction from ${transaction.status}`,
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const updatedTransaction =
+        transaction.status === PaymentStatus.PENDING
+          ? await tx.paymentTransaction.update({
+              where: { id: transaction.id },
+              data: { status: PaymentStatus.FAILED },
+            })
+          : transaction;
+
+      const updatedOrder = await tx.order.updateMany({
+        where: {
+          orderId: transaction.orderId,
+          status: ORDER_STATUS_PENDING_PAYMENT,
+        },
+        data: { status: ORDER_STATUS_CANCELLED, updatedAt: new Date() },
+      });
+
+      if (updatedOrder.count === 0) {
+        throw new BadRequestException(
+          'Only pending payment orders can be cancelled from payment page',
+        );
+      }
+
+      return {
+        orderId: transaction.orderId,
+        orderStatus: ORDER_STATUS_CANCELLED,
+        transactionId: updatedTransaction.id,
+        transactionStatus: updatedTransaction.status,
+      };
+    });
   }
 
   async requestCustomerRefund(dto: CustomerRefundRequestDto) {
