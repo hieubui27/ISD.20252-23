@@ -167,17 +167,22 @@ export class VietQrPaymentFlowService
           if (!current) return;
 
           if (latestTransaction.status === PAYMENT_STATUS.FAILED) {
-            this.stop();
+            this.stopPolling();
             return;
           }
 
           this.setLatestTransaction(current, latestTransaction);
 
           if (this.isTerminalStatus(latestTransaction.status)) {
-            this.stop();
+            this.stopPolling();
           }
         },
       });
+  }
+
+  private stopPolling(): void {
+    this.pollingSubscription?.unsubscribe();
+    this.pollingSubscription = undefined;
   }
 
   private requestSandboxCallback(
