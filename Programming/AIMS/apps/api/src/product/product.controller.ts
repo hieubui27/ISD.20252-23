@@ -30,6 +30,7 @@ import { GetProductDetailUseCase } from './application/use-cases/get-product-det
 import { GetProductLogsUseCase } from './application/use-cases/get-product-logs.use-case';
 import { GetAllProductLogsUseCase } from './application/use-cases/get-all-product-logs.use-case';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { ProductDetailMapper } from './application/mappers/product-detail.mapper';
 
 /**
  * Module: ProductController
@@ -60,8 +61,15 @@ export class ProductController {
   @Roles('Product Manager')
   @Post()
   @UseGuards(JwtAuthGuard)
-  create(@Body() createProductDto: CreateProductDto, @CurrentUser() user: any) {
-    return this.productService.create(createProductDto, user.userId);
+  async create(
+    @Body() createProductDto: CreateProductDto,
+    @CurrentUser() user: any,
+  ) {
+    const created = await this.productService.create(
+      createProductDto,
+      user.userId,
+    );
+    return ProductDetailMapper.toDetailDto(created);
   }
 
   /**
@@ -142,7 +150,8 @@ export class ProductController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Product Manager')
   async findAllForManager() {
-    return this.productService.findAll();
+    const products = await this.productService.findAll();
+    return products.map((p) => ProductDetailMapper.toListItemDto(p));
   }
 
   @Get('logs')
@@ -161,12 +170,17 @@ export class ProductController {
   @Roles('Product Manager')
   @Put(':id')
   @UseGuards(JwtAuthGuard)
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto,
     @CurrentUser() user: any,
   ) {
-    return this.productService.update(id, updateProductDto, user.userId);
+    const updated = await this.productService.update(
+      id,
+      updateProductDto,
+      user.userId,
+    );
+    return ProductDetailMapper.toDetailDto(updated);
   }
 
   /**

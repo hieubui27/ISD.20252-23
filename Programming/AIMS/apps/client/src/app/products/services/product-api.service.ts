@@ -28,7 +28,11 @@ export class ProductApiService {
   private unwrapProducts(response: ProductListResponse): Product[] {
     const products = Array.isArray(response)
       ? response
-      : response.data ?? response.products ?? response.items ?? response.content ?? [];
+      : (response.data ??
+        response.products ??
+        response.items ??
+        response.content ??
+        []);
 
     return products.map((product) => this.normalizeProduct(product));
   }
@@ -47,7 +51,7 @@ export class ProductApiService {
       description: this.toString(product['description']),
       weight: this.toNumber(product['weight']),
       currentPrice: this.toNumber(product['currentPrice']),
-      quantity: this.toNumber(product['quantity']),
+      quantity: this.toNumber(product['stockQuantity'] ?? product['quantity']),
       status: this.toString(product['status']),
       imageUrl: this.toString(product['imageUrl']),
     };
