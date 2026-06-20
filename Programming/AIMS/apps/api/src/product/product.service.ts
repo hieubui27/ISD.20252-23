@@ -11,9 +11,12 @@ import type { IDailyQuotaService } from './interfaces/daily-quota.service.interf
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductRepository } from './product.repository';
-import { PRODUCT_SPECIFICATIONS } from './product.constants';
+import {
+  PRODUCT_SPECIFICATIONS,
+  HARD_DELETE_SPECIFICATION,
+} from './product.constants';
 import { IProductSpecification } from './domain/specifications/product-specification.interface';
-import { HardDeleteSpecification } from './domain/specifications/hard-delete.specification';
+import { ISpecification } from './domain/specifications/specification.interface';
 
 @Injectable()
 export class ProductService {
@@ -25,7 +28,8 @@ export class ProductService {
     private readonly dailyQuotaService: IDailyQuotaService,
     @Inject(PRODUCT_SPECIFICATIONS)
     private readonly specifications: IProductSpecification[] = [],
-    private readonly hardDeleteSpec: HardDeleteSpecification,
+    @Inject(HARD_DELETE_SPECIFICATION)
+    private readonly hardDeleteSpec: ISpecification<any>,
   ) {}
 
   private validateProductSpecifications(productData: any) {

@@ -12,7 +12,11 @@ import { PrismaProductRepository } from './infrastructure/repositories/prisma-pr
 import { PRODUCT_QUERY_REPOSITORY } from './domain/repositories/product-query.repository.interface';
 import { IProductLogServiceToken } from './interfaces/product-log.service.interface';
 import { ProductLogService } from './services/product-log.service';
-import { PRODUCT_HANDLERS, PRODUCT_SPECIFICATIONS } from './product.constants';
+import {
+  PRODUCT_HANDLERS,
+  PRODUCT_SPECIFICATIONS,
+  HARD_DELETE_SPECIFICATION,
+} from './product.constants';
 import { BookHandler } from './product-handler/book.handler';
 import { CdHandler } from './product-handler/cd.handler';
 import { DvdHandler } from './product-handler/dvd.handler';
@@ -79,6 +83,10 @@ import { HardDeleteSpecification } from './domain/specifications/hard-delete.spe
     },
     PriceRatioSpecification,
     HardDeleteSpecification,
+    {
+      provide: HARD_DELETE_SPECIFICATION,
+      useExisting: HardDeleteSpecification,
+    },
     {
       provide: PRODUCT_SPECIFICATIONS,
       useFactory: (...specs: any[]) => specs,
