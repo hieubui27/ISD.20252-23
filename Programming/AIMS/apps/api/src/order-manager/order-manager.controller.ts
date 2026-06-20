@@ -44,4 +44,9 @@ export class OrderManagerController {
   async rejectOrder(@Param('id') id: string, @Body() dto: RejectOrderDto) {
     return this.orderManagerService.rejectOrder(id, dto.reason);
   }
+
+  @Put('orders/:id/confirm-refund')
+  async confirmManualRefund(@Param('id') id: string) {
+    return this.orderManagerService.confirmManualRefund(id);
+  }
 }

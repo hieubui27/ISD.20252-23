@@ -23,6 +23,7 @@ export interface RefundListItem {
   status: string;
   paymentMethod: string;
   contactMethod: string;
+  paymentStatus: string;
 }
 
 export interface RefundDetail {
@@ -38,6 +39,7 @@ export interface RefundDetail {
   refundAmount: number;
   paymentMethod: string;
   contactMethod: string;
+  paymentStatus: string;
   items: {
     productId: string;
     productTitle: string;
@@ -52,11 +54,7 @@ export interface RefundDetail {
   }[];
 }
 
-export const REFUND_STATUSES = [
-  'All',
-  'CANCELLED_BY_CUSTOMER',
-  'REJECTED_BY_MANAGER',
-];
+export const REFUND_STATUSES = ['All', 'REFUND_REQUIRED', 'REFUNDED'];
 
 @Injectable({
   providedIn: 'root',
@@ -104,6 +102,8 @@ export class RefundManagerService {
               paymentMethod: pm,
               contactMethod:
                 pm === 'VIETQR' ? `Email: ${order.email}` : 'Automatic',
+              paymentStatus:
+                order.paymentTransactions?.[0]?.status || 'UNKNOWN',
             };
           }),
         })),
@@ -128,6 +128,7 @@ export class RefundManagerService {
           paymentMethod: pm,
           contactMethod:
             pm === 'VIETQR' ? `Email: ${order.email}` : 'Automatic',
+          paymentStatus: order.paymentTransactions?.[0]?.status || 'UNKNOWN',
           items:
             order.orderProducts?.map((p: any) => ({
               productId: p.productId,
@@ -152,5 +153,9 @@ export class RefundManagerService {
 
   markDone(id: string): Observable<unknown> {
     return this.http.put(`${this.apiUrl}/${id}/done`, {});
+  }
+
+  confirmManualRefund(id: string): Observable<unknown> {
+    return this.http.put(`${this.apiUrl}/${id}/confirm-refund`, {});
   }
 }
