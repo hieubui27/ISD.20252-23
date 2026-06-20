@@ -33,7 +33,7 @@
         <div class="status-tabs">
             <button *ngFor="let tab of statuses" class="tab-btn" [class.active]="activeTab === tab"
                 (click)="onTabChange(tab)">
-                {{ tab === 'CANCELLED_BY_CUSTOMER' ? 'Cancelled By Customer' : (tab === 'REJECTED_BY_MANAGER' ? 'Rejected By Manager' : tab) }}
+                {{ tab === 'REFUND_REQUIRED' ? 'Refund Required' : (tab === 'REFUNDED' ? 'Refunded' : tab) }}
             </button>
         </div>
 
@@ -78,10 +78,22 @@
                         </td>
                         <td>
                             <span [style.color]="refund.paymentMethod === 'VIETQR' ? '#ba1a1a' : '#414752'">{{ refund.contactMethod }}</span>
+                            <div *ngIf="refund.paymentMethod === 'VIETQR' && refund.paymentStatus === 'REFUND_REQUIRED'" style="margin-top: 8px;">
+                                <button class="btn btn-primary" (click)="confirmRefund(refund); $event.stopPropagation()" style="padding: 4px 10px; font-size: 12px; font-weight: 500; border-radius: 4px; border: 1px solid #1a73e8; background-color: #1a73e8; color: white; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    Confirm Refund
+                                </button>
+                            </div>
+                            <div *ngIf="refund.paymentMethod === 'VIETQR' && refund.paymentStatus === 'REFUNDED'" style="margin-top: 8px;">
+                                <span style="font-size: 11px; font-weight: 500; background-color: #e6f4ea; color: #1e8e3e; padding: 3px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px;">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    Refunded
+                                </span>
+                            </div>
                         </td>
                         <td>
-                            <span class="status-badge" [ngClass]="getStatusClass(refund.status)">
-                                {{ refund.status === 'CANCELLED_BY_CUSTOMER' ? 'Cancelled By Customer' : (refund.status === 'REJECTED_BY_MANAGER' ? 'Rejected By Manager' : refund.status) }}
+                            <span class="status-badge" [ngClass]="getStatusClass(refund.paymentStatus)">
+                                {{ refund.paymentStatus === 'REFUND_REQUIRED' ? 'Refund Required' : (refund.paymentStatus === 'REFUNDED' ? 'Refunded' : refund.paymentStatus) }}
                             </span>
                         </td>
                     </tr>

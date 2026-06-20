@@ -8,6 +8,8 @@ import {
   RefundListParams,
   REFUND_STATUSES,
 } from '../../services/refund-manager.service';
+import { ToastService } from '../../../../shared/ui/toast/toast.service';
+import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 
 @Component({
   selector: 'app-refund-list',
@@ -27,6 +29,8 @@ export class RefundListComponent implements OnInit {
 
   private refundService = inject(RefundManagerService);
   private cdr = inject(ChangeDetectorRef);
+  private toastService = inject(ToastService);
+  private confirmDialogService = inject(ConfirmDialogService);
 
   ngOnInit(): void {
     this.loadRefunds();
@@ -74,5 +78,28 @@ export class RefundListComponent implements OnInit {
 
   getStatusClass(status: string): string {
     return status.toLowerCase().replace(/\s+/g, '-');
+  }
+
+  async confirmRefund(refund: RefundListItem): Promise<void> {
+    const isConfirmed = await this.confirmDialogService.confirm({
+      title: 'Confirm Refund',
+      message: `Are you sure you have manually refunded the customer for order #${refund.orderDisplayId}?`,
+      confirmText: 'Confirm Refund',
+    });
+
+    if (isConfirmed) {
+      this.refundService.confirmManualRefund(refund.orderId).subscribe({
+        next: () => {
+          this.toastService.showSuccess('Refund confirmed successfully!');
+          this.loadRefunds();
+        },
+        error: (err) => {
+          console.error(err);
+          this.toastService.showError(
+            'An error occurred while confirming the refund.',
+          );
+        },
+      });
+    }
   }
 }
