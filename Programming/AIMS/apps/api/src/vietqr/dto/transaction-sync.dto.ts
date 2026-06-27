@@ -8,15 +8,17 @@ const toOptionalNumber = ({ value }: { value: unknown }) =>
   value === undefined || value === null || value === '' ? value : Number(value);
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * DTO: TransactionSyncDto
  *
- * Coupling reason:
- * - This DTO carries only VietQR callback payload fields from the controller into PaymentService.
- * - It does not depend on database models, AIMS order services, or HTTP client implementation details.
+ * SOLID Review:
+ * SRP: Satisfied. It models one VietQR transaction-sync callback.
+ * OCP: Satisfied. Optional provider fields can be accepted without changing the core flow.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. The DTO contains only callback payload fields.
+ * DIP: Satisfied. The callback service receives validated DTO data.
  *
- * Cohesion reason:
- * - All properties describe and validate one VietQR transaction synchronization callback.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: It carries VietQR callback primitives and all fields describe one sync message.
  */
 export class TransactionSyncDto {
   @Transform(toOptionalString)

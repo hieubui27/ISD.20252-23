@@ -1,15 +1,17 @@
 import { IsNumber, IsOptional, IsString } from 'class-validator';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * DTO: VietqrTestCallbackDto
  *
- * Coupling reason:
- * - This DTO carries only primitive sandbox callback test fields used by VietqrService.
- * - It does not access payment records, provider clients, or shared mutable state directly.
+ * SOLID Review:
+ * SRP: Satisfied. It holds data for one sandbox callback request.
+ * OCP: Satisfied. Optional bank fields allow default config to be used.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. No production callback fields are mixed into the DTO.
+ * DIP: Satisfied. SandboxService receives this DTO instead of raw request bodies.
  *
- * Cohesion reason:
- * - All properties validate the data needed to request one VietQR sandbox callback test.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: It passes primitive sandbox callback data and all fields serve one test flow.
  */
 export class VietqrTestCallbackDto {
   @IsString()

@@ -21,28 +21,20 @@ import { VietqrGatewayAdapter } from './adapters/vietqr-gateway.adapter';
 import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * Module: PaymentModule
  *
- * Coupling reason:
- * - This module wires controllers, services, gateway adapters, and provider tokens through NestJS dependency injection.
- * - It does not contain business logic, database access, or shared mutable payment state.
+ * SOLID Review:
+ * SRP: Satisfied. This module wires payment controllers, services, adapters, and ports.
+ * OCP: Satisfied. New payment gateways can be added by registering another adapter.
+ * LSP: Satisfied. Gateway adapters are used through the same contracts.
+ * ISP: Satisfied. Other modules receive only the exported payment services.
+ * DIP: Satisfied. PaymentService works with gateway and place-order abstractions.
  *
- * Cohesion reason:
- * - All declarations belong to the payment module boundary for payment, gateway adapters, VietQR callback, VietQR client,
- *   and PlaceOrder integration.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: The module passes dependencies through NestJS DI and keeps payment
+ *   providers inside the payment boundary.
  */
 @Module({
-  /*
-   * SOLID review:
-   * - DIP/OCP: Medium risk. VietQR controllers, services, guards, config, and HTTP
-   *   client are registered directly inside PaymentModule. This is acceptable for a
-   *   small module, but changing the VietQR implementation or disabling sandbox
-   *   endpoints requires editing this payment module.
-   * - Improvement: Create a VietqrModule that owns VietQR providers and exports a
-   *   narrow provider-facing service/port. PaymentModule should import VietqrModule
-   *   and depend on exported abstractions.
-   */
   imports: [
     PaypalModule,
     PrismaModule,
@@ -65,9 +57,8 @@ import { PaymentGatewayFactory } from './strategies/payment-gateway.factory';
       useClass: PlaceOrderPaymentAdapter,
     },
 
-    // ── Payment Gateway Adapters (Strategy Pattern) ──
-    // Mỗi adapter implement PaymentGateway interface cho một phương thức thanh toán.
-    // Thêm phương thức mới: tạo adapter → thêm vào danh sách bên dưới.
+    // Payment gateway adapters registered for the strategy factory.
+    // Add a new adapter here when another payment method is supported.
     PaypalGatewayAdapter,
     VietqrGatewayAdapter,
     {

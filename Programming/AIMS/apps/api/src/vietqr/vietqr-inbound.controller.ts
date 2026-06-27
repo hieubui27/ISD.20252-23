@@ -2,15 +2,18 @@ import { Controller, Headers, Post } from '@nestjs/common';
 import { VietqrInboundService } from './vietqr-inbound.service';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * Controller: VietqrInboundController
  *
- * Coupling reason:
- * - This controller depends only on VietqrInboundService and passes the primitive Authorization header.
- * - It does not access payment records, outbound VietQR client internals, or shared mutable state.
+ * SOLID Review:
+ * SRP: Satisfied. It exposes the inbound token endpoint for VietQR connection tests.
+ * OCP: Satisfied. Token creation details stay inside VietqrInboundService.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. The controller has one focused endpoint.
+ * DIP: Satisfied. It depends on VietqrInboundService instead of token logic directly.
  *
- * Cohesion reason:
- * - Its endpoint exposes the inbound VietQR token generation boundary used for merchant connection testing.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: It passes the Authorization header to the inbound service and keeps
+ *   inbound VietQR authentication in one controller.
  */
 @Controller('vqr/api')
 export class VietqrInboundController {

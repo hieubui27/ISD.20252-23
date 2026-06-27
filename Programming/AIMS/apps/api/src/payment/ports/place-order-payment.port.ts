@@ -1,15 +1,18 @@
 export const PLACE_ORDER_PAYMENT_PORT = 'PLACE_ORDER_PAYMENT_PORT';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * Port: PlaceOrderPaymentPort
  *
- * Coupling reason:
- * - This port exposes only payment context lookup data and primitive order identifiers to PaymentService.
- * - It hides PlaceOrder implementation details and avoids sharing large order objects with payment code.
+ * SOLID Review:
+ * SRP: Satisfied. The port exposes only the order operations needed by payment.
+ * OCP: Satisfied. A different order adapter can implement the same contract.
+ * LSP: Satisfied. Implementations can replace each other through this port.
+ * ISP: Satisfied. The port has only context lookup and paid-transition methods.
+ * DIP: Satisfied. PaymentService depends on this port, not a concrete order service.
  *
- * Cohesion reason:
- * - All interfaces define the payment-facing boundary that PlaceOrder integration must implement.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: The port passes small payment-facing DTOs and groups order-payment
+ *   integration methods.
  */
 export interface PaymentContextLookup {
   orderId: string;

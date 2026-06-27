@@ -10,15 +10,18 @@ import {
 import { VietqrConfigService } from '../config/vietqr-config.service';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * Client: VietqrHttpClient
  *
- * Coupling reason:
- * - This client communicates with VietQR through primitive credentials, access tokens, and request interfaces.
- * - It does not depend on AIMS payment business rules, Prisma, controllers, or shared mutable state.
+ * SOLID Review:
+ * SRP: Satisfied. It contains only outbound HTTP calls to VietQR.
+ * OCP: Satisfied. Request mapping can be extended without changing payment services.
+ * LSP: Satisfied. It implements the VietqrClient contract.
+ * ISP: Satisfied. The client exposes only VietQR operations used by the app.
+ * DIP: Satisfied. Other services depend on the VietqrClient token.
  *
- * Cohesion reason:
- * - All methods are focused on outbound VietQR HTTP API calls.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: The client sends VietQR request DTOs and keeps provider HTTP details
+ *   outside payment business logic.
  */
 @Injectable()
 export class VietqrHttpClient implements VietqrClient {

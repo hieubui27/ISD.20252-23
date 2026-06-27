@@ -1,13 +1,15 @@
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * DTO: TransactionStatusDto
  *
- * Coupling reason:
- * - This DTO carries only primitive transaction status fields between VietQR mapping and payment responses.
- * - It has no dependency on persistence entities, controllers, or provider clients.
+ * SOLID Review:
+ * SRP: Satisfied. It describes the current status of one payment transaction.
+ * OCP: Satisfied. Optional fields cover provider data without changing the status contract.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. It contains only transaction status response fields.
+ * DIP: Satisfied. Mappers and controllers exchange this DTO instead of provider payloads.
  *
- * Cohesion reason:
- * - All properties describe the synchronized status of one payment transaction.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: It passes primitive status data and all fields describe one transaction.
  */
 export class TransactionStatusDto {
   transactionId!: string;

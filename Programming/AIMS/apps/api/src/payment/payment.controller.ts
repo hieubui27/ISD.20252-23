@@ -6,15 +6,18 @@ import { RequestPaymentDto } from './dto/request-payment.dto';
 import { PaymentMethod } from './constants/payment.constants';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * Controller: PaymentController
  *
- * Coupling reason:
- * - This controller depends only on PaymentService and communicates through validated DTOs and primitive route parameters.
- * - It does not access Prisma records, VietQR internals, provider clients, or shared global state directly.
+ * SOLID Review:
+ * SRP: Satisfied. The controller exposes payment API routes and delegates business logic.
+ * OCP: Satisfied. New endpoints can be added without changing existing handlers.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. Each route receives a focused DTO or route parameter.
+ * DIP: Satisfied. The controller depends on PaymentService, not lower-level providers.
  *
- * Cohesion reason:
- * - All methods expose payment-related API endpoints and delegate payment business behavior to PaymentService.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: The controller passes request DTOs to PaymentService and keeps
+ *   payment API endpoints together.
  */
 @Controller('payments')
 export class PaymentController {

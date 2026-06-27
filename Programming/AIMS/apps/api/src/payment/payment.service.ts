@@ -28,16 +28,19 @@ const ORDER_STATUS_PENDING_PROCESSING = 'PENDING_PROCESSING';
 const ORDER_STATUS_CANCELLED = 'CANCELLED_BY_CUSTOMER';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * Service: PaymentService
  *
- * Coupling reason:
- * - This service coordinates payment through PaymentGatewayFactory, PrismaService, and PlaceOrderPaymentPort.
- * - It does not handle provider inbound callbacks; provider-specific modules own those flows.
+ * SOLID Review:
+ * SRP: Mostly satisfied. It coordinates payment use cases and delegates provider work
+ * to gateway adapters and helper services.
+ * OCP: Satisfied. New providers can be supported through PaymentGatewayFactory.
+ * LSP: Satisfied. Provider adapters follow the same gateway contracts.
+ * ISP: Satisfied. Payment, gateway, and place-order contracts are separated.
+ * DIP: Satisfied. The service depends on ports and factories instead of provider SDKs.
  *
- * Cohesion reason:
- * - All public methods serve the payment transaction lifecycle: request, method change, confirmation,
- *   status update, lookup, and refund-required marking.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: It exchanges DTOs and IDs with collaborators while keeping payment
+ *   transaction behavior in one service.
  */
 @Injectable()
 export class PaymentService {

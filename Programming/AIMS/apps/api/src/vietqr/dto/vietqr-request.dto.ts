@@ -1,15 +1,17 @@
 import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * DTO: VietqrRequestDto
  *
- * Coupling reason:
- * - This DTO contains only primitive QR generation request fields used by VietqrService.
- * - It does not expose payment transactions, HTTP client internals, or shared global state.
+ * SOLID Review:
+ * SRP: Satisfied. It describes one VietQR generation request.
+ * OCP: Satisfied. Optional order and customer fields can be filled when available.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. The DTO contains only QR generation input fields.
+ * DIP: Satisfied. VietqrService receives a DTO instead of controller or database objects.
  *
- * Cohesion reason:
- * - All properties describe the data required to generate one VietQR code.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: It passes primitive request data and all fields are needed for QR creation.
  */
 export class VietqrRequestDto {
   @IsString()

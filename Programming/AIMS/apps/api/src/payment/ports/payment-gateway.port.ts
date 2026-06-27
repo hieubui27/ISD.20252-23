@@ -1,82 +1,84 @@
 import { PaymentMethod } from '../constants/payment.constants';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * Port: PaymentGateway
  *
- * Coupling reason:
- * - This port defines the payment gateway contract using only DTOs and primitives.
- * - Concrete adapters (PayPal, VietQR, etc.) implement this interface independently.
+ * SOLID Review:
+ * SRP: Satisfied. The port describes the contract every payment gateway must follow.
+ * OCP: Satisfied. New providers can be added by implementing these interfaces.
+ * LSP: Satisfied. Gateway adapters can replace each other through the same contracts.
+ * ISP: Satisfied. Creation, confirmation, and refund capabilities are split.
+ * DIP: Satisfied. PaymentService depends on the port instead of concrete providers.
  *
- * Cohesion reason:
- * - All methods belong to the payment gateway lifecycle: create, confirm, and refund.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: The port exchanges DTOs and primitives, and every method belongs to
+ *   the payment gateway lifecycle.
  */
 
-// ── Input: Thông tin chung cần để tạo thanh toán ──
+// Common data needed to create a payment with an external gateway.
 export interface PaymentGatewayContext {
-  /** ID giao dịch nội bộ dùng cho gateway (đã normalize) */
+  /** Internal transaction reference used by the gateway. */
   gatewayOrderId: string;
-  /** Số tiền gốc (VND) */
+  /** Original amount in VND. */
   amount: number;
-  /** Mô tả giao dịch */
+  /** Payment description sent to the provider. */
   description: string;
-  /** URL redirect sau khi thanh toán xong */
+  /** Redirect URL after successful payment. */
   returnUrl?: string;
-  /** URL redirect khi hủy */
+  /** Redirect URL after cancellation. */
   cancelUrl?: string;
-  /** Email khách hàng */
+  /** Customer email. */
   customerEmail?: string;
-  /** Invoice ID */
+  /** Invoice ID. */
   invoiceId?: string;
 }
 
-// ── Output: Kết quả trả về thống nhất từ mọi gateway ──
+// Unified payment result returned by every gateway.
 export interface PaymentGatewayResult {
-  /** URL thanh toán (PayPal approval link, hoặc VietQR link) */
+  /** Payment URL, such as PayPal approval link or VietQR link. */
   paymentUrl: string;
-  /** Mã QR (chỉ VietQR có, PayPal để rỗng) */
+  /** QR value for VietQR. PayPal leaves this empty. */
   qrCode: string;
-  /** Dữ liệu bổ sung từ provider, dùng để lưu vào DB nếu cần */
+  /** Provider data that can be stored when needed. */
   providerData?: Record<string, unknown>;
-  /** Dữ liệu cần cập nhật vào payment transaction sau khi provider trả kết quả */
+  /** PaymentTransaction fields to update after provider response. */
   transactionUpdate?: Record<string, unknown>;
 }
 
-// ── Token cho NestJS DI ──
+// NestJS token for gateway adapter injection.
 export const PAYMENT_GATEWAYS = 'PAYMENT_GATEWAYS';
 
-// ── Interface chính mà mọi payment provider phải implement ──
+// Base interface implemented by every payment provider adapter.
 export interface PaymentGatewayBase {
   /**
-   * Trả về phương thức thanh toán mà adapter này xử lý.
-   * Factory dùng giá trị này để đăng ký và tra cứu đúng adapter.
+   * Returns the payment method handled by this adapter.
+   * The factory uses it to register and find the right adapter.
    */
   getMethod(): PaymentMethod;
 }
 
 export interface PaymentCreationGateway extends PaymentGatewayBase {
   /**
-   * Tạo một yêu cầu thanh toán mới với provider bên ngoài.
-   * - PayPal: gọi createOrder() → trả approvalUrl
-   * - VietQR: gọi generateQrCode() → trả qrCode + qrLink
+   * Creates a payment request with the external provider.
+   * - PayPal calls createOrder() and returns an approval URL.
+   * - VietQR calls generateQrCode() and returns QR data.
    */
   createPayment(context: PaymentGatewayContext): Promise<PaymentGatewayResult>;
 }
 
 export interface PaymentConfirmationGateway extends PaymentGatewayBase {
   /**
-   * Xác nhận (capture) thanh toán sau khi khách hàng đã approve.
-   * - PayPal: gọi capturePayment(orderId)
-   * - VietQR: không implement, callback tự động xử lý success
+   * Confirms a payment after the customer approves it.
+   * - PayPal captures the order.
+   * - VietQR is completed by callback, so it does not use this flow.
    */
   confirmPayment(transactionRef: string): Promise<PaymentGatewayResult>;
 }
 
 export interface PaymentRefundGateway extends PaymentGatewayBase {
   /**
-   * Hoàn tiền cho một giao dịch đã thanh toán.
-   * - PayPal: gọi refundPayment(captureId)
-   * - VietQR: không implement, payment chung sẽ đánh dấu cần hoàn thủ công
+   * Refunds a paid transaction when the provider supports automatic refunds.
+   * VietQR refunds are marked for manual handling.
    */
   refundPayment(
     transactionRef: string,

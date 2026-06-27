@@ -2,15 +2,17 @@ import { IsEmail, IsEnum, IsNumber, IsString, Min } from 'class-validator';
 import { PaymentMethod } from '../constants/payment.constants';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * DTO: RequestPaymentDto
  *
- * Coupling reason:
- * - This DTO carries only primitive request payment fields from the API boundary into PaymentService.
- * - It does not expose persistence models, VietQR client objects, or global state.
+ * SOLID Review:
+ * SRP: Satisfied. It describes one request to start a payment.
+ * OCP: Satisfied. Optional fields allow supported payment methods to add provider data.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. The DTO contains only fields needed by the request-payment API.
+ * DIP: Satisfied. Controllers and services exchange this DTO instead of provider models.
  *
- * Cohesion reason:
- * - All properties describe and validate the data needed to start one payment request.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: It passes primitive request data and all fields belong to payment creation.
  */
 export class RequestPaymentDto {
   @IsString()
