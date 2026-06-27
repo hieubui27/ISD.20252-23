@@ -673,7 +673,7 @@ describe('StalePaymentTransactionCleanupService', () => {
         paymentMethod: PaymentMethod.VIETQR,
         status: PaymentStatus.PENDING,
         createdAt: {
-          lt: new Date('2026-06-18T11:59:00.000Z'),
+          lt: new Date('2026-06-18T11:30:00.000Z'),
         },
       },
       data: {
