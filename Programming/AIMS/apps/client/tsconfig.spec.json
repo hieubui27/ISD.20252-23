@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/spec",
+    "types": ["jest", "node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "isolatedModules": false
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

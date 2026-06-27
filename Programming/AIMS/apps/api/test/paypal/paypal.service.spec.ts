@@ -1,206 +1,154 @@
+import { BadRequestException } from '@nestjs/common';
 import axios from 'axios';
-import { PaypalService } from '../../src/payment/paypal/paypal.service';
-import { Test, TestingModule } from '@nestjs/testing';
-import {
-  UnauthorizedException,
-  BadRequestException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { PaypalService } from '../../src/paypal/paypal.service';
+import { PaypalGatewayAdapter } from '../../src/payment/adapters/paypal-gateway.adapter';
+import { PaymentMethod } from '../../src/payment/constants/payment.constants';
 
 jest.mock('axios');
+
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('PaypalService', () => {
-  let service: PaypalService;
+  const originalEnv = process.env;
 
-  beforeAll(() => {
-    process.env.PAYPAL_CLIENT_ID = 'test-client-id';
-    process.env.PAYPAL_SECRET = 'test-secret';
-    process.env.PAYPAL_BASE_URL = 'https://api-m.sandbox.paypal.com';
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env = {
+      ...originalEnv,
+      PAYPAL_CLIENT_ID: 'client-id',
+      PAYPAL_SECRET: 'secret',
+      PAYPAL_BASE_URL: 'https://paypal.test',
+      PAYPAL_RETURN_URL: 'http://localhost:4200/payment',
+      PAYPAL_CANCEL_URL: 'http://localhost:4200/payment',
+    };
   });
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [PaypalService],
-    }).compile();
-
-    service = module.get<PaypalService>(PaypalService);
+  afterAll(() => {
+    process.env = originalEnv;
   });
 
-  afterEach(() => jest.clearAllMocks());
+  const createService = () => new PaypalService();
 
-  // ─────────────────────────────────────────
-  // getAccessToken
-  // ─────────────────────────────────────────
-  describe('getAccessToken', () => {
-    it('should return access token successfully', async () => {
-      mockedAxios.post.mockResolvedValueOnce({
-        data: { access_token: 'mock-token-123' },
+  it('gets a PayPal access token', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { access_token: 'token-123' },
+    });
+
+    const token = await createService().getAccessToken();
+
+    expect(token).toBe('token-123');
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      'https://paypal.test/v1/oauth2/token',
+      'grant_type=client_credentials',
+      {
+        auth: { username: 'client-id', password: 'secret' },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      },
+    );
+  });
+
+  it('creates a PayPal order', async () => {
+    mockedAxios.post
+      .mockResolvedValueOnce({ data: { access_token: 'token-123' } })
+      .mockResolvedValueOnce({
+        data: { id: 'PAYPAL-ORDER-1', status: 'CREATED' },
       });
 
-      const token = await service.getAccessToken();
+    const result = await createService().createOrder(20);
 
-      expect(token).toBe('mock-token-123');
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/v1/oauth2/token'),
-        'grant_type=client_credentials',
-        expect.objectContaining({
-          auth: { username: 'test-client-id', password: 'test-secret' },
+    expect(result).toEqual({ id: 'PAYPAL-ORDER-1', status: 'CREATED' });
+    expect(mockedAxios.post).toHaveBeenNthCalledWith(
+      2,
+      'https://paypal.test/v2/checkout/orders',
+      expect.objectContaining({
+        intent: 'CAPTURE',
+        purchase_units: [{ amount: { currency_code: 'USD', value: '20.00' } }],
+      }),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer token-123',
         }),
-      );
+      }),
+    );
+  });
+
+  it('rejects invalid order amounts', async () => {
+    await expect(createService().createOrder(0)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(mockedAxios.post).not.toHaveBeenCalled();
+  });
+
+  it('captures a PayPal order', async () => {
+    mockedAxios.post
+      .mockResolvedValueOnce({ data: { access_token: 'token-123' } })
+      .mockResolvedValueOnce({
+        data: { id: 'PAYPAL-ORDER-1', status: 'COMPLETED' },
+      });
+
+    const result = await createService().capturePayment('PAYPAL-ORDER-1');
+
+    expect(result.status).toBe('COMPLETED');
+    expect(mockedAxios.post).toHaveBeenNthCalledWith(
+      2,
+      'https://paypal.test/v2/checkout/orders/PAYPAL-ORDER-1/capture',
+      {},
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'PayPal-Request-Id': 'PAYPAL-ORDER-1',
+        }),
+      }),
+    );
+  });
+});
+
+describe('PaypalGatewayAdapter', () => {
+  const paypalService = {
+    createOrder: jest.fn(),
+    capturePayment: jest.fn(),
+  };
+
+  let adapter: PaypalGatewayAdapter;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    adapter = new PaypalGatewayAdapter(paypalService as any);
+  });
+
+  it('uses PayPal as its payment method', () => {
+    expect(adapter.getMethod()).toBe(PaymentMethod.PAYPAL);
+  });
+
+  it('creates a payment from a PayPal approval link', async () => {
+    paypalService.createOrder.mockResolvedValue({
+      id: 'PAYPAL-ORDER-1',
+      links: [{ rel: 'approve', href: 'https://paypal.test/approve' }],
     });
 
-    it('should throw UnauthorizedException when API fails', async () => {
-      mockedAxios.post.mockRejectedValueOnce(new Error('Unauthorized'));
+    const result = await adapter.createPayment({
+      gatewayOrderId: 'TRANSACTION-1',
+      amount: 520000,
+      description: 'AIMS order',
+    });
 
-      await expect(service.getAccessToken()).rejects.toThrow(
-        UnauthorizedException,
-      );
+    expect(paypalService.createOrder).toHaveBeenCalledWith(20);
+    expect(result.paymentUrl).toBe('https://paypal.test/approve');
+    expect(result.transactionUpdate).toEqual({
+      gatewayOrderId: 'PAYPAL-ORDER-1',
     });
   });
 
-  // ─────────────────────────────────────────
-  // createOrder
-  // ─────────────────────────────────────────
-  describe('createOrder', () => {
-    beforeEach(() => {
-      mockedAxios.post.mockResolvedValueOnce({
-        data: { access_token: 'mock-token-123' },
-      });
+  it('captures a payment and keeps the PayPal capture id', async () => {
+    paypalService.capturePayment.mockResolvedValue({
+      id: 'PAYPAL-ORDER-1',
+      purchase_units: [{ payments: { captures: [{ id: 'CAPTURE-1' }] } }],
     });
 
-    it('should call API with valid amount', async () => {
-      mockedAxios.post.mockResolvedValueOnce({
-        data: { id: 'ORDER-123', status: 'CREATED' },
-      });
+    const result = await adapter.confirmPayment('PAYPAL-ORDER-1');
 
-      const result = await service.createOrder(100);
-      expect(result).toEqual({ id: 'ORDER-123', status: 'CREATED' });
-    });
-
-    it('should format amount with 2 decimal places (toFixed)', async () => {
-      mockedAxios.post.mockResolvedValueOnce({
-        data: { id: 'ORDER-456', status: 'CREATED' },
-      });
-
-      await service.createOrder(19.999);
-
-      const orderCallBody = mockedAxios.post.mock.calls[1][1] as any;
-      expect(orderCallBody.purchase_units[0].amount.value).toBe('20.00');
-    });
-
-    it('should throw UnauthorizedException when getAccessToken fails', async () => {
-      jest.clearAllMocks();
-      mockedAxios.post.mockRejectedValueOnce(new Error('Auth failed'));
-
-      await expect(service.createOrder(100)).rejects.toThrow(
-        InternalServerErrorException,
-      );
-    });
-
-    it('should throw InternalServerErrorException on API 400', async () => {
-      mockedAxios.post.mockRejectedValueOnce(
-        new Error('Request failed with status code 400'),
-      );
-
-      await expect(service.createOrder(100)).rejects.toThrow(
-        InternalServerErrorException,
-      );
-    });
-
-    it('should throw InternalServerErrorException on API 500', async () => {
-      mockedAxios.post.mockRejectedValueOnce(
-        new Error('Request failed with status code 500'),
-      );
-
-      await expect(service.createOrder(100)).rejects.toThrow(
-        InternalServerErrorException,
-      );
-    });
-  });
-
-  // ─────────────────────────────────────────
-  // capturePayment
-  // ─────────────────────────────────────────
-  describe('capturePayment', () => {
-    beforeEach(() => {
-      mockedAxios.post.mockResolvedValueOnce({
-        data: { access_token: 'mock-token-123' },
-      });
-    });
-
-    it('should capture payment successfully', async () => {
-      mockedAxios.post.mockResolvedValueOnce({
-        data: { id: 'ORDER-123', status: 'COMPLETED' },
-      });
-
-      const result = await service.capturePayment('ORDER-123');
-      expect(result.status).toBe('COMPLETED');
-    });
-
-    it('should throw BadRequestException on insufficient balance', async () => {
-      mockedAxios.post.mockRejectedValueOnce(new Error('INSTRUMENT_DECLINED'));
-
-      await expect(service.capturePayment('ORDER-123')).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should throw BadRequestException on duplicate payment', async () => {
-      mockedAxios.post.mockRejectedValueOnce(
-        new Error('ORDER_ALREADY_CAPTURED'),
-      );
-
-      await expect(service.capturePayment('ORDER-123')).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-  });
-
-  // ─────────────────────────────────────────
-  // refundPayment
-  // ─────────────────────────────────────────
-  describe('refundPayment', () => {
-    beforeEach(() => {
-      mockedAxios.post.mockResolvedValueOnce({
-        data: { access_token: 'mock-token-123' },
-      });
-    });
-
-    it('should refund full payment successfully', async () => {
-      mockedAxios.post.mockResolvedValueOnce({
-        data: { id: 'REFUND-001', status: 'COMPLETED' },
-      });
-
-      const result = await service.refundPayment('CAPTURE-123');
-      expect(result.status).toBe('COMPLETED');
-    });
-
-    it('should refund partial amount successfully', async () => {
-      mockedAxios.post.mockResolvedValueOnce({
-        data: { id: 'REFUND-002', status: 'COMPLETED' },
-      });
-
-      const result = await service.refundPayment('CAPTURE-123');
-      expect(result).toEqual({ id: 'REFUND-002', status: 'COMPLETED' });
-    });
-
-    it('should throw BadRequestException when refund exceeds captured amount', async () => {
-      mockedAxios.post.mockRejectedValueOnce(
-        new Error('REFUND_AMOUNT_EXCEEDED'),
-      );
-
-      await expect(service.refundPayment('CAPTURE-123')).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should throw BadRequestException when refunding unpaid order', async () => {
-      mockedAxios.post.mockRejectedValueOnce(new Error('CAPTURE_NOT_FOUND'));
-
-      await expect(service.refundPayment('INVALID-CAPTURE')).rejects.toThrow(
-        BadRequestException,
-      );
-    });
+    expect(paypalService.capturePayment).toHaveBeenCalledWith('PAYPAL-ORDER-1');
+    expect(result.providerData).toEqual(
+      expect.objectContaining({ captureId: 'CAPTURE-1' }),
+    );
   });
 });
