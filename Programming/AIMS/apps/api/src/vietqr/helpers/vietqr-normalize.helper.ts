@@ -2,15 +2,17 @@ const CONTENT_MAX_LENGTH = 23;
 const ORDER_ID_MAX_LENGTH = 13;
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * Helper: VietqrNormalizeHelper
  *
- * Coupling reason:
- * - These helpers receive only primitive text values and length limits.
- * - They do not access provider clients, payment records, services, or shared mutable state.
+ * SOLID Review:
+ * SRP: Satisfied. The helper only normalizes VietQR text and order references.
+ * OCP: Satisfied. New normalization helpers can be added without changing callers.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. Each function has a small text-normalization purpose.
+ * DIP: Satisfied. Services call helper functions instead of embedding formatting rules.
  *
- * Cohesion reason:
- * - All exported functions normalize VietQR content or derive VietQR-safe order identifiers.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: The helper works with strings and keeps VietQR-safe formatting rules together.
  */
 export function normalizeVietqrText(value: string, maxLength: number): string {
   const normalized = value

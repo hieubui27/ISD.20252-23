@@ -2,15 +2,18 @@ import { BadRequestException } from '@nestjs/common';
 import { PaymentStatus } from '../constants/payment.constants';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * Helper: PaymentTransactionStatusHelper
  *
- * Coupling reason:
- * - These helpers receive only primitive status values and compare them with payment status constants.
- * - They do not access services, database records, provider clients, or shared mutable state.
+ * SOLID Review:
+ * SRP: Satisfied. The helper validates payment transaction status transitions.
+ * OCP: Satisfied. New rules can be added as separate helper functions.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. Each function checks one transition rule.
+ * DIP: Satisfied. Services use these helpers instead of duplicating status checks.
  *
- * Cohesion reason:
- * - All exported functions validate allowed payment transaction status transitions.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: The helper receives primitive status values and all functions protect
+ *   PaymentTransaction state changes.
  */
 export function ensureCanMarkSuccess(status: string): void {
   if (status !== PaymentStatus.PENDING) {

@@ -14,28 +14,20 @@ import { VietqrCallbackService } from './vietqr-callback.service';
 import { VietqrSandboxService } from './vietqr-sandbox.service';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * Controller: VietqrController
  *
- * Coupling reason:
- * - This controller depends only on VietqrService, VietqrCallbackService, VietQR DTOs, and the callback token guard.
- * - It does not query the database or call VietQR HTTP APIs directly.
+ * SOLID Review:
+ * SRP: Acceptable. It handles VietQR callback and sandbox test endpoints.
+ * OCP: Acceptable for the current scope. Sandbox behavior can be split later if needed.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. Each endpoint receives a focused DTO.
+ * DIP: Satisfied. The controller delegates work to services and a response mapper.
  *
- * Cohesion reason:
- * - All methods expose VietQR-specific endpoints for callback synchronization, QR generation, and sandbox callback testing.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: The controller passes VietQR DTOs to VietQR services and keeps
+ *   VietQR HTTP endpoints together.
  */
 @Controller()
-/**
- * SOLID review:
- * - SRP: Low risk. The controller remains within the VietQR boundary, but it mixes
- *   production QR/callback endpoints with sandbox callback testing.
- * - OCP: Partial violation for sandbox behavior. Production hardening currently
- *   requires modifying this controller instead of enabling/disabling a separate
- *   test-only module.
- * - Improvement: Split sandbox endpoints into a VietqrSandboxController registered
- *   only in non-production environments. Keep this controller for production
- *   callback and QR endpoints only.
- */
 export class VietqrController {
   constructor(
     private readonly vietqrCallbackService: VietqrCallbackService,

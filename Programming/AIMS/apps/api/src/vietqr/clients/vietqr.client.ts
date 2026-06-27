@@ -1,13 +1,16 @@
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * Port: VietqrClient
  *
- * Coupling reason:
- * - This port defines primitive and structured request/response contracts for VietQR HTTP communication.
- * - It hides the concrete HTTP client from VietqrService and does not expose AIMS persistence models.
+ * SOLID Review:
+ * SRP: Satisfied. This file defines the outbound VietQR client contract.
+ * OCP: Satisfied. Another HTTP client can implement the same interface.
+ * LSP: Satisfied. Implementations can replace each other through the port.
+ * ISP: Satisfied. The methods match the VietQR calls used by the app.
+ * DIP: Satisfied. VietQR services depend on this port, not a concrete HTTP library.
  *
- * Cohesion reason:
- * - All interfaces describe the outbound VietQR client boundary.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: The port passes request and response DTOs and keeps outbound VietQR
+ *   communication in one boundary.
  */
 export interface VietqrAccessTokenResponse {
   access_token?: string;

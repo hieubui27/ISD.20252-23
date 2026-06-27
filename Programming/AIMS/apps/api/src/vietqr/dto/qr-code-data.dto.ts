@@ -1,13 +1,15 @@
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * DTO: QRCodeDataDto
  *
- * Coupling reason:
- * - This DTO carries only primitive QR code result fields from VietqrService to payment callers.
- * - It does not contain provider client objects, persistence entities, or mutable global state.
+ * SOLID Review:
+ * SRP: Satisfied. It stores the QR result returned from VietQR generation.
+ * OCP: Satisfied. Optional URL/content fields support different VietQR responses.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. It contains only QR result fields.
+ * DIP: Satisfied. Payment code consumes this DTO instead of raw provider responses.
  *
- * Cohesion reason:
- * - All properties describe the result of one generated VietQR code.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: It passes primitive QR data and all fields describe one generated QR code.
  */
 export class QRCodeDataDto {
   qrCode!: string;

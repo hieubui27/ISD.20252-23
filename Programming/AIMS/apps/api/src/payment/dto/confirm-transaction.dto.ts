@@ -9,15 +9,17 @@ import {
 import { PaymentMethod, PaymentStatus } from '../constants/payment.constants';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * DTO: ConfirmTransactionDto
  *
- * Coupling reason:
- * - This DTO contains only primitive transaction confirmation fields consumed by PaymentService.
- * - It does not depend on Prisma records, provider clients, or shared mutable state.
+ * SOLID Review:
+ * SRP: Satisfied. It holds the data needed to confirm one transaction.
+ * OCP: Satisfied. The payment method field lets the service choose the proper provider.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. No unrelated request fields are included.
+ * DIP: Satisfied. The API layer sends simple data to PaymentService.
  *
- * Cohesion reason:
- * - All properties validate the data required to confirm a single payment transaction.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: It carries primitive confirmation data and all fields serve the same API action.
  */
 export class ConfirmTransactionDto {
   @IsString()

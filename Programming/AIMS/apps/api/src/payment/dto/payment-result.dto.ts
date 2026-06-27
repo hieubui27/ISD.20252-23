@@ -1,13 +1,16 @@
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * DTO: PaymentResultDto
  *
- * Coupling reason:
- * - This DTO exposes only primitive response fields returned by payment APIs.
- * - It does not carry provider client instances, database records, or shared state.
+ * SOLID Review:
+ * SRP: Satisfied. It represents the response of a payment operation.
+ * OCP: Satisfied. Optional URL and QR fields support different providers.
+ * LSP: Not applicable. No inheritance hierarchy.
+ * ISP: Satisfied. The DTO contains only response fields needed by callers.
+ * DIP: Satisfied. Payment APIs return this DTO instead of provider-specific objects.
  *
- * Cohesion reason:
- * - All properties describe the result of a payment operation returned to callers.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: It carries primitive response data and keeps provider output in a
+ *   common payment shape.
  */
 export class PaymentResultDto {
   success!: boolean;

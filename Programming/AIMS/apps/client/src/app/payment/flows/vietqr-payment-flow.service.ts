@@ -30,13 +30,21 @@ const POLLING_INTERVAL_MS = 10_000;
 const VIETQR_TRANS_TYPE_CREDIT = 'C';
 const VIETQR_PAYMENT_SNAPSHOT_KEY = 'aims.vietQrPaymentSnapshot';
 
-@Injectable({ providedIn: 'root' })
 /**
- * VietQR flow owner: creates the payment request, stores the latest snapshot,
- * polls transaction status, and triggers the sandbox callback used by this app.
- * If production and sandbox behavior diverge later, move the callback call behind
- * a small environment-specific service.
+ * Service: VietQrPaymentFlowService
+ *
+ * SOLID Review:
+ * SRP: Satisfied. It owns the VietQR payment flow on the client side.
+ * OCP: Satisfied. Provider-specific behavior stays behind PaymentFlowStrategy.
+ * LSP: Satisfied. It implements PaymentFlowStrategy for VietQR snapshots.
+ * ISP: Satisfied. Public flow methods stay focused on start, resume, confirm, stop, and snapshots.
+ * DIP: Satisfied. It uses API services instead of raw HTTP calls.
+ *
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: It passes payment snapshots and DTOs between UI and API services,
+ *   and all methods support the VietQR client payment flow.
  */
+@Injectable({ providedIn: 'root' })
 export class VietQrPaymentFlowService
   implements
     PaymentFlowStrategy<VietQrPaymentInput, VietQrPaymentSnapshot>,

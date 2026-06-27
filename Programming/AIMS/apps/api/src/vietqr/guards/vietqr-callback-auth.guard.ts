@@ -8,15 +8,18 @@ import { VietqrConfigService } from '../config/vietqr-config.service';
 import { VietqrInboundService } from '../vietqr-inbound.service';
 
 /**
- * Coupling: Data Coupling
- * Cohesion: Functional Cohesion
+ * Guard: VietqrCallbackAuthGuard
  *
- * Coupling reason:
- * - This guard reads only the callback authorization header, static test token, and issued inbound token validator.
- * - It does not query orders, payment transactions, user roles, or provider HTTP APIs.
+ * SOLID Review:
+ * SRP: Satisfied. It only validates VietQR callback bearer tokens.
+ * OCP: Satisfied. Token validation can change inside VietqrInboundService.
+ * LSP: Satisfied. It follows NestJS CanActivate behavior.
+ * ISP: Satisfied. The guard exposes only canActivate().
+ * DIP: Satisfied. It uses VietqrInboundService and config instead of hard-coded validation.
  *
- * Cohesion reason:
- * - Its single responsibility is validating VietQR callback bearer-token authentication.
+ * + Coupling/Cohesion level: Data Coupling / Functional Cohesion
+ * + Reason why: The guard reads the auth header and config values, and all logic is
+ *   about VietQR callback authentication.
  */
 @Injectable()
 export class VietqrCallbackAuthGuard implements CanActivate {
