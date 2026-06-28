@@ -25,21 +25,9 @@ import {
 import { WeightBasedShippingStrategy } from './infrastructure/adapter/weight-based-shipping.strategy';
 import { PrismaOrderRepository } from './infrastructure/repositories/prisma-order.repository';
 
-/**
- * Owns the reusable place-order domain providers (ports + their implementations)
- * and exports the abstractions. Imported by both PlaceOrderModule and
- * PaymentModule, so the payment adapter and the facade share one wiring without
- * a circular module dependency.
- *
- * To switch the active shipping strategy (future requirement #3), change the
- * single `useClass` line below – no consumer code changes (OCP + DIP).
- */
 @Module({
   imports: [PrismaModule, MailModule],
   providers: [
-    // ── Strategy: shipping fee. Swap implementation here only. ──
-    // Pricing DATA (zones/cities/fees) is injected; add a city by editing
-    // DEFAULT_SHIPPING_FEE_CONFIG, or override this token per environment.
     { provide: SHIPPING_FEE_CONFIG, useValue: DEFAULT_SHIPPING_FEE_CONFIG },
     { provide: SHIPPING_FEE_CALCULATOR, useClass: WeightBasedShippingStrategy },
 
@@ -50,14 +38,11 @@ import { PrismaOrderRepository } from './infrastructure/repositories/prisma-orde
     StockCheckerService,
     OrderFactory,
 
-    // ── Rule-based delivery validator (behind DIP token) ──
     {
       provide: DELIVERY_INFO_VALIDATOR,
       useFactory: () => new DeliveryInfoValidator(),
     },
 
-    // ── Observer pattern: register notification channels here ──
-    // Add SMS/Zalo/Push by implementing INotificationObserver and appending it.
     EmailNotificationObserver,
     {
       provide: NOTIFICATION_OBSERVERS,

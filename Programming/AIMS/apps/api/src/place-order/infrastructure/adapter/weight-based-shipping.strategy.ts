@@ -11,16 +11,6 @@ import {
   ShippingZone,
 } from './shipping-fee.config';
 
-/**
- * Concrete Strategy – fee based on total ACTUAL weight.
- *
- * The pricing data (zones, base fees, discount thresholds) lives entirely in the
- * injected ShippingFeeConfig, so this algorithm is closed for modification:
- * adding a city or a new zone changes the DATA only, never this class (OCP).
- *
- * Switching to a different rule (e.g. volumetric weight) = a new
- * IShippingFeeCalculator implementation, without touching this class either.
- */
 @Injectable()
 export class WeightBasedShippingStrategy implements IShippingFeeCalculator {
   constructor(
@@ -47,7 +37,6 @@ export class WeightBasedShippingStrategy implements IShippingFeeCalculator {
     };
   }
 
-  /** Finds the first configured zone the province belongs to, else the default. */
   private resolveZone(province: string): Omit<ShippingZone, 'provinces'> {
     const normalizedProvince = this.normalizeProvinceName(province);
 

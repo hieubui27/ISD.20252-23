@@ -15,10 +15,6 @@ import {
   SHIPPING_FEE_CALCULATOR,
 } from '../ports/shipping-fee-calculator.port';
 
-/**
- * Builds invoice previews (VAT + shipping). Delegates the shipping fee to the
- * injected Strategy, so it is agnostic of weight-based vs volumetric rules.
- */
 @Injectable()
 export class InvoiceCalculator {
   constructor(
@@ -79,7 +75,6 @@ export class InvoiceCalculator {
     };
   }
 
-  /** Rebuilds a preview from an already-persisted order (for the confirmation email). */
   buildFromPersistedOrder(order: PersistedOrderDetail): InvoicePreviewDto {
     const items: InvoiceItemDto[] = order.lines.map((line) => ({
       productId: line.productId,

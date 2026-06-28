@@ -1,20 +1,9 @@
-/**
- * Repository port – the single abstraction the place-order domain uses to talk
- * to persistence. Every Prisma call lives behind this interface.
- *
- * Coupling: Data Coupling – only plain read-models / inputs cross the boundary;
- *   Prisma Decimal/BigInt are normalised to number/string here.
- * Cohesion: Functional Cohesion – all methods serve order persistence.
- * DIP: high-level services depend on this interface, not on PrismaService.
- */
 export const ORDER_REPOSITORY = 'ORDER_REPOSITORY';
 
-/** Read-model of a product, normalised away from Prisma types. */
 export interface ProductSnapshot {
   id: number;
   title: string;
   currentPrice: number;
-  /** Weight as stored in DB (grams). */
   weightGrams: number;
   quantity: number;
   status: string;
@@ -102,13 +91,10 @@ export interface IOrderRepository {
   findOrderDetailByOrderId(
     orderId: string,
   ): Promise<PersistedOrderDetail | null>;
-  /** Creates an order awaiting payment (no stock decrement). */
   createPendingPaymentOrder(input: CreateOrderInput): Promise<CreatedOrderRef>;
-  /** Creates an already-paid order, decrements stock and records the payment, atomically. */
   createConfirmedOrder(
     input: CreateOrderInput,
     payment: ConfirmedPaymentInput,
   ): Promise<void>;
-  /** Moves an existing PENDING_PAYMENT order to PENDING_PROCESSING and decrements stock atomically. */
   applyPaidTransition(orderId: string): Promise<PersistedOrderDetail>;
 }

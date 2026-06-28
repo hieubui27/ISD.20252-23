@@ -10,10 +10,6 @@ import {
   PendingProcessingState,
 } from './order-state';
 
-/**
- * Maps a persisted status string to its IOrderState object.
- * Centralises the only place that needs to know the set of states.
- */
 @Injectable()
 export class OrderStateFactory {
   create(status: string): IOrderState {

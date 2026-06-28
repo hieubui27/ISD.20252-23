@@ -7,10 +7,6 @@ import {
 } from '../../dto/stock-check-result.dto';
 import { ProductSnapshot } from '../ports/order-repository.port';
 
-/**
- * Pure domain logic: given requested items and the products read from storage,
- * decide whether stock is sufficient. No DB, no framework state.
- */
 @Injectable()
 export class StockCheckerService {
   check(
