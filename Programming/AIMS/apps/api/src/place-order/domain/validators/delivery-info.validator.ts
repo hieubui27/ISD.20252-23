@@ -1,15 +1,3 @@
-/**
- * Rule-based delivery-info validation.
- *
- * SOLID:
- *  - OCP: add a rule by implementing IDeliveryInfoRule and registering it;
- *    DeliveryInfoValidator never changes.
- *  - ISP: only validate() is exposed; the per-field checks are separate rules.
- *  - DIP: consumers depend on IDeliveryInfoValidator (DELIVERY_INFO_VALIDATOR
- *    token), not on this concrete class.
- *  - No framework/HTTP dependency (rules return messages instead of throwing
- *    HttpException), keeping the domain decoupled from NestJS.
- */
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
@@ -23,7 +11,6 @@ export interface DeliveryInfoValidationInput {
   shippingInstructions?: string;
 }
 
-/** A single self-contained rule. Returns an error message, or null when valid. */
 export interface IDeliveryInfoRule {
   validate(info: DeliveryInfoValidationInput): string | null;
 }
@@ -103,7 +90,6 @@ export class ShippingInstructionsRule implements IDeliveryInfoRule {
   }
 }
 
-/** Default rule set, ordered the way errors should be reported. */
 export const DEFAULT_DELIVERY_INFO_RULES: IDeliveryInfoRule[] = [
   new ReceiverNameRule(),
   new PhoneNumberRule(),

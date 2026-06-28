@@ -6,10 +6,6 @@ import {
   OrderConfirmedEvent,
 } from '../../domain/ports/notification.port';
 
-/**
- * Concrete Observer – the e-mail channel. The only place that knows about
- * MailService and the order-confirmation template.
- */
 @Injectable()
 export class EmailNotificationObserver implements INotificationObserver {
   constructor(private readonly mailService: MailService) {}
@@ -18,9 +14,6 @@ export class EmailNotificationObserver implements INotificationObserver {
     if (!event.recipientEmail) {
       return;
     }
-
-    // Self-service cancel link. orderId is enough for the (intentionally
-    // simple) refund flow – no signed token.
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:4200';
     const cancelUrl = event.orderId
       ? `${clientUrl}/cancel-order?orderId=${encodeURIComponent(event.orderId)}`

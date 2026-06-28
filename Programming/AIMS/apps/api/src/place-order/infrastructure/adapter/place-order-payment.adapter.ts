@@ -23,14 +23,6 @@ import {
 import { InvoiceCalculator } from '../../domain/services/invoice-calculator.service';
 import { OrderStateFactory } from '../../domain/states/order-state.factory';
 
-/**
- * Adapter that lets the payment module drive the order domain (Ports & Adapters).
- *
- * After refactor it is a thin bridge: persistence is delegated to the
- * repository, the legal status transition is decided by the State pattern, and
- * the confirmation e-mail is emitted through the Observer publisher. It no
- * longer touches Prisma or MailService directly => SRP, low coupling.
- */
 @Injectable()
 export class PlaceOrderPaymentAdapter implements PlaceOrderPaymentPort {
   constructor(
@@ -82,7 +74,6 @@ export class PlaceOrderPaymentAdapter implements PlaceOrderPaymentPort {
       throw new BadRequestException('Amount mismatch');
     }
 
-    // State pattern: decide whether the transition is legal / a no-op.
     const transition = this.orderStateFactory
       .create(order.status)
       .confirmPayment();

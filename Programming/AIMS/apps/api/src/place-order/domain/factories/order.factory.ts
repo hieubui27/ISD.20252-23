@@ -4,11 +4,6 @@ import { DeliveryInfoDto } from '../../dto/delivery-info.dto';
 import { InvoicePreviewDto } from '../../dto/invoice-preview.dto';
 import { CreateOrderInput } from '../ports/order-repository.port';
 
-/**
- * Factory – assembles the persistence input for a new order from a priced
- * invoice + delivery info. Removes the duplicated order-building code that used
- * to live in both createPayment() and confirmOrder().
- */
 @Injectable()
 export class OrderFactory {
   buildCreateOrderInput(

@@ -9,13 +9,6 @@ import { DeliveryInfoDto } from '../../dto/delivery-info.dto';
 import { InvalidDeliveryInfoException } from '../../exceptions/invalid-delivery-info.exception';
 import { PaymentNotSuccessfulException } from '../../exceptions/payment-not-successful.exception';
 
-/**
- * Owns all input validation for the place-order flow.
- *
- * The old `validateDeliveryInfo(dto, requireEmail)` flag (control coupling) is
- * replaced by two intent-revealing methods. The flag survives only as a private
- * helper, so the public contract is data-coupled.
- */
 @Injectable()
 export class OrderValidationService {
   constructor(

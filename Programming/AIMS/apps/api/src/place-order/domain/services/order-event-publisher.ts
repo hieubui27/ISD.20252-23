@@ -6,11 +6,6 @@ import {
   OrderConfirmedEvent,
 } from '../ports/notification.port';
 
-/**
- * Subject/Publisher of the Observer pattern. Notifies every registered observer
- * and never throws – a failing notification channel must not break the order
- * flow (callers may fire-and-forget).
- */
 @Injectable()
 export class OrderEventPublisher implements IOrderEventPublisher {
   constructor(

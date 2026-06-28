@@ -17,11 +17,6 @@ import {
 
 type PrismaClientLike = { [key: string]: any };
 
-/**
- * Adapter (Repository) – the only class allowed to touch Prisma.
- * Normalises Prisma Decimal/BigInt into plain numbers/strings so the domain
- * never depends on persistence types.
- */
 @Injectable()
 export class PrismaOrderRepository implements IOrderRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -125,10 +120,6 @@ export class PrismaOrderRepository implements IOrderRepository {
           throw new BadRequestException('Order payment context not found');
         }
 
-        // Atomically claim the transition: only the caller that flips
-        // PENDING_PAYMENT -> PENDING_PROCESSING is allowed to decrement stock.
-        // Duplicate/concurrent payment callbacks get count === 0 and skip the
-        // decrement, so stock is never reduced twice (idempotent under races).
         const claimed = await tx.order.updateMany({
           where: { orderId, status: ORDER_STATUS_PENDING_PAYMENT },
           data: {
@@ -159,8 +150,6 @@ export class PrismaOrderRepository implements IOrderRepository {
 
     return this.toOrderDetail(updated);
   }
-
-  // ── helpers ──────────────────────────────────────────────────────────────
 
   private async insertOrderWithLinesAndInvoice(
     tx: PrismaClientLike,
@@ -201,10 +190,6 @@ export class PrismaOrderRepository implements IOrderRepository {
     return { orderId: order.orderId, invoiceId: invoice.id.toString() };
   }
 
-  /**
-   * Atomic conditional decrement (guards against overselling under concurrency).
-   * Returns false when there isn't enough stock – the caller decides how to react.
-   */
   private async tryDecrementStock(
     tx: PrismaClientLike,
     productId: number,
@@ -218,10 +203,6 @@ export class PrismaOrderRepository implements IOrderRepository {
     return result.count > 0;
   }
 
-  /**
-   * Order-create flow: a shortage is a customer-facing problem, so report the
-   * latest available amount via InvalidQuantityException.
-   */
   private async decrementStockForOrderCreation(
     tx: PrismaClientLike,
     productId: number,
@@ -240,10 +221,6 @@ export class PrismaOrderRepository implements IOrderRepository {
     ]);
   }
 
-  /**
-   * Paid-callback flow: stock was already reserved, so a shortage here is an
-   * internal inconsistency rather than a customer input error.
-   */
   private async decrementStockForPaidCallback(
     tx: PrismaClientLike,
     productId: number,

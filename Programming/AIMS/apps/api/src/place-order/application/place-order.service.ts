@@ -37,16 +37,6 @@ import { InvoiceCalculator } from '../domain/services/invoice-calculator.service
 import { OrderValidationService } from '../domain/services/order-validation.service';
 import { StockCheckerService } from '../domain/services/stock-checker.service';
 
-/**
- * FACADE / Orchestrator for the place-order use cases.
- *
- * It only coordinates collaborators – validation, stock check, invoice
- * calculation, persistence (repository), notification (observer) – and contains
- * no DB access, no VAT/shipping math, and no email logic of its own.
- *
- * Coupling: Data Coupling (depends on abstractions/DTOs).
- * Cohesion: Functional Cohesion (one job: drive the ordering workflow).
- */
 @Injectable()
 export class PlaceOrderBeService {
   constructor(
@@ -171,12 +161,6 @@ export class PlaceOrderBeService {
     return successDto;
   }
 
-  /**
-   * Shared pricing pipeline: normalise items, load their products, guarantee
-   * stock, then build the priced invoice. Used by processDeliveryInfo /
-   * createPayment / confirmOrder so this four-step sequence lives in exactly one
-   * place (DRY).
-   */
   private async priceOrder(
     items: CartItemDto[],
     deliveryInfo: DeliveryInfoDto,
